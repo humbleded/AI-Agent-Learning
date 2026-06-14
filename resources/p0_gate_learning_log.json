@@ -1,0 +1,20 @@
+[
+  {
+    "date": "2026-06-14",
+    "topic": "学习JSON",
+    "minutes": 30,
+    "note": "学习了JSON"
+  },
+  {
+    "date": "2026-06-14",
+    "topic": "学习调用API",
+    "minutes": 60,
+    "note": "学习了怎么样调用API"
+  },
+  {
+    "date": "2026-06-14",
+    "topic": "学习LLM",
+    "minutes": 10,
+    "note": "学习了LLM"
+  }
+]

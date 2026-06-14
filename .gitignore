@@ -1,0 +1,35 @@
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+
+# Python environments and caches
+.venv/
+venv/
+env/
+proj101env/
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Local generated data
+*.db
+*.sqlite
+*.sqlite3
+resources/sandbox/
+resources/stage0_5/
+resources/stage6/
+
+# Downloaded reference repositories
+repos/
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
