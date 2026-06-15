@@ -45,11 +45,12 @@ load_dotenv()  # 读 .env -> 环境变量；必须在 os.environ.get 之前调�
 # ==========================================================================
 
 
-def call_model(prompt: str) -> str:
+def call_model(prompt: str, system: str = "You are a helpful assistant") -> str:
     """把一句话 prompt 发给模型，返回模型回复的文本。
 
     参数：
         prompt：要问模型的内容（一段普通字符串）。
+        system：系统规则/身份设定；不传用默认，想让这次问答换规则就传它。
     返回：
         模型回复的文本；出错时返回一句可读提示，不抛异常、不打印堆栈。
         （这一点对应 L1-02 检查题：如何给用户显示错误提示。）
@@ -75,7 +76,7 @@ def call_model(prompt: str) -> str:
         response = client.chat.completions.create(
             model="deepseek-v4-pro",
             messages=[
-                {"role": "system", "content": "You are a helpful assistant"},
+                {"role": "system", "content": system},
                 {"role": "user", "content": prompt},
             ],
             stream=False,

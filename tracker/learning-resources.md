@@ -70,6 +70,38 @@
 - 建议节奏：每过一个 **Gate**，把该阶段的核心概念、自己的问答、踩的坑，整理成 1–2 张 Obsidian 笔记同步进去。用 `smart-connections` / `omnisearch` 在复习和面试前快速检索。
 - 现在它是空的很正常——你才到阶段 0 尾。等 L1-Gate 过了，就可以写第一张「大模型 API 调用要点」卡片进去。
 
-## 七、一句话原则
+## 七、怎么用 Agent-Learning-Hub（嫁接 3 样，别照搬）
+
+`repos/Agent-Learning-Hub/README.md`（Datawhale，hello-agents 同作者）是一份「现代生产视角的 Agent 学习路线图 + 项目阶梯 + 资料索引」。它**比本路线更超前、更偏 agent 基础设施**（钻 Claude Code / OpenClaw harness 内部），默认你已会 Python/LLM 基础。**结论：保留本路线当主干，从 Hub 只嫁接下面 3 样，其余当索引查，别整本照搬**（它资料量巨大，照搬会淹没，且和你已有的 hello-agents / agentic-design-patterns / agents-course 重复）。
+
+### 嫁接① Project Ladder = 你的「作品集项目菜单」（最有价值）
+
+Hub 的 11 级项目阶梯，大半正好能套在你已有的 Gate / J11 上——本来就要做这些关卡，按「可运行 + README + 失败记录」的成品标准交付即可：
+
+| Hub 阶梯 | 对应本路线任务 | 定位 |
+| --- | --- | --- |
+| L1 计算器 Agent | T3-02 计算器工具 | 已有 |
+| L2 Web 研究 Agent | 阶段4 A4-Gate | 作品集① |
+| L3 PDF 问答 Agent | 阶段6 R6-Gate | 作品集② |
+| L4 代码审查 Agent | 额外可选 | 🎯 .NET 背景做这个是差异化亮点 |
+| L9 多 Agent 写作 | S-04 / D7-02（阶段7） | 多 Agent demo |
+| L11 生产级 Harness | 阶段10 + J11-05 可观测 | 作品集④ FINAL |
+
+### 嫁接② Stage 0 两篇必读 + 心法清单（阶段4 入门时读）
+
+- [Anthropic《Building effective agents》](https://www.anthropic.com/engineering/building-effective-agents)、[OpenAI 实用 agent 指南](https://openai.com/business/guides-and-resources/a-practical-guide-to-building-ai-agents/)——尤其「**什么时候不该用 agent**」，应用岗面试高频。
+- Learning Principles 当贯穿全程的检查清单：先做再深读、小而可靠胜过炫 demo、**加 agent 前先加 eval**、工具用严格 schema、每次重要运行都 trace、危险操作留人工确认。
+
+### 嫁接③ README 当「到点查的索引」
+
+到某阶段时瞄一眼 Hub 对应 Stage 的资料/论文/开源项目补充（如 RAG 阶段看它 Stage 2 项目表），**当字典查、不当作业做**。
+
+### 了解即可、别陷进去
+
+- 钻 Claude Code / OpenClaw harness 内部（Hub Stage 3、阶梯 L6/L7、Claude Code Study Path）：偏基础设施、非应用岗主路，且与**阶段5 源码精读已重复**，做一个就够。
+- Stage 6 浏览器/电脑操作 Agent：有余力的加分项，不在主线。
+- A2A / ACP 协议：知道「干嘛的」即可；MCP 阶段9 已覆盖。
+
+## 八、一句话原则
 
 资料不缺，缺的是「按顺序读完 + 动手 + 沉淀」。stage 0–10 用 `repos/` 里现成的；新增的工程 / 求职层按第四节补；**不要再花时间到处收集新资料了。**

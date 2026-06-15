@@ -10,6 +10,6 @@
 
 ## 当前情况
 
-- 在职学习，目标岗位：大模型应用 / Agent 应用开发。
+- 在职学习，目标岗位：大模型应用 / Agent 应用开发/AI全栈开发。
 - 调模型用 DeepSeek API（兼容 OpenAI SDK，`base_url=https://api.deepseek.com`）。
 - 实时进度看 `tracker/progress.md`，近期安排看 `tracker/weekly-plan.md` 和 `daily/`。
