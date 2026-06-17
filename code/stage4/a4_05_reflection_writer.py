@@ -13,25 +13,21 @@ A4-05 Reflection Writer。
 
 
 def critique(draft):
-    tips = []
-    if len(draft) < 50:
-        tips.append("内容太短，需要补充背景和例子。")
-    if "因为" not in draft:
-        tips.append("缺少原因解释。")
-    return tips or ["结构基本完整，检查术语是否准确。"]
+    """对初稿给出反思意见列表（如太短 / 缺原因解释等）；没问题也返回一条检查提示。"""
+    # TODO
+    raise NotImplementedError("A4-05：实现 critique")
 
 
 def revise(draft, tips):
-    return draft + "\n\n改进方向：\n" + "\n".join(f"- {tip}" for tip in tips)
+    """根据 tips 把初稿改写成改进稿（把改进方向附在后面）。"""
+    # TODO
+    raise NotImplementedError("A4-05：实现 revise")
 
 
 def main():
-    draft = input("初稿：").strip()
-    tips = critique(draft)
-    improved = revise(draft, tips)
-    print("反思：", tips)
-    print("改进稿：")
-    print(improved)
+    """读初稿 -> critique 得到意见 -> revise 得到改进稿 -> 打印反思和改进稿。"""
+    # TODO
+    raise NotImplementedError("A4-05：实现 main")
 
 
 if __name__ == "__main__":

@@ -17,23 +17,21 @@ from a4_05_reflection_writer import critique, revise
 
 
 def load_material(topic_or_path):
-    path = Path(topic_or_path)
-    if path.exists() and path.is_file():
-        return path.read_text(encoding="utf-8", errors="replace")
-    return f"模拟资料：关于 {topic_or_path} 的三条事实。"
+    """如果传的是存在的文件路径就读文件内容，否则当成主题返回一段模拟资料。"""
+    # TODO
+    raise NotImplementedError("A4-Gate：实现 load_material")
 
 
 def summarize(material):
-    return "总结：" + material[:200]
+    """把资料压成一段总结。"""
+    # TODO
+    raise NotImplementedError("A4-Gate：实现 summarize")
 
 
 def main():
-    target = input("主题或文件路径：").strip()
-    material = load_material(target)
-    first_summary = summarize(material)
-    tips = critique(first_summary)
-    final_summary = revise(first_summary, tips)
-    print(final_summary)
+    """读主题/路径 -> load_material -> summarize 出初稿 -> critique+revise 反思修正 -> 打印终稿。"""
+    # TODO
+    raise NotImplementedError("A4-Gate：实现 main")
 
 
 if __name__ == "__main__":

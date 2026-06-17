@@ -12,21 +12,26 @@ H5-04 Tools 层阅读与新增工具。
 
 
 class CustomEchoTool:
-    name = "custom_echo"
-    description = "返回用户输入，并附带长度信息。"
+    """最小工具类：自己补全 name、description 和 run 方法。
+
+    要求：
+      - name: 工具名（字符串）。
+      - description: 一句话说明工具做什么。
+      - run(self, text): 校验 text 是字符串，返回 {"ok": True, "text": ..., "length": ...}；
+        类型不对返回 {"ok": False, "error": ...}。
+    """
+
+    # TODO: 定义 name、description 类属性
 
     def run(self, text):
-        if not isinstance(text, str):
-            return {"ok": False, "error": "text 必须是字符串"}
-        return {"ok": True, "text": text, "length": len(text)}
+        # TODO
+        raise NotImplementedError("H5-04：实现 CustomEchoTool.run")
 
 
 def main():
-    tool = CustomEchoTool()
-    text = input("text: ")
-    print({"tool": tool.name, "description": tool.description})
-    print(tool.run(text))
-    print("TODO：阅读 hello_agents/tools/registry.py 后，把本工具注册进去。")
+    """实例化工具 -> 打印 name/description -> 读 text 调 run -> 打印结果。"""
+    # TODO
+    raise NotImplementedError("H5-04：实现 main")
 
 
 if __name__ == "__main__":

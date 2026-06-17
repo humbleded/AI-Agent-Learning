@@ -15,28 +15,18 @@ LABELS = ["问题", "投诉", "建议", "闲聊", "其他"]
 
 
 def classify(text):
-    if any(word in text for word in ["怎么", "为什么", "能不能", "如何"]):
-        return "问题"
-    if any(word in text for word in ["太差", "不满意", "投诉", "退款"]):
-        return "投诉"
-    if any(word in text for word in ["建议", "希望", "可以增加"]):
-        return "建议"
-    if any(word in text for word in ["你好", "哈哈", "随便聊"]):
-        return "闲聊"
-    return "其他"
+    """把一段文本归到 LABELS 之一（先用关键词规则，后续可换成模型）。
+
+    步骤：根据文本里出现的关键词判断属于「问题/投诉/建议/闲聊」，都不匹配返回「其他」。
+    """
+    # TODO
+    raise NotImplementedError("PR2-03：实现 classify")
 
 
 def run_tests():
-    samples = [
-        "这个接口为什么超时？",
-        "我不满意，要求退款",
-        "建议增加导出功能",
-        "你好，今天状态如何",
-        "订单 12345",
-    ]
-    for text in samples:
-        print(text, "=>", classify(text))
-    print("TODO：补足到 15 条，并写下分类错误原因。")
+    """准备 ≥15 条测试样例，逐条打印「文本 => 预测标签」，并记录分类错误原因。"""
+    # TODO: 补足到 15 条样例 -> 逐条 classify 并打印 -> 写下错误分析
+    raise NotImplementedError("PR2-03：实现 run_tests")
 
 
 if __name__ == "__main__":

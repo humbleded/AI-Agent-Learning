@@ -15,23 +15,16 @@ API_URL = "https://api.github.com"
 
 
 def public_api_tool(url=API_URL):
-    try:
-        import requests
-    except ImportError:
-        return {"ok": False, "error": "请先安装 requests"}
+    """调用公开 API，只返回必要字段（别把巨大 JSON 全塞给模型）。
 
-    try:
-        response = requests.get(url, timeout=8)
-        return {
-            "ok": response.ok,
-            "status_code": response.status_code,
-            "server": response.headers.get("server"),
-            "rate_limit": response.headers.get("x-ratelimit-limit"),
-        }
-    except requests.exceptions.Timeout:
-        return {"ok": False, "error": "timeout"}
-    except requests.exceptions.RequestException as exc:
-        return {"ok": False, "error": str(exc)}
+    步骤：
+      1. import requests（没装就返回错误）。
+      2. requests.get(url, timeout=...)，一定要设 timeout。
+      3. 只挑必要字段返回，如 ok / status_code / server / rate_limit。
+      4. 分别捕获 Timeout 和其他 RequestException，返回 {"ok": False, "error": ...}。
+    """
+    # TODO
+    raise NotImplementedError("T3-04：实现 public_api_tool")
 
 
 if __name__ == "__main__":

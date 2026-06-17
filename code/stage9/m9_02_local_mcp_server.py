@@ -21,15 +21,15 @@ TOOLS = {
 
 
 def list_tools():
-    return TOOLS
+    """工具发现：返回 TOOLS（让客户端知道有哪些工具）。"""
+    # TODO
+    raise NotImplementedError("M9-02：实现 list_tools")
 
 
 def call_tool(name, arguments):
-    if name == "echo":
-        return {"text": arguments.get("text", "")}
-    if name == "count_chars":
-        return {"length": len(arguments.get("text", ""))}
-    return {"error": "unknown tool"}
+    """根据 name 执行对应工具并返回结果；未知工具返回 {"error": "unknown tool"}。"""
+    # TODO
+    raise NotImplementedError("M9-02：实现 call_tool")
 
 
 if __name__ == "__main__":

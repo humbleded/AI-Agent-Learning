@@ -13,23 +13,21 @@ PR2-02 摘要与改写。
 
 
 def simple_summarize(text):
-    sentences = [part.strip() for part in text.replace("。", ".").split(".") if part.strip()]
-    points = sentences[:3]
-    summary = "；".join(points)
-    return points, summary
+    """把长文切成句子，取前 3 句做要点，再拼成一段摘要，返回 (points, summary)。
+
+    步骤：
+      1. 把 text 按句号/句点切成句子列表，去掉空白句。
+      2. points = 前 3 句。
+      3. summary = 用「；」把这几条要点连起来。
+    """
+    # TODO
+    raise NotImplementedError("PR2-02：实现 simple_summarize")
 
 
 def main():
-    text = input("粘贴长文：").strip()
-    if not text:
-        print("请输入文本。")
-        return
-    points, summary = simple_summarize(text)
-    print("三条要点：")
-    for index, point in enumerate(points, start=1):
-        print(f"{index}. {point}")
-    print("摘要：", summary)
-    print("TODO：接入模型后，要求输出格式仍保持稳定。")
+    """读入一段长文，打印 3 条要点 + 1 段摘要；空输入给提示。"""
+    # TODO
+    raise NotImplementedError("PR2-02：实现 main")
 
 
 if __name__ == "__main__":

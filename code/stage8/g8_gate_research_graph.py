@@ -12,28 +12,27 @@ G8-Gate Research Graph。
 
 
 def retrieve(state):
-    state["trace"].append("retrieve")
-    state["sources"] = [f"{state['topic']} source 1", f"{state['topic']} source 2"]
-    return state
+    """节点：记 "retrieve"，根据 topic 生成 sources，返回 state。"""
+    # TODO
+    raise NotImplementedError("G8-Gate：实现 retrieve")
 
 
 def organize(state):
-    state["trace"].append("organize")
-    state["outline"] = ["背景", "要点", "结论"]
-    return state
+    """节点：记 "organize"，生成 outline，返回 state。"""
+    # TODO
+    raise NotImplementedError("G8-Gate：实现 organize")
 
 
 def write_report(state):
-    state["trace"].append("write_report")
-    state["report"] = f"# {state['topic']}\n\n- 背景\n- 要点\n- 结论"
-    return state
+    """节点：记 "write_report"，根据 topic/outline 生成 report，返回 state。"""
+    # TODO
+    raise NotImplementedError("G8-Gate：实现 write_report")
 
 
 def run(topic):
-    state = {"topic": topic, "trace": []}
-    for node in [retrieve, organize, write_report]:
-        state = node(state)
-    return state
+    """初始化 state -> 依次跑 retrieve/organize/write_report -> 返回带 trace 的 state。"""
+    # TODO
+    raise NotImplementedError("G8-Gate：实现 run")
 
 
 if __name__ == "__main__":

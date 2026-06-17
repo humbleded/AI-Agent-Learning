@@ -24,25 +24,19 @@ TOOLS = {
 
 
 def choose_tool(user_text):
-    if "读文件" in user_text:
-        return "read_file", {"relative_path": "sample.txt"}
-    if "api" in user_text.lower():
-        return "public_api", {}
-    if any(word in user_text for word in ["计算", "+", "-", "*", "/"]):
-        return "calculator", {"operation": "add", "a": 1, "b": 2}
-    return None, {}
+    """用简单规则模拟 Agent 选工具：返回 (tool_name, args)；没合适的返回 (None, {})。
+
+    步骤：根据 user_text 里的关键词决定用 read_file / public_api / calculator，
+    并给出对应的参数 dict（后续再替换成模型 tool calling）。
+    """
+    # TODO
+    raise NotImplementedError("T3-Gate：实现 choose_tool")
 
 
 def main():
-    user_text = input("用户问题：")
-    tool_name, args = choose_tool(user_text)
-    if not tool_name:
-        print("没有选择工具。TODO：让模型决定是否调用工具。")
-        return
-    result = TOOLS[tool_name](**args)
-    print("tool:", tool_name)
-    print("args:", args)
-    print("result:", result)
+    """读用户问题 -> choose_tool 选工具 -> 用 TOOLS[name](**args) 执行 -> 打印 tool/args/result。"""
+    # TODO
+    raise NotImplementedError("T3-Gate：实现 main")
 
 
 if __name__ == "__main__":

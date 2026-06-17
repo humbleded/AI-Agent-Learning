@@ -13,24 +13,21 @@ R6-01 文档读取与切分。
 
 
 def chunk_text(text, chunk_size=120, overlap=20):
-    if chunk_size <= 0:
-        raise ValueError("chunk_size 必须大于 0")
-    if overlap >= chunk_size:
-        raise ValueError("overlap 必须小于 chunk_size")
+    """把 text 按 chunk_size 切片，相邻片重叠 overlap 个字符，返回片段列表。
 
-    chunks = []
-    start = 0
-    while start < len(text):
-        end = start + chunk_size
-        chunks.append(text[start:end])
-        start = end - overlap
-    return chunks
+    步骤：
+      1. 参数校验：chunk_size > 0，overlap < chunk_size，否则 raise ValueError。
+      2. 用滑动窗口从 start 切到 start+chunk_size，每次前进 chunk_size-overlap。
+      3. 收集所有片段返回。
+    """
+    # TODO
+    raise NotImplementedError("R6-01：实现 chunk_text")
 
 
 def main():
-    text = input("文档文本：").strip() or "这是一段用于 RAG 切分练习的示例文本。" * 20
-    for index, chunk in enumerate(chunk_text(text), start=1):
-        print(f"[chunk {index}] {chunk}")
+    """读一段文本（或用默认示例）-> chunk_text 切分 -> 逐个打印编号和内容。"""
+    # TODO
+    raise NotImplementedError("R6-01：实现 main")
 
 
 if __name__ == "__main__":

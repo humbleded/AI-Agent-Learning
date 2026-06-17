@@ -19,20 +19,22 @@ SANDBOX = ROOT / "resources" / "sandbox"
 
 
 def read_sandbox_file(relative_path, max_chars=1000):
-    SANDBOX.mkdir(parents=True, exist_ok=True)
-    target = (SANDBOX / relative_path).resolve()
-    sandbox_root = SANDBOX.resolve()
-    if sandbox_root not in target.parents and target != sandbox_root:
-        return {"ok": False, "error": "拒绝读取沙箱外文件"}
-    if not target.exists() or not target.is_file():
-        return {"ok": False, "error": "文件不存在"}
-    text = target.read_text(encoding="utf-8", errors="replace")
-    return {"ok": True, "content": text[:max_chars], "truncated": len(text) > max_chars}
+    """只允许读取 SANDBOX 目录下的文件，超长只返回前 max_chars 个字符。
+
+    步骤：
+      1. 确保 SANDBOX 存在。
+      2. 解析目标路径（resolve），判断它是否在 SANDBOX 之内；不在 -> 拒绝读取。
+      3. 文件不存在/不是文件 -> 返回错误。
+      4. 读取文本，返回 {"ok": True, "content": 前 max_chars, "truncated": 是否被截断}。
+    """
+    # TODO（注意防越权读取：先 resolve 再判断是否在沙箱内）
+    raise NotImplementedError("T3-03：实现 read_sandbox_file")
 
 
 def main():
-    relative_path = sys.argv[1] if len(sys.argv) > 1 else input("sandbox file: ").strip()
-    print(read_sandbox_file(relative_path))
+    """从命令行参数或 input 取相对路径 -> 打印 read_sandbox_file 结果。"""
+    # TODO
+    raise NotImplementedError("T3-03：实现 main")
 
 
 if __name__ == "__main__":

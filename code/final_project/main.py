@@ -13,18 +13,21 @@ FINAL-Gate 综合项目入口脚手架。
 
 
 def agent_loop(user_goal):
-    trace = [
-        {"step": "understand_goal", "content": user_goal},
-        {"step": "choose_tools", "content": ["TODO: search", "TODO: file_reader"]},
-        {"step": "produce_answer", "content": "TODO: final answer"},
-    ]
-    return {"answer": "综合项目脚手架：请替换为你的真实 Agent。", "trace": trace}
+    """综合项目的 Agent 循环：理解目标 -> 选工具 -> 产出答案，返回 {"answer", "trace"}。
+
+    这是毕业项目，按你选的方向自己设计：
+      1. 定义工具列表。
+      2. 设计 Agent 循环（可复用前面阶段的 ReAct / Plan-Solve / 工具调用）。
+      3. 记录可追踪的 trace。
+    """
+    # TODO
+    raise NotImplementedError("FINAL-Gate：实现你的综合项目 Agent")
 
 
 def main():
-    user_goal = input("项目目标或用户问题：").strip()
-    result = agent_loop(user_goal)
-    print(result)
+    """读项目目标/用户问题 -> agent_loop -> 打印结果。"""
+    # TODO
+    raise NotImplementedError("FINAL-Gate：实现 main")
 
 
 if __name__ == "__main__":

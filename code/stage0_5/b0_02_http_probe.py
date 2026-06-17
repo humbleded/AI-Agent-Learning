@@ -17,53 +17,29 @@ from urllib.parse import urlparse
 
 
 def resolve_ip(hostname):
-    try:
-        return socket.gethostbyname(hostname)
-    except socket.gaierror:
-        return None
+    """把主机名解析成 IP；解析失败返回 None。"""
+    # TODO: socket.gethostbyname，捕获 socket.gaierror
+    raise NotImplementedError("B0-02：实现 resolve_ip")
 
 
 def fetch(url):
-    try:
-        import requests
-    except ImportError:
-        print("请先安装 requests：pip install requests")
-        return
+    """探测一个 URL：打印 hostname、IP、状态码、部分 headers、响应体前 500 字符。
 
-    parsed = urlparse(url)
-    hostname = parsed.hostname
-    if not hostname:
-        print("URL 不合法，示例：https://example.com")
-        return
-
-    ip = resolve_ip(hostname)
-    print("hostname:", hostname)
-    print("ip:", ip or "DNS 解析失败")
-    if ip is None:
-        return
-
-    try:
-        response = requests.get(url, timeout=10)
-    except requests.exceptions.Timeout:
-        print("请求失败：timeout")
-        return
-    except requests.exceptions.ConnectionError as exc:
-        print("请求失败：连接错误", exc)
-        return
-    except requests.exceptions.RequestException as exc:
-        print("请求失败：", exc)
-        return
-
-    print("method: GET")
-    print("status_code:", response.status_code)
-    print("ok:", response.ok)
-    print("headers_sample:", dict(list(response.headers.items())[:8]))
-    print("body_sample:", response.text[:500])
+    步骤：
+      1. import requests（没装就提示安装）。
+      2. urlparse 取出 hostname；非法 URL 给提示并返回。
+      3. resolve_ip 解析 IP；解析失败（DNS）就提示并返回。
+      4. requests.get(url, timeout=...)，分别捕获 Timeout / ConnectionError / 其他 RequestException。
+      5. 打印 method、status_code、ok、部分 headers、响应体前 500 字符。
+    """
+    # TODO
+    raise NotImplementedError("B0-02：实现 fetch")
 
 
 def main():
-    url = sys.argv[1] if len(sys.argv) > 1 else input("URL：").strip()
-    fetch(url)
+    """从命令行参数或 input 取 URL -> 调 fetch。"""
+    # TODO
+    raise NotImplementedError("B0-02：实现 main")
 
 
 if __name__ == "__main__":

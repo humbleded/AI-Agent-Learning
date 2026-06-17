@@ -18,48 +18,39 @@ DB_PATH = ROOT / "resources" / "stage0_5" / "b0_gate_local_stack.db"
 
 
 def connect():
-    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-    return sqlite3.connect(DB_PATH)
+    """确保 DB_PATH 父目录存在，返回 sqlite3 连接。"""
+    # TODO
+    raise NotImplementedError("B0-Gate：实现 connect")
 
 
 def init_db(conn):
-    conn.execute(
-        "CREATE TABLE IF NOT EXISTS logs(id INTEGER PRIMARY KEY, topic TEXT, minutes INTEGER)"
-    )
-    conn.commit()
+    """建表 logs(id 主键, topic TEXT, minutes INTEGER)，并 commit。"""
+    # TODO
+    raise NotImplementedError("B0-Gate：实现 init_db")
 
 
 def add_record(conn):
-    topic = input("topic: ").strip()
-    minutes = int(input("minutes: ").strip())
-    conn.execute("INSERT INTO logs(topic, minutes) VALUES (?, ?)", (topic, minutes))
-    conn.commit()
+    """读 topic / minutes 输入，插入一条记录并 commit。"""
+    # TODO
+    raise NotImplementedError("B0-Gate：实现 add_record")
 
 
 def show_recent(conn):
-    rows = conn.execute("SELECT id, topic, minutes FROM logs ORDER BY id DESC LIMIT 7").fetchall()
-    for row in rows:
-        print(row)
+    """按 id 倒序打印最近 7 条记录。"""
+    # TODO
+    raise NotImplementedError("B0-Gate：实现 show_recent")
 
 
 def show_stats(conn):
-    rows = conn.execute("SELECT topic, SUM(minutes) FROM logs GROUP BY topic").fetchall()
-    for row in rows:
-        print(row)
+    """按 topic 分组打印总 minutes。"""
+    # TODO
+    raise NotImplementedError("B0-Gate：实现 show_stats")
 
 
 def main():
-    with connect() as conn:
-        init_db(conn)
-        choice = input("1 add / 2 recent / 3 stats: ").strip()
-        if choice == "1":
-            add_record(conn)
-        elif choice == "2":
-            show_recent(conn)
-        elif choice == "3":
-            show_stats(conn)
-        else:
-            print("TODO：补充更完整的菜单和 PostgreSQL 版本。")
+    """connect -> init_db -> 简单菜单（1 add / 2 recent / 3 stats）分发到上面的函数。"""
+    # TODO
+    raise NotImplementedError("B0-Gate：实现 main")
 
 
 if __name__ == "__main__":

@@ -12,29 +12,27 @@ A4-03 ReAct Agent。
 
 
 def search_tool(query):
-    return f"模拟搜索结果：{query} 相关资料 3 条"
+    """模拟一个搜索工具：给定 query 返回一段假的搜索结果文本。"""
+    # TODO
+    raise NotImplementedError("A4-03：实现 search_tool")
 
 
 def react_loop(question, max_steps=3):
-    trace = []
-    for step in range(1, max_steps + 1):
-        thought = f"第 {step} 步：判断是否需要工具"
-        action = {"tool": "search", "query": question}
-        observation = search_tool(question)
-        trace.append((thought, action, observation))
-        break
-    answer = f"根据 observation 回答：{observation}"
-    return trace, answer
+    """ReAct 循环：每步产出 Thought/Action/Observation，至少调用一次工具，受 max_steps 限制。
+
+    返回 (trace, answer)：
+      1. 循环最多 max_steps 步，每步记录 thought、action、observation。
+      2. 需要工具时构造 action 并调用 search_tool，把结果作为 observation。
+      3. 拿到足够信息就停；最后根据 observation 生成 answer。
+    """
+    # TODO
+    raise NotImplementedError("A4-03：实现 react_loop")
 
 
 def main():
-    question = input("问题：").strip()
-    trace, answer = react_loop(question)
-    for thought, action, observation in trace:
-        print("Thought:", thought)
-        print("Action:", action)
-        print("Observation:", observation)
-    print("Final:", answer)
+    """读问题 -> react_loop -> 打印每步 Thought/Action/Observation 和最终答案。"""
+    # TODO
+    raise NotImplementedError("A4-03：实现 main")
 
 
 if __name__ == "__main__":

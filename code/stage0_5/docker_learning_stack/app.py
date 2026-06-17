@@ -15,20 +15,19 @@ import os
 
 
 def read_config():
-    return {
-        "APP_ENV": os.getenv("APP_ENV", "local"),
-        "POSTGRES_HOST": os.getenv("POSTGRES_HOST", "localhost"),
-        "POSTGRES_DB": os.getenv("POSTGRES_DB", "learning"),
-        "POSTGRES_USER": os.getenv("POSTGRES_USER", "learning_user"),
-        "POSTGRES_PASSWORD_SET": bool(os.getenv("POSTGRES_PASSWORD")),
-    }
+    """从环境变量读取配置，返回一个 dict。
+
+    含 APP_ENV、POSTGRES_HOST、POSTGRES_DB、POSTGRES_USER（都给合理默认值），
+    以及 POSTGRES_PASSWORD_SET（密码是否已设置的布尔值，不要回显密码本身）。
+    """
+    # TODO: os.getenv(..., 默认值)
+    raise NotImplementedError("B0-04：实现 read_config")
 
 
 def main():
-    print("Docker learning stack config:")
-    for key, value in read_config().items():
-        print(f"- {key}: {value}")
-    print("TODO：安装 psycopg 后，增加 PostgreSQL 连接检查。")
+    """打印配置摘要（逐行 - key: value）。"""
+    # TODO
+    raise NotImplementedError("B0-04：实现 main")
 
 
 if __name__ == "__main__":

@@ -21,17 +21,21 @@ DOCS = [
 
 
 def answer_with_citations(question):
-    chunks = [doc["text"] for doc in DOCS]
-    hits = retrieve(question, chunks, top_k=2)
-    if not hits or all(question not in hit for hit in hits):
-        return "资料中没有足够依据回答这个问题。"
-    citations = [doc["id"] for doc in DOCS if doc["text"] in hits]
-    return f"回答：{hits[0]}\n引用：{citations}"
+    """检索 DOCS 回答问题并带引用编号；资料里没依据就拒答。
+
+    步骤：
+      1. 取出 DOCS 的文本，用 retrieve 拿到最相关片段。
+      2. 命中为空或都对不上问题 -> 返回「没有足够依据」。
+      3. 找到命中片段对应的 doc id 作为引用，拼成「回答 + 引用」。
+    """
+    # TODO
+    raise NotImplementedError("R6-03：实现 answer_with_citations")
 
 
 def main():
-    question = input("问题：").strip()
-    print(answer_with_citations(question))
+    """读问题 -> answer_with_citations -> 打印。"""
+    # TODO
+    raise NotImplementedError("R6-03：实现 main")
 
 
 if __name__ == "__main__":

@@ -15,29 +15,27 @@ MAX_STEPS = 3
 
 
 def read_document(state):
-    state["trace"].append("read_document")
-    state["document"] = state.get("document") or "示例文档：Agent 可以调用工具并记录状态。"
-    return state
+    """节点：记 "read_document"，确保 state 有 document，返回 state。"""
+    # TODO
+    raise NotImplementedError("G8-03：实现 read_document")
 
 
 def summarize(state):
-    state["trace"].append("summarize")
-    state["summary"] = state["document"][:50]
-    return state
+    """节点：记 "summarize"，根据 document 生成 summary，返回 state。"""
+    # TODO
+    raise NotImplementedError("G8-03：实现 summarize")
 
 
 def should_continue(state):
-    return len(state["trace"]) < MAX_STEPS and not state.get("summary")
+    """条件边：根据 trace 步数（< MAX_STEPS）和是否已有 summary，决定是否继续。"""
+    # TODO
+    raise NotImplementedError("G8-03：实现 should_continue")
 
 
 def run_agent(document):
-    state = {"document": document, "trace": []}
-    state = read_document(state)
-    if should_continue(state):
-        state = summarize(state)
-    else:
-        state = summarize(state)
-    return state
+    """初始化 state -> read_document -> 按 should_continue 决定流程 -> summarize，返回 state。"""
+    # TODO
+    raise NotImplementedError("G8-03：实现 run_agent")
 
 
 if __name__ == "__main__":

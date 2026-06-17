@@ -12,21 +12,21 @@ G8-02 第一个 Graph。
 
 
 def node_collect(state):
-    state["trace"].append("collect")
-    state["topic"] = state.get("topic") or "LangGraph"
-    return state
+    """图节点：在 state["trace"] 里记一笔 "collect"，确保 state 有 topic，返回 state。"""
+    # TODO
+    raise NotImplementedError("G8-02：实现 node_collect")
 
 
 def node_write(state):
-    state["trace"].append("write")
-    state["answer"] = f"报告主题：{state['topic']}"
-    return state
+    """图节点：记一笔 "write"，根据 topic 生成 state["answer"]，返回 state。"""
+    # TODO
+    raise NotImplementedError("G8-02：实现 node_write")
 
 
 def run_graph(initial_state):
-    state = node_collect(initial_state)
-    state = node_write(state)
-    return state
+    """依次跑 node_collect -> node_write，返回最终 state（后续换成 LangGraph StateGraph）。"""
+    # TODO
+    raise NotImplementedError("G8-02：实现 run_graph")
 
 
 if __name__ == "__main__":

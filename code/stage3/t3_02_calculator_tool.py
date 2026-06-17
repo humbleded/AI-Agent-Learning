@@ -23,25 +23,22 @@ OPERATORS = {
 
 
 def calculator_tool(operation, a, b):
-    if operation not in OPERATORS:
-        return {"ok": False, "error": f"不支持的 operation：{operation}"}
-    try:
-        a = float(a)
-        b = float(b)
-        result = OPERATORS[operation](a, b)
-        return {"ok": True, "result": result}
-    except ZeroDivisionError:
-        return {"ok": False, "error": "除数不能为 0"}
-    except ValueError:
-        return {"ok": False, "error": "参数必须是数字"}
+    """计算器工具：根据 operation 对 a、b 做运算，返回 {"ok": bool, ...}。
+
+    步骤：
+      1. operation 不在 OPERATORS 里 -> 返回 {"ok": False, "error": ...}。
+      2. 把 a、b 转成 float（转不动 -> 「参数必须是数字」）。
+      3. 执行运算；除零要单独捕获给「除数不能为 0」。
+      4. 正常返回 {"ok": True, "result": 结果}。
+    """
+    # TODO
+    raise NotImplementedError("T3-02：实现 calculator_tool")
 
 
 def main():
-    operation = input("operation(add/sub/mul/div): ").strip()
-    a = input("a: ")
-    b = input("b: ")
-    print("tool_args:", {"operation": operation, "a": a, "b": b})
-    print("tool_result:", calculator_tool(operation, a, b))
+    """读 operation/a/b -> 打印调用参数 -> 打印 calculator_tool 结果。"""
+    # TODO
+    raise NotImplementedError("T3-02：实现 main")
 
 
 if __name__ == "__main__":

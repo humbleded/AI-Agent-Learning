@@ -14,18 +14,15 @@ from m9_02_local_mcp_server import call_tool, list_tools
 
 
 def agent_decide_tool(user_text):
-    if "长度" in user_text:
-        return "count_chars", {"text": user_text}
-    return "echo", {"text": user_text}
+    """模拟 Agent 选工具：根据 user_text 返回 (tool_name, arguments)。"""
+    # TODO
+    raise NotImplementedError("M9-03：实现 agent_decide_tool")
 
 
 def main():
-    print("发现工具：", list_tools())
-    user_text = input("用户：")
-    tool_name, args = agent_decide_tool(user_text)
-    result = call_tool(tool_name, args)
-    print("tool:", tool_name)
-    print("result:", result)
+    """打印发现的工具 -> 读用户输入 -> agent_decide_tool 选工具 -> call_tool 执行 -> 打印结果。"""
+    # TODO
+    raise NotImplementedError("M9-03：实现 main")
 
 
 if __name__ == "__main__":

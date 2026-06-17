@@ -13,29 +13,21 @@ A4-04 Plan-and-Solve。
 
 
 def make_plan(task):
-    return [
-        f"理解任务：{task}",
-        "拆成 2-3 个子问题",
-        "逐步执行并记录结果",
-        "复盘哪里不确定",
-    ]
+    """把一个复杂任务拆成有序的步骤列表（理解 -> 拆子问题 -> 执行 -> 复盘）。"""
+    # TODO
+    raise NotImplementedError("A4-04：实现 make_plan")
 
 
 def solve_step(step):
-    return f"已执行：{step}"
+    """执行计划里的单个步骤，返回执行结果文本。"""
+    # TODO
+    raise NotImplementedError("A4-04：实现 solve_step")
 
 
 def main():
-    task = input("复杂任务：").strip()
-    plan = make_plan(task)
-    print("Plan:")
-    for item in plan:
-        print("-", item)
-    print("Solve:")
-    results = [solve_step(step) for step in plan]
-    for result in results:
-        print("-", result)
-    print("Reflection: TODO：判断计划是否过度、是否遗漏关键步骤。")
+    """读复杂任务 -> make_plan 打印计划 -> 逐步 solve_step 打印结果 -> 输出复盘。"""
+    # TODO
+    raise NotImplementedError("A4-04：实现 main")
 
 
 if __name__ == "__main__":

@@ -23,23 +23,22 @@ OUT_FILE = ROOT / "resources" / "stage2_email_result.json"
 
 
 def process_email(text):
-    points, summary = simple_summarize(text)
-    todo = extract_email(text)
-    validate_payload(todo)
-    return {
-        "category": classify(text),
-        "points": points,
-        "summary": summary,
-        "todo": todo,
-    }
+    """整合 PR2-02/03/04：对一封邮件同时做分类 + 摘要 + 待办抽取，返回结果 dict。
+
+    步骤：
+      1. simple_summarize(text) 得到 points, summary。
+      2. extract_email(text) 得到 todo，并用 validate_payload 校验。
+      3. classify(text) 得到 category。
+      4. 组装成 {"category","points","summary","todo"} 返回。
+    """
+    # TODO
+    raise NotImplementedError("PR2-Gate：实现 process_email")
 
 
 def main():
-    text = input("邮件文本：").strip()
-    result = process_email(text)
-    OUT_FILE.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
-    print(json.dumps(result, ensure_ascii=False, indent=2))
-    print("保存到：", OUT_FILE)
+    """读邮件文本 -> process_email -> 写入 OUT_FILE -> 打印 JSON 和保存路径。"""
+    # TODO
+    raise NotImplementedError("PR2-Gate：实现 main")
 
 
 if __name__ == "__main__":

@@ -18,23 +18,21 @@ SANDBOX = ROOT / "resources" / "sandbox"
 
 
 def list_sandbox_files():
-    SANDBOX.mkdir(parents=True, exist_ok=True)
-    return [path for path in SANDBOX.glob("*.txt")]
+    """列出 SANDBOX 下的 *.txt 文件（限制只读这个目录）。"""
+    # TODO
+    raise NotImplementedError("M9-Gate：实现 list_sandbox_files")
 
 
 def summarize_file(path):
-    text = path.read_text(encoding="utf-8", errors="replace")
-    return {"file": path.name, "summary": text[:80], "chars": len(text)}
+    """读取单个文件，返回 {"file","summary","chars"}。"""
+    # TODO
+    raise NotImplementedError("M9-Gate：实现 summarize_file")
 
 
 def main():
-    files = list_sandbox_files()
-    if not files:
-        sample = SANDBOX / "sample.txt"
-        sample.write_text("这是 MCP 文件总结 Agent 的示例资料。", encoding="utf-8")
-        files = [sample]
-    for path in files:
-        print(summarize_file(path))
+    """list_sandbox_files（为空就写一篇示例）-> 逐个 summarize_file 打印。"""
+    # TODO
+    raise NotImplementedError("M9-Gate：实现 main")
 
 
 if __name__ == "__main__":
