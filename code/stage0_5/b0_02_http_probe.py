@@ -14,12 +14,17 @@ B0-02 网络基础与 HTTP：URL 探测器。
 import socket
 import sys
 from urllib.parse import urlparse
+import requests
 
 
 def resolve_ip(hostname):
     """把主机名解析成 IP；解析失败返回 None。"""
     # TODO: socket.gethostbyname，捕获 socket.gaierror
-    raise NotImplementedError("B0-02：实现 resolve_ip")
+    try:
+        return socket.gethostbyname(hostname)
+    except socket.gaierror:
+        return None
+    #raise NotImplementedError("B0-02：实现 resolve_ip")
 
 
 def fetch(url):
@@ -33,13 +38,63 @@ def fetch(url):
       5. 打印 method、status_code、ok、部分 headers、响应体前 500 字符。
     """
     # TODO
-    raise NotImplementedError("B0-02：实现 fetch")
+    parsed = urlparse(url)
+    hostname = parsed.hostname
+    if not hostname:
+        print("非法 URL")
+        return
+    ip = resolve_ip(hostname)
+    if not ip:
+        print("DNS 解析失败")
+        return
+    print(f"Hostname: {hostname}")
+    print(f"IP: {ip}")
+    try:
+        response = requests.get(url, timeout=5)
+        print(f"Method: GET")
+        print(f"Status Code: {response.status_code}")
+        print(f"OK: {response.ok}")
+        if(response.ok):
+            print("成功")
+        else:
+            print("服务器返回错误（非 2xx）")
+        print(f"Headers: {dict(list(response.headers.items())[:5])}")
+        print(f"Body: {response.text[:500]}")
+    except requests.Timeout:
+        print("请求超时")
+    except requests.ConnectionError:
+        print("连接失败")
+    except requests.RequestException as e:
+        print(f"请求异常: {e}")
+    #raise NotImplementedError("B0-02：实现 fetch")
+
+
+def classify_status(code):
+   code=int(code)//100
+   if code==1:
+       return "信息"
+   elif code==2:
+       return "成功"
+   elif code==3:
+       return "重定向"
+   elif code==4:
+       return "客户端错误"
+   elif code==5:
+       return "服务器错误"
+   else:
+       return "未知状态"
+
 
 
 def main():
     """从命令行参数或 input 取 URL -> 调 fetch。"""
     # TODO
-    raise NotImplementedError("B0-02：实现 main")
+    if len(sys.argv) > 1:
+        url = sys.argv[1]
+    else:
+        url = input("请输入 URL: ")
+    fetch(url)
+    #raise NotImplementedError("B0-02：实现 main")
 
 
 if __name__ == "__main__":
