@@ -28,7 +28,7 @@ def stream_answer(messages):
             print(chunk, end="", flush=True)
         print()
         return f"这是 一个 stream 练习。"
-    client = OpenAI(api_key=api_key, base_url=base_url)
+    client = OpenAI(api_key=api_key, base_url=base_url,timeout=30)
     try:
         response = client.chat.completions.create(
             model="deepseek-v4-pro",

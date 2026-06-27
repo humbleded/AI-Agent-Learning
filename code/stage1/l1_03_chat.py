@@ -34,7 +34,7 @@ def call_messages(messages):
     if not api_key:
         return "未设置 DEEPSEEK_API_KEY：请在项目根目录 .env 里加一行 DEEPSEEK_API_KEY=你的key"
 
-    client = OpenAI(api_key=api_key, base_url="https://api.deepseek.com")
+    client = OpenAI(api_key=api_key, base_url="https://api.deepseek.com",timeout=30,)
     try:
         response = client.chat.completions.create(
             model="deepseek-v4-pro",
@@ -49,6 +49,10 @@ def call_messages(messages):
 def trim_history(history):
     """只保留最近 MAX_TURNS 轮。1 轮=2 条消息，所以切 -MAX_TURNS*2，保证整轮不被切断。"""
     return history[-MAX_TURNS * 2:]
+
+def build_prompt(history, question):
+    """把历史 + 本轮问题拼成 messages 列表，发给模型。"""
+    return [SYSTEM] + history + [{"role": "user", "content": question}]
 
 
 def main():

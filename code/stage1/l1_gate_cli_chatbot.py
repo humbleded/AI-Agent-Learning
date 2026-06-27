@@ -12,8 +12,7 @@ L1-Gate API 入门闯关：CLI Chatbot。
     5. API 错误时给用户可理解的提示。
 """
 
-from l1_01_first_call import call_model
-from l1_03_chat import build_prompt, trim_history
+from l1_03_chat import build_prompt, trim_history,call_messages
 from l1_04_stream_chat import stream_answer
 
 
@@ -25,12 +24,33 @@ def main():
       2. while 循环读用户输入；输入 exit 就 break 退出。
       3. 空输入给提示并 continue，不发请求。
       4. 用 build_prompt(history, question) 拼出带历史的 prompt。
-      5. 流式模式调 stream_answer(prompt)；非流式调 call_model(prompt) 并打印。
+      5. 流式模式调 stream_answer(prompt)；非流式调 call_messages(prompt) 并打印。
       6. 把本轮用户问题和模型回答按 build_prompt/trim_history 约定的格式追加进 history，再 trim 限长。
       7. API 出错时给用户可读提示，别留异常堆栈、别崩。
     """
-    # TODO: 实现上面 7 步
-    raise NotImplementedError("L1-Gate：自己实现 CLI Chatbot 主循环")
+    stream_mode = input("是否使用流式输出？(stream on/off) ").strip().lower() == "stream on"
+    history = []
+    while True:
+        question = input("你：").strip()
+        if question.lower() == "exit":
+            print("退出聊天。")
+            break
+        if not question:
+            print("输入不能为空，请重新输入。")
+            continue
+        try:
+            prompt = build_prompt(history, question)
+            if stream_mode:
+                answer = stream_answer(prompt)
+            else:
+                answer = call_messages(prompt)
+                print(f"助手：{answer}")
+            # 更新历史
+            history.append({"role": "user", "content": question})
+            history.append({"role": "assistant", "content": answer})
+            history = trim_history(history)
+        except Exception as e:
+            print(f"调用模型失败：{e}")
 
 
 if __name__ == "__main__":
