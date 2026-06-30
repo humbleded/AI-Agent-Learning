@@ -78,5 +78,5 @@
 **一句话收获**：上下文工程＝把"会进窗口的整组 token"当**有限资源**来策划；Agent 失败多源于**上下文管理**而非模型本身；`trim_history` 只是众多手段里**最朴素的一种（truncation）**。
 
 - [x] 概念带读 + 15 题练习全 PASS（2026-06-29，作答与坑见 `daily/2026-06-29.md`）
-- [ ] token 对比实验 `code/stage2/s03_context_experiment.py`（全量 vs trim vs compaction，复用 C3 的 `compact_history`）—— 骨架已搭，待填核心 `TODO`
-- [ ] 概念稳定后整理进 `D:\AI-Knowledge\02-Concepts\Agent\context-engineering.md`（含上面 6 个易错点）
+- [x] token 对比实验 `code/stage2/s03_context_experiment.py` 已填完跑通（① 100 > ③ 50 > ② 25；②丢名字 / ③保名字；真调 DeepSeek 成功）
+- [x] 已整理进 `D:\AI-Knowledge\02-Concepts\LLM\context-engineering.md`（五手段分层表 + 8 个易错点；2026-06-29）
