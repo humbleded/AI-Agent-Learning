@@ -36,7 +36,7 @@
 - **阶段 6 RAG**：HA 第 8 章《记忆与检索》→ HF 中文 unit3 Agentic RAG → **真实向量库（S-02，见下）** → 跑 `HA code/chapter8` 的 RAG pipeline → 写 R6。
 - **阶段 7 设计模式**：ADP（中英对照）第 1–8 章 + 第 18/19 章，按需读，别全背 → 配合 **S-04 多 Agent、S-05 Guardrails 动手**。
 - **阶段 8 LangGraph**：HF 中文 unit2（`when_to_use` → `first_graph` → `building_blocks` → `document_analysis_agent`）→ HA 第 6 章 → LangGraph 官方文档备查 → 写 G8。
-- **阶段 9 MCP**：HA 第 10 章《智能体通信协议》→ ADP 第 10 章 MCP → 读 `HelloAgents .../protocols/mcp/` → 写 M9。
+- **阶段 9 MCP**：HA 第 10 章《智能体通信协议》→ ADP 第 10 章 MCP → 读 `HelloAgents .../protocols/mcp/` → 写 M9。可选对照：agentskillsdev.com《Agent Skills L0》（中文免费，基于吴恩达×Anthropic 官方课）——只读「Skills vs Tools/MCP/Subagents」辨析一节当面试谈资，**别提前陷进 Skills 生态**（同第五节对马克视频的提醒）。
 - **阶段 10 评估 + 综合项目**：HA 第 12 章 + ADP 第 19 章 → HF `bonus-unit2` 可观测与评估 → 参考 HA 第 13/14 章项目 → 做 FINAL。
 
 ## 四、新增层补充资料（S-01~S-06 + J11，原路线没有的）
@@ -53,8 +53,9 @@
 | Vue + 流式（J11-03） | 阶段11 | Vue 官方文档（你已会）；MDN `EventSource` / `fetch` 流式读取 |
 | Docker 部署（J11-04） | 阶段11 | **B0-04 已有 Docker 中文文档 + 黑马视频**；上线平台 Railway `docs.railway.app` 或 Render `render.com/docs` |
 | 可观测（J11-05） | 阶段11 | Langfuse 中文 `langfuse.com/cn`（开源，推荐）；LangSmith 中文 `langsmith.langchain.ac.cn` |
-| 算法（J11-08） | 阶段11 | 代码随想录 `programmercarl.com`（含视频，按专题刷）；LeetCode 热题 100 `leetcode.cn`（题单） |
+| 算法（J11-08） | 阶段11（W4 起启动） | **原理教材：《Hello 算法》`hello-algo.com`**（免费开源，动画图解＋Python 代码一键可跑，非科班友好）——W4 算法启动先读复杂度/数组与链表/哈希表打底，之后刷到哪个专题回头补哪章原理；刷题路线：代码随想录 `programmercarl.com`（含视频，按专题刷）＋ LeetCode 热题 100 `leetcode.cn`（题单） |
 | 系统设计 / 八股（J11-08） | 阶段11 | 小林 coding `xiaolincoding.com`（有「2026 Agent / AI 应用 / 大模型面试题」合集）；Anthropic / OpenAI 官方 agent 指南（Hub） |
+| .NET Agent 生态扫读（S-08，可选） | 求职期 W15 | 微软 ai-agents-for-beginners（`github.com/microsoft/ai-agents-for-beginners`，中文在 `translations/zh-CN/`）——绑 Microsoft Agent Framework（Semantic Kernel＋AutoGen 的合并后继）＋Azure Foundry；**概念课与 HA/ADP/HF 三重重叠，别重复学**，只扫 1–2 课「.NET 团队怎么落地 Agent」做面试差异化；动手需 Azure 账号，不当主线 |
 
 ## 五、视频清单（中文，按需补，不是主线）
 

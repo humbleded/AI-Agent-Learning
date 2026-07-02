@@ -87,7 +87,7 @@ def extract_email_llm(text):
         json_content = response.choices[0].message.content
         if not json_content:
             return None
-        json_content=json.loads(json_content)  # 将字符串解析为 JSON 对象
+        json_content=json.loads(json_content)  # 将字符串解析为 Python 对象
         return json_content
     except Exception as exc:
         return f"调用模型失败：{exc}"

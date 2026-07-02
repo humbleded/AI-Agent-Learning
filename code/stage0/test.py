@@ -59,3 +59,29 @@ def escalate(text): ...    # 转人工
 def log_idea(text): ...    # 记录建议
 def chat(text): ...        # 闲聊回复
 def fallback(text): ...    # 兜底处理
+
+
+import json
+
+def get_weather(location):
+    return f"{location}：多云，22°C"
+
+TOOLS = {"get_weather": get_weather}
+
+messages = [
+    {"role": "system", "content": "你是天气助手，可用工具：get_weather(location)"},
+    {"role": "user", "content": "巴黎今天多热？"},
+]
+
+model_output = '{"action": "get_weather", "action_input": {"location": "巴黎"}}'
+
+# TODO ①：把 model_output 解析成 dict，取出工具名 tool_name 和参数 args
+action_dict = json.loads(model_output)
+tool_name = action_dict["action"]
+args = action_dict["action_input"]
+
+# TODO ②：从 TOOLS 注册表按 tool_name 找到函数并真正执行，结果存进 result
+result = TOOLS[tool_name](**args)
+
+# TODO ③：把 result 作为 Observation 拼回 messages——role 用 "tool"，content 放 result
+messages.append({"role": "tool", "content": result})
