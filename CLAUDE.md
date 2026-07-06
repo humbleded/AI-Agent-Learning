@@ -23,6 +23,13 @@
   - 要真实调用就直接跑，不必请求授权或提示额度消耗；只有调用真报错时再排查 key/model/网络。
 - 实时进度看 `tracker/progress.md`，近期安排看 `tracker/weekly-plan.md` 和 `daily/`。
 
+## Git 提交偏好
+
+- 用户说「提交」「提交推送」时，默认使用本地 Git 配置里的 `user.name` / `user.email` 作为提交身份；不要编造 Claude/Codex 的邮箱。
+- commit message 默认写成类似 Claude 提交卡片的多行格式：首行标题简明说明任务结果，正文用 bullet 写清完成内容、验证结果、进度/知识库同步、下一步。
+- 如果需要写 `Co-authored-by`，也使用本地 `git config user.name` 与 `git config user.email` 生成；不要使用虚构协作者身份。
+- 已经推送到共享分支的提交，不要为了改提交文案默认改写历史；除非用户明确要求并理解需要 force push。
+
 ## 每日学习三步法（固定口令 → 行为）
 
 下面三句是固定口令，**优先按此表走**（覆盖 skill 的默认语义匹配，避免「学习计划」被当成闯关）：

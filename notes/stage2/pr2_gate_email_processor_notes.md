@@ -4,6 +4,38 @@
 > 代码位置：`code/stage2/pr2_gate_email_processor.py`
 > 整理日期：2026-07-06
 
+## 今日速记
+
+这关的主线是：**邮件文本进来，先在代码里组装 Python `dict`，校验通过后再写成 JSON 文件**。
+
+最重要的链路：
+
+```text
+邮件文本
+  -> simple_summarize(text) 得到 points / summary
+  -> extract_email(text) 得到 todo dict
+  -> validate_payload(todo) 校验字段和可序列化
+  -> classify(text) 得到 category
+  -> process_email(text) 组装 result dict
+  -> json.dump(result, f) 写入文件
+  -> json.dumps(result) 打印到屏幕
+```
+
+今天最容易混的三层：
+
+| 名字 | 是什么 | 常用场景 |
+| --- | --- | --- |
+| Python `dict` | 代码内部用的数据结构 | `result["todo"]["deadline"]` |
+| JSON 字符串 | 一段符合 JSON 格式的文本 | `json.dumps(...)`、`json.loads(...)` |
+| JSON 文件 | 存在磁盘上的 JSON 文本 | `json.dump(..., f)` |
+
+一句话记法：
+
+- `json.dumps`：把对象转成字符串，常配合 `print` 打印给用户看。
+- `json.dump`：把对象写进文件，用来保存。
+- `json.loads`：把 JSON 字符串解析成 Python 对象。
+- `validate_payload`：检查字段齐不齐、能不能被 JSON 序列化；坏结果不能继续保存。
+
 ## 一、这关在练什么
 
 PR2-Gate 不是新概念日，而是把阶段 2 的三个能力串成一条小流水线：
@@ -170,3 +202,12 @@ RULES = {
 - 直接把 `split("。")` 改成 `split("\n")` 不稳，会破坏普通长文摘要。
 - 在 Gate 文件里重复定义 `simple_summarize` 会遮住导入的旧函数；整合关应复用旧模块，不把旧函数复制一份塞进来。
 
+## 十一、下次回炉点
+
+下次练习优先抽查这几件事：
+
+1. 看到模型返回 JSON 字符串时，先 `json.loads(todo)` 转成 `dict`，再 `validate_payload(todo_dict)`。
+2. 看到“写入文件”想到 `json.dump`；看到“打印到屏幕”想到 `json.dumps` + `print`。
+3. 看到“缺字段 deadline”想到 `validate_payload` 立刻 `raise ValueError`，后面的 `classify(text)` 不会继续执行。
+4. 看到三引号里的缩进，要意识到前导空格是真实文本，会影响字段精确匹配。
+5. 看到分类题，要记录预测标签、期望标签、正确率，并分析是漏判、撞类还是误命中。
