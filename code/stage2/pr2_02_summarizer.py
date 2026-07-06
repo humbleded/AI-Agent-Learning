@@ -7,7 +7,7 @@ PR2-02 摘要与改写。
 
 任务：
     输入一段长文，输出 3 条要点 + 1 段摘要。
-    - simple_summarize：不用模型的机械基线（按句号切、取前 3 句）。
+    - simple_summarize：不用模型的机械基线（按换行或句号切、取前 3 句）。
     - llm_summarize：  模型版，prompt 锁 JSON（3 要点 + 1 摘要、控长度），格式稳定。
     main 把两版跑在同一段长文上做对比，并对模型版做 json.loads + 数要点条数的兜底检查。
 """
@@ -32,8 +32,12 @@ LONG_TEXT = (
 
 
 def simple_summarize(text):
-    """把长文切成句子，取前 3 句做要点，再拼成一段摘要，返回 (points, summary)。"""
-    list_of_sentences = [s.strip() for s in text.strip().split('。') if s.strip()]
+    """把文本切成句子/行，取前 3 条做要点，再拼成一段摘要，返回 (points, summary)。"""
+    if "\n" in text.strip():
+        parts = text.strip().split("\n")
+    else:
+        parts = text.strip().split("。")
+    list_of_sentences = [s.strip() for s in parts if s.strip()]
     points = list_of_sentences[:3]  # 取前三个句子作为要点
     summary = '；'.join(points)
     return points, summary

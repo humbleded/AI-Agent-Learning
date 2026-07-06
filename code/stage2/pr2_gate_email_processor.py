@@ -31,14 +31,31 @@ def process_email(text):
       3. classify(text) 得到 category。
       4. 组装成 {"category","points","summary","todo"} 返回。
     """
-    # TODO
-    raise NotImplementedError("PR2-Gate：实现 process_email")
+    points, summary = simple_summarize(text)
+    todo = extract_email(text)
+    validate_payload(todo)
+    category = classify(text)
+    return {
+        "category": category,
+        "points": points,
+        "summary": summary,
+        "todo": todo,
+    }
 
 
 def main():
     """读邮件文本 -> process_email -> 写入 OUT_FILE -> 打印 JSON 和保存路径。"""
-    # TODO
-    raise NotImplementedError("PR2-Gate：实现 main")
+    email_text = """发件人：王五
+事项：确认本周项目周报
+截止时间：2026-07-06
+优先级：中
+需要回复：是
+"""
+    result = process_email(email_text)
+    with open(OUT_FILE, "w", encoding="utf-8") as f:
+        json.dump(result, f, ensure_ascii=False, indent=2)
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    print(f"结果已保存到 {OUT_FILE}")
 
 
 if __name__ == "__main__":
