@@ -26,9 +26,10 @@
 ## Git 提交偏好
 
 - 用户说「提交」「提交推送」时，默认使用本地 Git 配置里的 `user.name` / `user.email` 作为提交身份；不要编造 Claude/Codex 的邮箱。
-- commit message 默认写成类似 Claude 提交卡片的多行格式：首行标题简明说明任务结果，正文用 bullet 写清完成内容、验证结果、进度/知识库同步、下一步。
+- commit message 必须有具体正文，不只写一行标题。默认格式：首行标题简明说明任务结果，正文用 bullet 写清完成内容、验证结果、进度/知识库同步、本地未提交改动或下一步。
+- 提交后、推送前必须执行 `git log -1 --pretty=%B` 检查提交正文；如果只有标题、没有 bullet 正文，就先 `git commit --amend` 补正文，再推送。
 - 如果需要写 `Co-authored-by`，也使用本地 `git config user.name` 与 `git config user.email` 生成；不要使用虚构协作者身份。
-- 已经推送到共享分支的提交，不要为了改提交文案默认改写历史；除非用户明确要求并理解需要 force push。
+- 已经推送到共享分支的提交，不要为了改提交文案默认改写历史；除非用户明确要求并理解需要 `git push --force-with-lease`。
 
 ## 每日学习三步法（固定口令 → 行为）
 
@@ -41,6 +42,16 @@
    - 这一步**只发清单＋导读，不展开教学、不出题**。
 2. **「开始今天的练习」= 练。** 调 `daily-practice-builder` 出题，锚定刚学的内容。
 3. **「检查今天的学习」= 改。** 调 `ai-agent-learning-review` 跑代码、判 PASS/RETRY/FAIL、回填 `daily` 与 `progress`，把稳定成果同步进 `D:\AI-Knowledge`（新概念卡文件名用「中文(短英文)」，如 `分词(Tokenization).md`，规则见知识库 `01-Maps/标签与命名规范.md`），并更新错题本 `tracker/weak-points.md`（新增当天的坑/最虚、把复测通过的旧坑降权闭环）。
+
+## 生成 notes 口令（项目内沉淀）
+
+用户说「生成今天的 notes」「整理今天的 notes」「生成 notes」时，默认是在当前项目 `notes/` 里沉淀当天学习，不是写入知识库，也不是触发 skill。
+
+- 先读 `tracker/progress.md`、当天 `daily/YYYY-MM-DD.md`、相关 `code/` 文件、已有 `notes/stageX/*.md`，判断当天任务属于哪个阶段、该更新哪一篇 notes。
+- 优先更新已有主题笔记；没有合适文件时，才在对应 `notes/stageX/` 下新建。不要在根目录或无关阶段乱建 notes。
+- 内容默认写成复习友好的成品笔记，可直接落盘；结构包含：今日速记、核心流程/调用链、函数或概念职责表、关键代码片段、今天踩过的坑、下次回炉点、关联 daily/code 路径。
+- 如果用户说的是「共写 notes」「带我写 notes」「边读边写笔记」，才走下面的「概念笔记共写约定」：骨架先行、逐节问答、用户原话为主体。
+- 如果 notes 中出现可复用稳定概念，且当天已 PASS，再提醒是否同步到知识库 `D:\AI-Knowledge`；不要把项目 notes 自动等同于知识库笔记。
 
 ## 每日练习：出题与回填约定
 
