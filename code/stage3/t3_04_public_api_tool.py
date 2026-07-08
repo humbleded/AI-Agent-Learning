@@ -23,8 +23,25 @@ def public_api_tool(url=API_URL):
       3. 只挑必要字段返回，如 ok / status_code / server / rate_limit。
       4. 分别捕获 Timeout 和其他 RequestException，返回 {"ok": False, "error": ...}。
     """
-    # TODO
-    raise NotImplementedError("T3-04：实现 public_api_tool")
+    try:
+        import requests
+    except ImportError:
+        return {"ok": False, "error": "请先安装 requests：pip install requests"}
+
+    try:
+        response = requests.get(url, timeout=5)
+    except requests.Timeout:
+        return {"ok": False, "error": "请求超时"}
+    except requests.RequestException as exc:
+        return {"ok": False, "error": f"请求失败：{exc}"}
+
+    return {
+        "ok": response.ok,
+        "status_code": response.status_code,
+        "server": response.headers.get("Server"),
+        "rate_limit_limit": response.headers.get("X-RateLimit-Limit"),
+        "rate_limit_remaining": response.headers.get("X-RateLimit-Remaining"),
+    }
 
 
 if __name__ == "__main__":

@@ -36,6 +36,7 @@
 | WP-16 | JSON 字符串 / Python dict / 文件 JSON 三层边界 | PR2-Gate | 把 `json.dump` 误说成“打印给用户”、把模型 JSON 字符串直接拿去 `validate_payload` → 正确链路：`json.loads` 成 dict → `validate_payload` 校验 → `json.dump` 写文件；`json.dumps` 才是转字符串常配合打印 | 🟡 | 2026-07-05 | 2026-07-05 |
 | WP-18 | 工具返回结构字段名要按真实代码 | T3-02/T3-03 | 把 `{"ok": True/False}` 说成 `{"code": "成功/失败"}`，或把文件工具返回说成“返回最大字符数” → 按真实代码说字段：计算器成功 `ok/result`，文件工具成功 `ok/content/truncated`，失败统一 `ok/error` | 🟡 | 2026-07-06 | 2026-07-07 |
 | WP-19 | 沙箱路径要看 `resolve()` 后真实落点 | T3-03 | 先按 `..` 字面猜路径、又把 `resolve()`/`relative_to()` 混成不存在的 `resolve_to()` → 先 `(SANDBOX / relative_path).resolve()` 算最终绝对路径，再用 `target.relative_to(SANDBOX)` 判断是否仍在沙箱内 | 🟡 | 2026-07-07 | 2026-07-07 |
+| WP-20 | API 工具异常分支不能依赖 `response`，也别把捕获说成抛出 | T3-04 | 把 `response` 说成响应体、异常分支想用 `response.ok`，并把 `RequestException`/timeout 说成“捕获并抛出/返回异常” → `response` 是响应对象；请求异常时可能没有 `response`，应捕获 `requests.Timeout` / `requests.RequestException` 后返回稳定 `{"ok": False, "error": ...}`；404 是已有响应里的状态码，不进 except | 🟡 | 2026-07-08 | 2026-07-08 |
 
 ## ✅ 间隔回炉池（已稳定，但到期仍抽查——不会永久遗忘）
 
