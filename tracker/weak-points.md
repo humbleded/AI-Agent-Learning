@@ -32,11 +32,12 @@
 | WP-10 | trim_history 切片要保整轮 | L1-03 | 随手切片会留残缺开头 → 用 `-MAX_TURNS*2` 按「轮」切，保成对 | 🟡 | 06-16 | 06-27 |
 | WP-11 | prompt 里的 JSON 花括号 | PR2-01 | f-string / `.format` 撞 prompt 里的 `{}` → KeyError / 静默坏；改字符串拼接或转义 | 🟡 | 06-27 | 06-27 |
 | WP-13 | 上下文工程 vs 提示工程（跨层） | S-03 | 把 Compaction 和 trim 混为一谈 → Compaction 是上下文工程压缩、trim 是 truncation，别互套 | 🟡 | 06-29 | 06-29 |
-| WP-14 | 模型自编 Observation 的代码实景识别 | T3-01 | 概念能背，但见「一次 call_model 吐出 Action+Observation+答案」的代码仍信结果来自工具 → 判别法=看代码有没有真执行（TOOLS/分发器/真调用）；假 Observation 文本上不可辨 | 🟡 | 07-01 | 2026-07-05 |
+| WP-14 | 模型自编 Observation 的代码实景识别 | T3-01/A4-01 | 概念能背，但见「一次 call_model 吐出 Action+Observation+答案」的代码仍信结果来自工具 → 判别法=看代码有没有真执行（TOOLS/分发器/真调用）；假 Observation 文本上不可辨。2026-07-09 C1 首答只说“模型编造”，经订正补全“代码没有真实调用工具，所以不是真实返回值” | 🟡 | 07-01 | 2026-07-09 |
 | WP-16 | JSON 字符串 / Python dict / 文件 JSON 三层边界 | PR2-Gate | 把 `json.dump` 误说成“打印给用户”、把模型 JSON 字符串直接拿去 `validate_payload` → 正确链路：`json.loads` 成 dict → `validate_payload` 校验 → `json.dump` 写文件；`json.dumps` 才是转字符串常配合打印 | 🟡 | 2026-07-05 | 2026-07-05 |
+| WP-17 | 工具菜单与 Observation 回填的主语 | T3-02/T3-03/A4-01 | 说成“模型查自己有没有工具 / 模型把结果放进上下文”或把 Observation 当执行者 → 客户端提供工具菜单、解析并执行工具、把工具结果回填成 Observation；模型只选择工具并读取结果。2026-07-09 D3 首答把“工具和 Observation 负责返回结果”混在一起，经订正闭环 | 🟡 | 2026-07-07 | 2026-07-09 |
 | WP-18 | 工具返回结构字段名要按真实代码 | T3-02/T3-03 | 把 `{"ok": True/False}` 说成 `{"code": "成功/失败"}`，或把文件工具返回说成“返回最大字符数” → 按真实代码说字段：计算器成功 `ok/result`，文件工具成功 `ok/content/truncated`，失败统一 `ok/error` | 🟡 | 2026-07-06 | 2026-07-07 |
 | WP-19 | 沙箱路径要看 `resolve()` 后真实落点 | T3-03 | 先按 `..` 字面猜路径、又把 `resolve()`/`relative_to()` 混成不存在的 `resolve_to()` → 先 `(SANDBOX / relative_path).resolve()` 算最终绝对路径，再用 `target.relative_to(SANDBOX)` 判断是否仍在沙箱内 | 🟡 | 2026-07-07 | 2026-07-07 |
-| WP-20 | API 工具异常分支不能依赖 `response`，也别把捕获说成抛出 | T3-04 | 把 `response` 说成响应体、异常分支想用 `response.ok`，并把 `RequestException`/timeout 说成“捕获并抛出/返回异常” → `response` 是响应对象；请求异常时可能没有 `response`，应捕获 `requests.Timeout` / `requests.RequestException` 后返回稳定 `{"ok": False, "error": ...}`；404 是已有响应里的状态码，不进 except | 🟡 | 2026-07-08 | 2026-07-08 |
+| WP-21 | Action JSON 严格格式 | A4-01/T3-Gate | 写工具调用请求时用了弯引号、工具名未加字符串引号、字段名写成 `arg`，订正后又留下尾逗号 → Action 要写成客户端可解析的严格结构：`{"tool_name": "...", "arguments": {...}}`，JSON 最后一个字段后不能有尾逗号 | 🟡 | 2026-07-09 | 2026-07-09 |
 
 ## ✅ 间隔回炉池（已稳定，但到期仍抽查——不会永久遗忘）
 
@@ -48,4 +49,4 @@
 | WP-06 | 贪心解码在温度哪一端 | L1-05 | 把 `k=1 / T→0` 误接高温端 → 是贪心/低温到底（最确定那端） | 2026-07-01 | +2周 | 2026-07-15 |
 | WP-12 | 代码兜底 ≠ 约束模型 | PR2-02 | 以为加代码校验就=让模型守规矩 → 代码是事后把关/补救，prompt 才是事前软请求 | 2026-07-05 | +2周 | 2026-07-19 |
 | WP-15 | 术语↔概念绑定（Observation 槽位名 / JSONDecodeError） | T3-01 | 机制会说但名词接不上：「被占槽位」叫不出 Observation；坏 JSON 异常答成 TypeError → 是 `json.JSONDecodeError`（ValueError 子类）；TypeError=类型不匹配操作（如 `answer += None`） | 2026-07-05 | +2周 | 2026-07-19 |
-| WP-17 | 工具菜单与 Observation 回填的主语 | T3-02/T3-03 | 说成“模型查自己有没有工具 / 模型把结果放进上下文” → 客户端提供工具菜单、解析并执行工具、把 Observation 拼回上下文；模型只选择工具并读取结果。2026-07-07 D5 已能完整说出客户端执行和回填链路 | 2026-07-07 | +2周 | 2026-07-21 |
+| WP-20 | API 工具异常分支不能依赖 `response`，也别把捕获说成抛出 | T3-04 | 把 `response` 说成响应体、异常分支想用 `response.ok`，并把 `RequestException`/timeout 说成“捕获并抛出/返回异常” → `response` 是响应对象；请求异常时可能没有 `response`，应捕获 `requests.Timeout` / `requests.RequestException` 后返回稳定 `{"ok": False, "error": ...}`；404 是已有响应里的状态码，不进 except。2026-07-09 D2/D4 独立复测通过 | 2026-07-09 | +2周 | 2026-07-23 |
