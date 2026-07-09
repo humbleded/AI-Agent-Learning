@@ -16,6 +16,8 @@
 | `repos/`                               | 参考仓库源码                   |
 | `resources/`                           | 补充资料、截图、PDF、运行记录  |
 
+代码文件采用“即时建骨架”：未来任务只在本清单中预留目标路径，不提前批量生成 `code/` 文件。真正开始动手或 Gate 设计准备时，先核对当天资料和官方 API，再创建只含 TODO 的当前任务骨架；PASS 后保留用户完成的代码。
+
 已放入 `repos/` 的参考仓库：
 
 - `hello-agents`：Datawhale《从零开始构建智能体》
@@ -41,7 +43,7 @@
 - `M9-Gate` MCP 闯关
 - `FINAL-Gate` 综合项目答辩
 
-从 `A4-Gate` 起，每个 Gate 的通过标准**额外包含：自建 10–20 条测试用例并给出通过率**（把评估习惯前置，呼应 E10-01 与 J11-05 可观测）。
+从 `A4-Gate` 起，每个 Gate 的通过标准**额外包含：自建 10–20 条测试用例、可重复运行的评估脚本、通过率与失败案例**（把评估习惯前置，呼应 E10-01 与 J11-05 可观测）。同时从 A4-Gate 开始记录最小结构化日志（模型/工具/耗时/错误/步数），危险或不可逆工具必须有人为确认点；完整 tracing 平台仍留到 J11-05。
 
 工程基础不再作为进入阶段 1 的整块前置。`B0-01` 到 `B0-04` 改为穿插补课项：P0-Gate 通过后可以先进入 `L1` 大模型 API；后续遇到环境、HTTP、数据库、Docker、Memory、RAG、本地服务部署时，再补对应 B0 项。
 
@@ -53,7 +55,8 @@
 
 ```text
 日期：
-学习时长：
+目标学习时长：
+实际学习时长：
 完成任务编号：
 看了哪些视频/哪一集：
 读了哪些文档/哪一节：
@@ -779,7 +782,8 @@
 
 主资料：
 
-- OpenAI Function Calling
+- DeepSeek 官方 Tool Calls：`https://api-docs.deepseek.com/guides/tool_calls`（当前实跑主线，与项目模型一致）
+- OpenAI Function Calling（字段与通用兼容格式对照）
 - OpenAI Agents SDK Quickstart
 - Hugging Face Agents Course：Unit 1 tools/actions/observations，Bonus Unit 1 function calling
 
@@ -874,11 +878,19 @@
 
 ## T3-Gate Tool Calling 闯关
 
+资料：
+
+- DeepSeek Tool Calls 官方示例：重点看 `tools`、`message.tool_calls`、`tool_call_id`、`role="tool"` 和第二次模型调用。
+- 本项目已 PASS 的 `t3_02_calculator_tool.py`、`t3_03_file_reader_tool.py`、`t3_04_public_api_tool.py`。
+
 任务：
 
 - 做 `code/stage3/t3_gate_tool_assistant.py`。
-- 至少支持：计算、读文件、外部 API。
-- 配 `eval_cases.json`：10 条正常 + 3 条失败 + 1 条危险输入；每次改完跑一遍、记录通过率与失败案例（面试讲「可靠性」的真材料）。
+- 使用 DeepSeek/OpenAI 兼容接口的原生 `tools`/`tool_calls`，让**模型**在计算、读文件、外部 API 三个真实工具中选择；关键词 `if/elif` 路由只能作为对照基线，不能作为 Gate 主实现。
+- 第一次闭环显式使用 non-thinking mode（`extra_body={"thinking":{"type":"disabled"}}`），先掌握 Tool Calling 主链；thinking + tools 需要持续回传 `reasoning_content`，留到 A4 多步 Agent 再扩展，避免两个新难点混学。
+- 完整走通：模型生成 tool call → 客户端校验工具名和 JSON 参数 → 从 `TOOLS` 注册表执行真实函数 → 以 `role="tool"` + `tool_call_id` 回填 Observation → 再次调用模型生成最终回答。
+- 同时覆盖“不需要工具直接回答”、未知工具、坏 JSON/错参数、工具自身失败、危险路径拒绝和最大工具轮数；不得把模型自编文本当真实 Observation。
+- 配 `eval_cases.json`：10 条正常 + 3 条失败 + 1 条危险输入；再写可重复运行的评估入口，记录通过率与失败案例（面试讲「可靠性」的真材料）。
 
 必须回答：
 
@@ -886,6 +898,12 @@
 2. Agent 如何选择工具？
 3. 如何避免危险工具调用？
 4. 工具结果太长如何处理？
+
+通过标准：
+
+- 至少真跑计算、文件、外部 API 各 1 次，并能看到真实 `tool_calls` 与回填后的最终回答。
+- 无工具问题不会被强迫调用工具；危险路径在客户端/工具层被拒绝。
+- 能逐步解释 `assistant.tool_calls`、`tool_call_id`、`role="tool"` 和第二次模型调用分别负责什么。
 
 ---
 
@@ -1014,7 +1032,9 @@
 
 - 做 `code/stage4/a4_gate_research_summary_agent.py`。
 - 输入主题或资料路径，能调用工具、总结、反思修正。
-- 配 `eval_cases.json`：10 条正常 + 3 条失败 + 1 条危险输入；每次改完跑一遍、记录通过率与失败案例（面试讲「可靠性」的真材料）。
+- 配 `eval_cases.json`：10 条正常 + 3 条失败 + 1 条危险输入，并用 `run_evals.py`/`pytest` 可重复执行、记录通过率与失败案例。
+- 记录最小结构化日志：每步模型调用、工具名、耗时、错误和累计步数；设置 max_steps、timeout、重试上限。
+- 对写文件、执行命令等高风险/不可逆动作设置人工确认；本关至少演示一次允许/拒绝分支。
 
 必须回答：
 
@@ -1067,7 +1087,7 @@
 
 要做：
 
-- 写 `notes/stage5/h5_02_core_reading.md`。
+- 不逐文件抄源码；选一个已跑通 example，从入口开始追到 Agent、LLM、Message/Config，写 `notes/stage5/h5_02_core_reading.md` 记录一条真实调用链和关键行号。
 
 问答：
 
@@ -1090,7 +1110,7 @@
 
 要做：
 
-- 写 `notes/stage5/h5_03_agents_compare.md`。
+- 精读 `simple_agent.py` 与当前马上要用的一个 Agent（默认 `react_agent.py`）；Plan/Reflection 只定位控制流差异。写 `notes/stage5/h5_03_agents_compare.md`，不做重复概念摘抄。
 
 问答：
 
@@ -1131,8 +1151,8 @@
 
 - `hello_agents/memory/`
 - `hello_agents/context/builder.py`
-- `hello_agents/protocols/mcp/`
-- Datawhale Hello-Agents 第 8-10 章
+- Datawhale Hello-Agents 第 8-9 章
+- `hello_agents/protocols/mcp/` 只看入口和目录关系，真实 MCP 深读留到阶段 9，避免重复学习。
 
 要做：
 
@@ -1152,7 +1172,7 @@
 
 任务：
 
-- 说明一次请求从 Agent 进入，到调用 LLM/Tool，再回到最终输出的路径。
+- 用真实 example 说明一次请求从 Agent 进入，到调用 LLM/Tool，再回到最终输出的路径；新增的自定义工具必须能在这条链路里被实际调用。此关重点是“追通一条链路 + 改一处”，不是读完所有目录。
 
 必须回答：
 
@@ -1243,14 +1263,18 @@
 任务：
 
 - 做 `code/stage6/r6_gate_personal_kb.py`。
-- 导入至少 3 篇资料，支持问答、引用、无答案拒答。
-- 配 `eval_cases.json`：10 条正常 + 3 条失败 + 1 条危险输入；每次改完跑一遍、记录通过率与失败案例（面试讲「可靠性」的真材料）。
+- 功能 Gate 先导入至少 3 篇资料，支持问答、引用、无答案拒答；进入作品集打磨时扩到至少 20 篇或 50 页、多种长度/格式，避免只证明玩具样例能跑。
+- 每个 chunk 保留来源、标题、页码/段落等 metadata；重复导入不产生重复数据。
+- 配 `eval_cases.json`：10 条正常 + 3 条失败 + 1 条危险输入，并分别记录“检索是否命中正确资料”和“最终答案/引用是否正确”，不要只看一句总通过率。
+- 基础档完成向量检索；召回不足时再做 metadata filter、hybrid search 或 rerank 中至少一项对照实验，不要求一次堆齐全部技术。
 
 ---
 
 # 阶段 7：Agent 设计模式
 
 目标：知道什么时候用哪种 Agent 模式。
+
+学习边界：本阶段不再把所有章节当独立课程从头背一遍；优先拿 A4/R6 已完成项目做架构评审，只精读实际用到、准备替换或明确放弃的模式。最终产出必须解释取舍，而不是罗列名词。
 
 主资料：
 
@@ -1546,7 +1570,7 @@
 
 - 从零安装可运行。
 - README 写清楚。
-- 至少 5 个测试样例。
+- 至少 20 个测试样例，覆盖正常、失败、边界和危险输入；评估脚本可重复运行并输出分项通过率。
 - 有失败案例复盘。
 - 能现场解释核心代码。
 
@@ -1602,7 +1626,7 @@
 
 要做：
 
-- 用 FastAPI 把阶段 4 的最小 Agent 暴露成 HTTP 接口（如 `/chat` 流式接口）。
+- 先把 Agent 调用抽成可复用服务接口，再用 FastAPI 暴露普通 JSON 与 `/chat` 流式接口；主交付接入阶段 6 的 RAG Agent，阶段 4 最小 Agent 可作为更早的轻量联调对象。
 - 处理并发、超时、错误返回；区分 4xx（用户输入问题）和 5xx（服务内部问题）。
 
 问答：
@@ -1676,21 +1700,19 @@
 
 - 能展示一次完整 trace + 一份评估结果。
 
-## J11-06 作品集组合（3-5 个项目）
+## J11-06 作品集组合（2 个旗舰 + 1 个小项目）
 
 要做：
 
-- 整理出 3-5 个由浅到深的项目，例如：
-  1. 结构化信息抽取小工具（阶段 2）
-  2. 带工具的 ReAct 助手（阶段 3-4）
-  3. 个人知识库 RAG 问答（阶段 6，带前端）
-  4. LangGraph 可控研究 Agent（阶段 8）
-  5. 综合项目（阶段 10，部署上线）
+- 整理成“1 个小而完整 + 2 个旗舰”而不是 3–5 个都重做：
+  1. 小项目：结构化信息抽取工具（阶段 2，轻量 README + 测试）。
+  2. 旗舰一：个人知识库 RAG 问答（阶段 6，FastAPI + Vue + 引用 + 评估 + 部署）。
+  3. 旗舰二：从 A4-Gate 持续演化到 LangGraph/FINAL 的可控 Agent（工具、安全确认、trace、失败恢复）；不要把 A4、G8、FINAL 拆成三个互不复用的新仓库。
 - 每个项目写清楚：解决什么问题、用了哪些技术、难点、你做的取舍。
 
 通过标准：
 
-- 至少 1-2 个是「带前端 + 部署上线」的完整产品，不是只能在终端跑的脚本。
+- 两个旗舰项目至少一个「带前端 + 部署上线」，另一个至少有可复现 API/demo 和完整评估，不是只能在终端跑的脚本。
 
 ## J11-07 简历与岗位匹配
 
@@ -1713,7 +1735,7 @@
 
 要做：
 
-- 算法：中等难度为主（数组 / 字符串 / 哈希 / 双指针 / BFS-DFS），LeetCode 100-150 题量级。
+- 算法：主线先完成 50–70 道高质量题（数组 / 字符串 / 哈希 / 双指针 / BFS-DFS），每周至少“2 道新题 + 1 道旧错题重做”；100–150 作为投递期继续累计的长期目标，不卡住 W17。
 - 系统设计基础：能设计「一个 RAG 问答服务」「一个多轮对话服务」的大致架构。
 - AI 八股：RAG 流程、向量检索原理、Agent 循环（ReAct）、幻觉与防护、上下文 / 记忆管理、评估指标、MCP 是什么。
 
@@ -1755,12 +1777,12 @@
 
 ## S-01 多厂商模型切换
 
-挂载：阶段 1（建议 L1-Gate 后做）。
+挂载：A4-Gate 后、J11-02 前；不再和 T3-Gate 挤在同一个周末。
 
 要做：
 
-- 在 L1 的 chatbot 基础上，让同一程序能在 OpenAI 与 Claude（Anthropic）之间切换；有余力再加一个开源模型（OpenRouter 或本地 Ollama）。
-- 用同一组问题记录三者的成本、延迟、输出差异。
+- 先抽出统一的 `ModelClient`/provider 配置边界，让业务代码不依赖某家 SDK 的字段；DeepSeek 作为当前默认实现。
+- 再接至少第二个真实 provider（OpenAI、Claude、OpenRouter 或本地 Ollama 任选其一），用同一组问题记录成本、延迟、输出和 tool calling/structured output 差异。没有第二家凭据时可先完成适配器与 mock 测试，但真实对比未跑前不判完整 PASS，也不阻塞主线 Gate。
 - 顺带补结构化输出「严格档」：用支持 `json_schema`/strict 严格模式的厂商真跑一次严格 Schema 输出，与 DeepSeek `json_object` 软约束对比（PR2-04 只跑过软约束档）。
 
 为什么：JD 普遍要求「会用多家模型」，只会调一个 OpenAI 是减分项。
@@ -1808,11 +1830,12 @@
 
 ## S-05 安全与 Guardrails
 
-挂载：阶段 7（D7-03，强化）。
+挂载：A4-Gate 先做最小安全基线，阶段 7（D7-03）再强化。
 
 要做：
 
-- 给你的工具型 Agent 加：输入校验、危险操作拦截、prompt 注入的基本防护。
+- A4-Gate 先加：输入/参数校验、工具白名单、步数/重试上限、危险操作人工确认。
+- 阶段 7 再补：prompt 注入防护、身份/权限边界、敏感信息与输出处理。
 - 写一个「被攻击」测试样例（如诱导它读取沙箱外文件或忽略系统指令），验证防护生效。
 
 为什么：应用岗会把 Agent 接真实工具和数据，安全是高频面试考点，也是线上事故主要来源。
@@ -1844,13 +1867,13 @@
 
 通过标准：能解释 async 与多线程的区别和各自适用场景；SSE 接口能被 curl/浏览器消费到逐段输出。
 
-## S-08 Semantic Kernel 扫读（可选加分）
+## S-08 Microsoft Agent Framework 扫读（可选加分）
 
-挂载：求职期（约 W15；量：半天，可跳过不影响主线）。
+挂载：求职期（约 W16；量：半天，可跳过不影响主线）。
 
 要做：
 
-- 扫读 Semantic Kernel（或 Microsoft Agent Framework）官方文档概念页：它怎么组织 Agent / 工具 / 记忆，与你学过的 Python 栈的对应关系。
+- 以 Microsoft Agent Framework 官方文档 `https://learn.microsoft.com/en-us/agent-framework/overview/` 为主，了解它作为 Semantic Kernel / AutoGen 后继方案如何组织 Agent、Workflow、工具、MCP、状态和遥测；Semantic Kernel 只作为迁移背景对照。当前仍属 preview，重点是建立 .NET 选型表达，不押注具体 API。
 - 写半页对照笔记：「.NET 团队要落地 Agent，我会怎么选型」。
 
 为什么：你的差异化故事是「.NET+Vue+AI 全栈」（J11-07），能讲出 .NET 侧生态的人在国内稀缺；纯加分项，不挤主线。

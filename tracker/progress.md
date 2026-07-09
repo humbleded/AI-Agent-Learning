@@ -1,87 +1,91 @@
-﻿# AI Agent 学习总进度
+# AI Agent 学习总进度
+
+最后校准：2026-07-10。
 
 状态取值：`TODO`、`DOING`、`RETRY`、`PASS`、`FAIL`。
 
-「批改反馈」列只写 **1–2 句结论＋『详见 daily/日期』**，细节写在当天 `daily/` 与知识库概念卡（2026-07-02 起；存量不返工）。
+本表是任务状态的唯一事实源，只保留状态、日期、目标产物路径和 1 句结论。详细代码检查、练习订正和易错点分别放在 `daily/`、知识库与 `tracker/weak-points.md`。
 
-| 编号       | 任务                           | 状态 | 最近日期   | 代码/笔记                            | 批改反馈                                                                                                                                                                                                             |
-| ---------- | ------------------------------ | ---- | ---------- | ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| P0-01      | 环境与第一个程序               | PASS | 2026-05-27 | code/stage0/p0_01-hello.py           | 能运行，能输入姓名和学习目标并输出结果；基础问答通过。                                                                                                                                                                 |
-| P0-02      | 数据类型与变量                 | PASS | 2026-05-28 | code/stage0/p0_02_profile.py         | 能运行，已体现 str/int/float/bool 四种数据类型；建议后续把变量名 flage 改成 flag。                                                                                                                                     |
-| P0-03      | 条件判断、模式匹配、循环       | PASS | 2026-05-28 | code/stage0/p0_03_scheduler.py       | 能运行，分支判断正确，for 循环能打印未来 7 天计划；建议后续把变量名 time 改成 study_hours。                                                                                                                            |
-| P0-04      | list、tuple、dict、set         | PASS | 2026-06-02 | code/stage0/p0_04_tasks.py           | 能运行，已展示 list/dict/set 基础用法和任务增删改查；set 去重代价已修正。建议后续让 tags 保存真实标签，并让任务名与状态 key 保持一致。                                                                                 |
-| P0-05      | 函数、参数、返回值             | PASS | 2026-06-09 | code/stage0/p0_05_plan_functions.py  | 能运行，`make_plan()` 和 `score_answer()` 均被 `main()` 调用；能说明输入、处理、输出和 `return`/`print` 区别。建议后续给 `days <= 0` 加正整数校验。                                                                    |
-| P0-06      | 模块、第三方包、venv           | PASS | 2026-06-10 | code/stage0/p0_06_env_check.py       | `.venv` 存在，`python-dotenv`/`requests` 安装在虚拟环境中；脚本能读取 `.env` 中的 `TEST_VARIABLE=hello_stage0`；问答能说明 venv、pip 安装位置和 API Key 不硬编码。                                                     |
-| P0-07      | 异常、调试、单元测试           | PASS | 2026-06-11 | code/stage0/p0_07_safe_divide.py     | 能运行，`safe_divide()` 能处理正常输入、除零、非数字和空字符串；问答能说明异常捕获、不吞异常和单元测试价值。装饰器、偏函数、MixIn 属于拓展补救，不影响 P0-07 通过。                                                    |
-| P0-08      | 文件、JSON、CSV                | PASS | 2026-06-13 | code/stage0/p0_08_progress_file.py   | 能运行，能从 `resources/stage0_tasks.txt` 读取任务并写入 `resources/stage0_progress.json`；JSON 可重新解析；问答能说明文本/JSON、路径排查、编码和 `dumps`/`loads`。建议后续清理多余 D 盘列表输出，并改用项目相对路径。 |
-| P0-09      | HTTP 请求                      | PASS | 2026-06-13 | code/stage0/p0_09_http_request.py    | 能用 `.venv` 成功请求 GitHub API 并返回 200；能解释 URL、headers、JSON body、timeout、常见状态码 200/401/404/500，以及 `response.json()` 的作用。                                                                      |
-| P0-Gate    | Python 基础闯关                | PASS | 2026-06-14 | code/stage0/p0_gate_learning_log.py  | 能运行；支持新增学习记录、保存 JSON、查看最近 7 条；能处理文件不存在、JSON 损坏、非整数和负数输入；已有 3 条有效测试记录。建议后续清理一条 `minutes=-5` 旧脏数据。                                                     |
-| B0-01      | Linux 命令行与环境             | TODO |            | notes/stage0_5/b0_01_linux_cli.md    | 穿插补课项：遇到命令行、环境变量、进程、端口、日志时补。                                                                                                                                                               |
-| B0-02      | 网络基础与 HTTP                | PASS | 2026-06-23 | code/stage0_5/b0_02_http_probe.py    | 实跑四场景（正常 2xx/404 非 2xx/DNS 失败/超时）全通过；16 题练习全 PASS（B3/C2/C4/D1/D2 经订正）。掌握 requests.get 全链路、DNS/IP/端口、HTTP 报文、状态码（401 vs 403、4xx/5xx）、**requests 不对 4xx/5xx 抛异常**、三类错误+三层防护（timeout/try-except/主动 check status_code）、timeout 保护客户端、except 子类在前基类兜底、/ vs //。概念卡 02-Concepts/Engineering/http-and-network-basics。                                                                                                                                                                      |
-| B0-03      | SQL 与关系型数据库             | TODO |            | code/stage0_5/b0_03_learning_db.py   | 穿插补课项：做 Memory、学习记录持久化、RAG 数据存储时补。                                                                                                                                                              |
-| B0-04      | Docker 与 Compose              | TODO |            | code/stage0_5/docker_learning_stack/ | 穿插补课项：需要本地多服务、数据库容器、部署和日志排错时补。                                                                                                                                                           |
-| B0-Gate    | 工程基础闯关                   | TODO |            | code/stage0_5/b0_gate_local_stack/   | 项目化整合关卡；不阻塞 L1，建议在 L1-Gate/基础 Tool Calling 后或做 Memory/RAG/部署前完成。                                                                                                                             |
-| L1-01      | API Key 与 SDK                 | PASS | 2026-06-14 | code/stage1/l1_01_first_call.py      | 能从环境变量读取 `DEEPSEEK_API_KEY`，通过 OpenAI SDK + DeepSeek `base_url` 成功调用模型并打印回复；未发现硬编码 key。建议后续把模型名抽成配置。                                                                        |
-| L1-02      | 单轮问答                       | PASS | 2026-06-15 | code/stage1/l1_02_ask.py             | 复用 L1-01 的 `call_model`：用户输入一个问题、模型回答一次；空输入有提示（实测打印「问题不能为空。」、退出码 0）；真实调用 DeepSeek 成功取回 `choices[0].message.content`。已把 system 规则抽成 `call_model(prompt, system=...)` 带默认值的参数。建议后续给 docstring 补 `system` 参数说明（本次已补）。                                                       |
-| L1-03      | 多轮聊天                       | PASS | 2026-06-16 | code/stage1/l1_03_chat.py            | 记忆在客户端：接口无状态，每轮重发 history。history 直接存 messages 格式（{"role","content"}），发送零转换 `[SYSTEM]+history+[本轮user]`。新写 `call_messages` 收整盘对话（区别于 `call_model` 只收字符串自拼两条）。`trim_history` 用 `-MAX_TURNS*2` 保整轮、奇数切片会留残缺开头。实测 2 轮/3 轮记忆均正确，exit 与空输入正常。检查题已全部完成，D1/D2 经复测 PASS。 |
-| L1-04      | 流式输出                       | PASS | 2026-06-17 | code/stage1/l1_04_stream_chat.py     | 实跑验证：`stream=True`+`for chunk`+`delta.content or ""` 逐字流式输出，空输入有提示、两轮记住名字、exit 退出码 0 无异常堆栈。关键点：`or ""` 兜底（防 print 出 "None" 及 `answer+=None` 的 TypeError）；`if not chunk.choices: continue` 守卫；拼回完整文本 `answer+=...` 再 return 才能进 history；except 改 `return f"..."` 不返回 None 防毒化。推理模型两条流 `reasoning_content`/`content` 已理解。16 题检查题全 PASS。可选小尾巴留 L1-Gate：无 key 分支 return None（无害）、docstring 仍单轮描述。 |
-| L1-05      | 参数实验与成本意识             | PASS | 2026-06-18 | code/stage1/l1_05_params_experiment.py | 3 组 temperature(0.0/1.3/1.5) 实跑成功，同一问题输出风格 经典→发散→玩梗；三组 prompt_tokens 恒为 24，印证 temperature 不改输入/单价。代码正确：传 temperature、关思考模式、返回 usage、出错/无 key 路径都返回二元组防拆包崩。三问经订正全 PASS：temperature=差距压平(非只「随机」)、低随机=可复现(代码/数学)、成本=输入(缓存命中/未命中)+输出且输出最贵。中间坑：曾把 k=1/T→0 误接高温端，已纠正为=贪心/低温到底。                                                                                                                                                                                                                        |
-| L1-Gate    | API 入门闯关                   | PASS | 2026-06-27 | code/stage1/l1_gate_cli_chatbot.py | 复核实跑：流式真实 5 轮跑通，多轮记忆稳（第 2 轮答出「三玖」、第 4 轮数出「聊了 3 轮」并复述）；空输入提示、错误兜底不崩、exit 退出码 0 全验证。整合 l1_01~04：`build_prompt` 拼 `[SYSTEM]+history+question`、非流式用 `call_messages`（非 `call_model`，避列表当字符串+丢历史的整合坑）、先成对 append 再 `trim_history` 限长、`create`/client 加 `timeout=30`、错误 `except` 返回友好字符串防毒化 history。4 必答 + 完整调用链路全过；理解 API 参数 vs SDK 客户端参数（timeout/max_retries 属 SDK 层）、SSE。配套练习 15 题全 PASS（C1 漏 [SYSTEM]、C2 限长后果方向 经订正，见 daily/2026-06-27）。**阶段 1 收尾，解锁阶段 2 动手交付与 PR2-Gate。** |
-| PR2-01     | Prompt 基础                    | PASS | 2026-06-27 | code/stage2/pr2_01_prompt_cases.md | 概念+笔记+练习（17 题全 PASS，含 3 必答）早完成；**本日补完动手交付**（驱动脚本 `pr2_01_run_cases.py` 真跑 DeepSeek）：同一抽取任务写 3 个递进 prompt——① 偷懒模糊→Markdown 列表 `json.loads` 失败、多抽字段、值带单位；② 清晰具体（角色+分隔符+点名 6 字段+空 JSON 模板+前后不带文字）→纯 JSON 可 loads；③ few-shot（填好张三样例）→输出与 ② **完全一致、零增益**，印证「prompt 不是越长越好、few-shot 看任务难度，规整任务 ② 就够」。通过标准「有对比和结论」达成。中间坑：f-string/.format 撞 prompt 里 JSON 花括号（静默坏/KeyError）→改字符串拼接。概念卡 prompt-engineering-basics 已补实证。 |
-| PR2-02     | 摘要与改写                     | PASS | 2026-06-27 | code/stage2/pr2_02_summarizer.py | 概念+笔记（五块）+练习（15 题全 PASS）早完成；**本日补完动手交付**：`simple_summarize` 机械版（切句取前 3 句，2 轮订正补「取值也 `strip`」）+ `llm_summarize` 模型版（角色+分隔符+锁 JSON+控长度；单引号包 instruction 避引号冲突、指令+text 拼接）+ main 对比/兜底验证。真跑：机械版照搬整句、漏后 2 段、不能 loads；模型版 `json.loads` 成功、正好 3 条、要点≤20 字、摘要≤60 字→**通过标准「输出格式稳定」达成**。中间坑：prompt 模板忘把 text 嵌进去、漏「取值也 strip」(漏看点名子项弱点重现)、「代码兜底≠约束模型」(代码=事后把关+补救 / prompt=事前软请求)。概念卡 summarizing-and-transforming 已补实证。 |
-| PR2-03     | 分类与路由                     | PASS | 2026-06-28 | code/stage2/pr2_03_classifier.py | 实跑核验：规则版 `classify`（dict 遍历）正确率 73%（4 错=3 漏判+1 撞类），`all_hits` 诊断 + 自动归因（漏判/撞类/误命中）；模型版 `classify_llm`（只输出标签词+`.strip()`+白名单兜底）真实调用 DeepSeek 跑通，4 条难样例规则版 0/4、模型版 2/4（救回"闲聊"撞类那条）。通过标准「≥15 样例 + 错误分析」超额达成（含模型版真实对比）。理解：分类是路由前半步、固定标签让下游 `if` 接得住、规则版(纯代码字面匹配·快但列不全/撞类) vs 模型版(调 LLM 懂语义·但非万能·边界靠 prompt 定义)。练习 15 题全 PASS（A2 规则/模型版对应一度配反、D1 标签尾随空格+`strip` 误用经订正）。**两个错误理解已纠**：①一度以为规则版也调模型→规则版=纯代码零模型调用；②`strip` 误当万能去空格贴到 list 上会崩→只洗运行时脏数据。概念卡 `classification-and-routing` + `python-strip-and-cleaning-runtime-data`。|
-| PR2-04     | JSON 与 Schema                 | PASS | 2026-06-30 | code/stage2/pr2_04_extract_json.py | 真跑核验：规则版 `extract_email`（`partition` 解析“标签：值”）+ 模型版 `extract_email_llm`（DeepSeek `response_format=json_object` + prompt 写 schema/双引号样例/枚举/缺失 null + `validate_payload` 校验）。实跑：结构化邮件两版都对；自由文本“张三说下周五前交报告、比较急、记得回复”→模型版语义抽出完整 JSON（“比较急”→priority 高、“记得回复”→need_reply 是）、规则版抽不到；缺优先级邮件→模型 `priority=null` 不编造。通过标准（`json.loads` 可解析 + 不编造）达成。带动手全链路（预读→规则版→模型版→边界验证）。关键坑：① `response_format=json_object` 只保证合法 JSON 字符串、仍需 `json.loads` 才是 dict；②真调模型不可复现（同封邮件截断/空 content 两种失败）→`except`+`if not content` 兜底不崩；③JSON 示例必双引号；④缩进 4/8 混用致 IndentationError。概念卡 structured-outputs。 |
-| PR2-Gate   | 结构化输出闯关                 | PASS | 2026-07-05 | code/stage2/pr2_gate_email_processor.py | 实跑邮件处理器通过：输出 `category/points/summary/todo` 并保存可解析 JSON；缺字段能被 `validate_payload` 拦截，三道必答题与 14 题练习闭环。详见 daily/2026-07-05。 |
-| T3-01      | 函数调用概念                   | PASS | 2026-07-01 | notes/stage3/t3_01_function_calling.md | 工作日填充预习（PR2-Gate 留周末，概念项不受限）。带读 HF unit1 tools/actions/observations + bonus-unit1 FC（7 题边读边练）＋共写笔记五节＋练习 13 题全 PASS；C3 分发器实跑验证（`json.loads`→`TOOLS[name](**args)`→`role:"tool"` 拼回，asserts 全过）。通过标准达成：模型**不执行**工具、只产 Action（工具名+参数 JSON、吐完即停），解析/执行/Observation 拼回全在客户端程序；「停止并解析」防**自编 Observation**（最隐蔽失败；C2 实景初判被骗→订正，入 WP-14 🔴）；Agent=LLM+工具+调度程序的系统；FC=训练焊权重（`tools`/`tool_calls` 专用字段）vs 手搓 prompt=软请求（概率采样吐歪→代码兜底）；Tool Calling=Function Calling 同一机制两名。坑：中间人两次错猜（工具自执行/平台）→客户端程序；JSONDecodeError≠TypeError（WP-15 🟡）。WP-02/05/06 复测升 ✅、WP-01 降 🟡。概念卡 02-Concepts/LLM/函数调用(Function Calling)。                                                                                                                                                                                                                        |
-| T3-02      | 计算器工具                     | PASS | 2026-07-06 | code/stage3/t3_02_calculator_tool.py | 实跑 7 组函数测试全 PASS（加减乘除、除零、非法操作、非数字），交互入口能打印调用参数和结果；完成 `CALCULATOR_SCHEMA`、参数校验、真实计算和稳定错误返回。三道必答题经订正闭环，详见 daily/2026-07-06。 |
-| T3-03      | 文件工具                       | PASS | 2026-07-07 | code/stage3/t3_03_file_reader_tool.py | 实跑通过：语法检查、CLI 读取 `sample.txt`、函数级覆盖正常读取/长文件截断/文件不存在/目录误读/`..` 沙箱逃逸拒绝/沙箱内归一化允许。练习 16 题 PASS：掌握 `resolve()` 算最终路径、`relative_to(SANDBOX)` 校验沙箱归属、`exists()/is_file()` 分层错误、`content/truncated` 截断语义，以及客户端执行工具并回填 Observation。详见 `daily/2026-07-07.md`。 |
-| T3-04      | 外部 API 工具                  | PASS | 2026-07-08 | code/stage3/t3_04_public_api_tool.py | 实跑通过：语法检查、默认 GitHub API 200、404 非 2xx 稳定返回、非法 URL/Timeout/RequestException 兜底均通过。练习 PASS：掌握 timeout、`response.ok/status_code/headers`、不返回巨大原始 JSON、异常分支不能依赖 `response`，以及客户端回填 Observation。详见 `daily/2026-07-08.md`。 |
-| T3-Gate    | Tool Calling 闯关              | TODO |            |                                      |                                                                                                                                                                                                                        |
-| A4-01      | 什么是 Agent                   | PASS | 2026-07-09 | notes/stage4/a4_01_what_is_agent.md | 工作日概念预习已完成：能定义 Agent=LLM+工具+客户端调度+Observation 反馈循环，能区分 Agent vs Chatbot、Tool/Action/Observation/Final Answer，并能说明 Tool Calling 不等于多步 Agent；练习中 Action JSON 尾逗号、假 Observation 识别、主语链路经订正闭环。T3-Gate 仍按周末闯关。详见 daily/2026-07-09。 |
-| A4-02      | LLM 与 Agent 基础              | TODO |            |                                      |                                                                                                                                                                                                                        |
-| A4-03      | ReAct                          | TODO |            |                                      |                                                                                                                                                                                                                        |
-| A4-04      | Plan-and-Solve                 | TODO |            |                                      |                                                                                                                                                                                                                        |
-| A4-05      | Reflection                     | TODO |            |                                      |                                                                                                                                                                                                                        |
-| A4-Gate    | 最小 Agent 闯关                | TODO |            |                                      |                                                                                                                                                                                                                        |
-| H5-01      | 跑通指定分支                   | TODO |            |                                      |                                                                                                                                                                                                                        |
-| H5-02      | Core 层阅读                    | TODO |            |                                      |                                                                                                                                                                                                                        |
-| H5-03      | Agents 层阅读                  | TODO |            |                                      |                                                                                                                                                                                                                        |
-| H5-04      | Tools 层阅读与新增工具         | TODO |            |                                      |                                                                                                                                                                                                                        |
-| H5-05      | Memory、Context、Protocol 阅读 | TODO |            |                                      |                                                                                                                                                                                                                        |
-| H5-Gate    | 源码学习闯关                   | TODO |            |                                      |                                                                                                                                                                                                                        |
-| R6-01      | 文档读取与切分                 | TODO |            |                                      |                                                                                                                                                                                                                        |
-| R6-02      | Embedding 与检索               | TODO |            |                                      |                                                                                                                                                                                                                        |
-| R6-03      | 带引用问答                     | TODO |            |                                      |                                                                                                                                                                                                                        |
-| R6-Gate    | RAG 闯关                       | TODO |            |                                      |                                                                                                                                                                                                                        |
-| D7-01      | 基础编排模式                   | TODO |            |                                      |                                                                                                                                                                                                                        |
-| D7-02      | Agent 核心模式                 | TODO |            |                                      |                                                                                                                                                                                                                        |
-| D7-03      | 可靠性与工程模式               | TODO |            |                                      |                                                                                                                                                                                                                        |
-| D7-Gate    | 设计模式闯关                   | TODO |            |                                      |                                                                                                                                                                                                                        |
-| G8-01      | LangGraph 适用场景             | TODO |            |                                      |                                                                                                                                                                                                                        |
-| G8-02      | 第一个 Graph                   | TODO |            |                                      |                                                                                                                                                                                                                        |
-| G8-03      | 文档分析 Agent                 | TODO |            |                                      |                                                                                                                                                                                                                        |
-| G8-Gate    | LangGraph 闯关                 | TODO |            |                                      |                                                                                                                                                                                                                        |
-| M9-01      | MCP 概念                       | TODO |            |                                      |                                                                                                                                                                                                                        |
-| M9-02      | 本地 MCP Server                | TODO |            |                                      |                                                                                                                                                                                                                        |
-| M9-03      | Agent 调 MCP                   | TODO |            |                                      |                                                                                                                                                                                                                        |
-| M9-Gate    | MCP 闯关                       | TODO |            |                                      |                                                                                                                                                                                                                        |
-| E10-01     | Agent 评估                     | TODO |            |                                      |                                                                                                                                                                                                                        |
-| E10-02     | 综合项目设计                   | TODO |            |                                      |                                                                                                                                                                                                                        |
-| FINAL-Gate | 综合项目答辩                   | TODO |            |                                      |                                                                                                                                                                                                                        |
-| J11-01     | GitHub 与工程习惯              | TODO |            | （整理 code/ 现有项目）              | 应用岗作品集阶段；从阶段 3 起并行启动。                                                                                                                                                                                |
-| J11-02     | Agent 后端服务（FastAPI）      | TODO |            | code/stage11/j11_02_agent_api/       | 顺带补 async 和接口设计，弥补后端基础。                                                                                                                                                                                |
-| J11-03     | Vue 前端界面                   | TODO |            | code/stage11/j11_03_agent_web/       | 发挥你现有 Vue 优势，做差异化作品。                                                                                                                                                                                    |
-| J11-04     | 容器化与上线                   | TODO |            | code/stage11/j11_04_deploy/          | 依赖 B0-04 Docker；产出公网可点开的 demo 链接。                                                                                                                                                                        |
-| J11-05     | 可观测与评估                   | TODO |            | code/stage11/j11_05_observability/   | 接 LangSmith/Langfuse，呼应阶段 10 评估。                                                                                                                                                                              |
-| J11-06     | 作品集组合（3-5 项目）         | TODO |            | notes/stage11/j11_06_portfolio.md    | 至少 1-2 个带前端 + 部署上线。                                                                                                                                                                                         |
-| J11-07     | 简历与岗位匹配                 | TODO |            | notes/stage11/j11_07_resume.md       | 把 .NET+Vue+AI 串成「全栈 AI 应用落地」故事。                                                                                                                                                                          |
-| J11-08     | 面试准备                       | TODO |            | notes/stage11/j11_08_interview.md    | 中等算法 + 系统设计 + AI 八股。                                                                                                                                                                                        |
-| J11-Gate   | 求职冲刺关                     | TODO |            |                                      | 公开作品集 + 简历 + 面试自测。                                                                                                                                                                                         |
-| S-01       | 多厂商模型切换                 | TODO |            | （挂阶段1，L1-Gate 后）              | 补充项：OpenAI/Claude(+开源)切换，比成本/延迟/效果；顺带用 `json_schema` 严格模式厂商补结构化输出「严格档」（PR2-04 只跑过 DeepSeek `json_object`）。                                                                                                                                                                   |
-| S-02       | 真实向量数据库                 | TODO |            | （挂阶段6 R6-02）                    | 补充项：Chroma/FAISS 或 pgvector，别手写相似度。                                                                                                                                                                       |
-| S-03       | 上下文工程                     | PASS | 2026-06-29 | notes/stage2/s03_context_engineering.md ＋ code/stage2/s03_context_experiment.py | 带读 HA 第9章（9.1~9.2.3/9.7）＋15 题练习全 PASS（B1/B2/B4/C4/D1/D3 经订正闭环）＋七节笔记＋token 对比实验真跑通：① 全量100 > ③ Compaction50 > ② 裁剪25 token，程序验证「三玖」②=False(裁剪丢早期信息)/③=True(Compaction 摘要保人名)，真调 DeepSeek 成功。通过标准三条达成（解释上下文窗口取舍／给出压缩做法 Compaction／接回 trim_history=truncation 基础档）。关键纠错：①上下文工程 vs 提示工程(跨层) 混 Compaction vs trim(同层)；②trim 误归提示工程/误塞 Compaction(实为 truncation)。调试自修 messages=text 的 400、数据埋名字两坑。概念卡 02-Concepts/LLM/context-engineering。 |
-| S-04       | 多 Agent 动手                  | TODO |            | code/（挂阶段7 D7-02）               | 补充项：supervisor+worker 最小协作 demo。                                                                                                                                                                              |
-| S-05       | 安全与 Guardrails              | TODO |            | code/（挂阶段7 D7-03）               | 补充项：输入校验/危险操作拦截/prompt 注入防护 + 攻击测试样例。                                                                                                                                                         |
-| S-06       | 微调 vs RAG vs Prompt 判断     | TODO |            | notes/（挂阶段6 或 10）              | 补充项：概念笔记，应用岗不动手微调但要会判断。 |
-| S-07       | async 基础与异步接口           | TODO |            | code/（挂阶段11，J11-02 前，W9）     | 补充项：async/await、asyncio 入门＋FastAPI 异步接口与 SSE 流式；J11-02 前完成，别只「顺带补」。 |
-| S-08       | Semantic Kernel 扫读（可选）   | TODO |            | notes/（挂求职期 W15）               | 可选加分项：.NET 侧 Agent 生态扫读，面试能讲「.NET 团队怎么落地 Agent」，呼应 .NET+Vue 差异化故事。                                                                                                                                                                         |
+“代码/笔记”是计划目标路径：TODO 任务的文件可能尚未创建；代码骨架只在任务开始动手或 Gate 设计准备时即时建立。
+
+| 编号 | 任务 | 状态 | 最近日期 | 代码/笔记 | 批改反馈 |
+| --- | --- | --- | --- | --- | --- |
+| P0-01 | 环境与第一个程序 | PASS | 2026-05-27 | code/stage0/p0_01_hello.py | 已通过；详见 daily/2026-05-27.md。 |
+| P0-02 | 数据类型与变量 | PASS | 2026-05-28 | code/stage0/p0_02_profile.py | 已通过；详见 daily/2026-05-28.md。 |
+| P0-03 | 条件判断、模式匹配、循环 | PASS | 2026-05-28 | code/stage0/p0_03_scheduler.py | 已通过；详见 daily/2026-05-28.md。 |
+| P0-04 | list、tuple、dict、set | PASS | 2026-06-02 | code/stage0/p0_04_tasks.py | 已通过；详见 daily/2026-06-02.md。 |
+| P0-05 | 函数、参数、返回值 | PASS | 2026-06-09 | code/stage0/p0_05_plan_functions.py | 已通过；详见 daily/2026-06-09.md。 |
+| P0-06 | 模块、第三方包、venv | PASS | 2026-06-10 | code/stage0/p0_06_env_check.py | 已通过；详见 daily/2026-06-10.md。 |
+| P0-07 | 异常、调试、单元测试 | PASS | 2026-06-11 | code/stage0/p0_07_safe_divide.py | 已通过；详见 daily/2026-06-11.md。 |
+| P0-08 | 文件、JSON、CSV | PASS | 2026-06-13 | code/stage0/p0_08_progress_file.py | 已通过；详见 daily/2026-06-13.md。 |
+| P0-09 | HTTP 请求 | PASS | 2026-06-13 | code/stage0/p0_09_http_request.py | 已通过；详见 daily/2026-06-13.md。 |
+| P0-Gate | Python 基础闯关 | PASS | 2026-06-14 | code/stage0/p0_gate_learning_log.py | 已通过；详见 daily/2026-06-14.md。 |
+| B0-01 | Linux 命令行与环境 | TODO |  | notes/stage0_5/b0_01_linux_cli.md | 穿插补课项：遇到命令行、环境变量、进程、端口、日志时补。 |
+| B0-02 | 网络基础与 HTTP | PASS | 2026-06-23 | code/stage0_5/b0_02_http_probe.py | 已通过；详见 daily/2026-06-23.md。 |
+| B0-03 | SQL 与关系型数据库 | TODO |  | code/stage0_5/b0_03_learning_db.py | 穿插补课项：做 Memory、学习记录持久化、RAG 数据存储时补。 |
+| B0-04 | Docker 与 Compose | TODO |  | code/stage0_5/docker_learning_stack/ | 穿插补课项：需要本地多服务、数据库容器、部署和日志排错时补。 |
+| B0-Gate | 工程基础闯关 | TODO |  | code/stage0_5/b0_gate_local_stack/ | 项目化整合关卡；不阻塞 L1，建议在 L1-Gate/基础 Tool Calling 后或做 Memory/RAG/部署前完成。 |
+| L1-01 | API Key 与 SDK | PASS | 2026-06-14 | code/stage1/l1_01_first_call.py | 已通过；详见 daily/2026-06-14.md。 |
+| L1-02 | 单轮问答 | PASS | 2026-06-15 | code/stage1/l1_02_ask.py | 已通过；详见 daily/2026-06-15.md。 |
+| L1-03 | 多轮聊天 | PASS | 2026-06-16 | code/stage1/l1_03_chat.py | 已通过；详见 daily/2026-06-16.md。 |
+| L1-04 | 流式输出 | PASS | 2026-06-17 | code/stage1/l1_04_stream_chat.py | 已通过；详见 daily/2026-06-17.md。 |
+| L1-05 | 参数实验与成本意识 | PASS | 2026-06-18 | code/stage1/l1_05_params_experiment.py | 已通过；详见 daily/2026-06-18.md。 |
+| L1-Gate | API 入门闯关 | PASS | 2026-06-27 | code/stage1/l1_gate_cli_chatbot.py | 已通过；详见 daily/2026-06-27.md。 |
+| PR2-01 | Prompt 基础 | PASS | 2026-06-27 | code/stage2/pr2_01_prompt_cases.md | 已通过；详见 daily/2026-06-27.md。 |
+| PR2-02 | 摘要与改写 | PASS | 2026-06-27 | code/stage2/pr2_02_summarizer.py | 已通过；详见 daily/2026-06-27.md。 |
+| PR2-03 | 分类与路由 | PASS | 2026-06-28 | code/stage2/pr2_03_classifier.py | 已通过；详见 daily/2026-06-28.md。 |
+| PR2-04 | JSON 与 Schema | PASS | 2026-06-30 | code/stage2/pr2_04_extract_json.py | 已通过；详见 daily/2026-06-30.md。 |
+| PR2-Gate | 结构化输出闯关 | PASS | 2026-07-05 | code/stage2/pr2_gate_email_processor.py | 已通过；详见 daily/2026-07-05.md。 |
+| T3-01 | 函数调用概念 | PASS | 2026-07-01 | notes/stage3/t3_01_function_calling.md | 已通过；详见 daily/2026-07-01.md。 |
+| T3-02 | 计算器工具 | PASS | 2026-07-06 | code/stage3/t3_02_calculator_tool.py | 已通过；详见 daily/2026-07-06.md。 |
+| T3-03 | 文件工具 | PASS | 2026-07-07 | code/stage3/t3_03_file_reader_tool.py | 已通过；详见 daily/2026-07-07.md。 |
+| T3-04 | 外部 API 工具 | PASS | 2026-07-08 | code/stage3/t3_04_public_api_tool.py | 已通过；详见 daily/2026-07-08.md。 |
+| T3-Gate | Tool Calling 闯关 | TODO |  | code/stage3/t3_gate_tool_assistant.py | 当前硬检查点；即时骨架已按真实 `tools/tool_calls → 客户端执行 → role="tool" 回填 → 最终回答` 重建，待用户动手完成并跑 14 条评估。 |
+| A4-01 | 什么是 Agent | PASS | 2026-07-09 | notes/stage4/a4_01_what_is_agent.md | 已通过；详见 daily/2026-07-09.md。 |
+| A4-02 | LLM 与 Agent 基础 | TODO |  |  |  |
+| A4-03 | ReAct | TODO |  |  |  |
+| A4-04 | Plan-and-Solve | TODO |  |  |  |
+| A4-05 | Reflection | TODO |  |  |  |
+| A4-Gate | 最小 Agent 闯关 | TODO |  |  |  |
+| H5-01 | 跑通指定分支 | TODO |  |  |  |
+| H5-02 | Core 层阅读 | TODO |  |  |  |
+| H5-03 | Agents 层阅读 | TODO |  |  |  |
+| H5-04 | Tools 层阅读与新增工具 | TODO |  |  |  |
+| H5-05 | Memory、Context、Protocol 阅读 | TODO |  |  |  |
+| H5-Gate | 源码学习闯关 | TODO |  |  |  |
+| R6-01 | 文档读取与切分 | TODO |  |  |  |
+| R6-02 | Embedding 与检索 | TODO |  |  |  |
+| R6-03 | 带引用问答 | TODO |  |  |  |
+| R6-Gate | RAG 闯关 | TODO |  |  |  |
+| D7-01 | 基础编排模式 | TODO |  |  |  |
+| D7-02 | Agent 核心模式 | TODO |  |  |  |
+| D7-03 | 可靠性与工程模式 | TODO |  |  |  |
+| D7-Gate | 设计模式闯关 | TODO |  |  |  |
+| G8-01 | LangGraph 适用场景 | TODO |  |  |  |
+| G8-02 | 第一个 Graph | TODO |  |  |  |
+| G8-03 | 文档分析 Agent | TODO |  |  |  |
+| G8-Gate | LangGraph 闯关 | TODO |  |  |  |
+| M9-01 | MCP 概念 | TODO |  |  |  |
+| M9-02 | 本地 MCP Server | TODO |  |  |  |
+| M9-03 | Agent 调 MCP | TODO |  |  |  |
+| M9-Gate | MCP 闯关 | TODO |  |  |  |
+| E10-01 | Agent 评估 | TODO |  |  |  |
+| E10-02 | 综合项目设计 | TODO |  |  |  |
+| FINAL-Gate | 综合项目答辩 | TODO |  |  |  |
+| J11-01 | GitHub 与工程习惯 | TODO |  | （整理 code/ 现有项目） | 应用岗作品集阶段；从阶段 3 起并行启动。 |
+| J11-02 | Agent 后端服务（FastAPI） | TODO |  | code/stage11/j11_02_agent_api/ | 顺带补 async 和接口设计，弥补后端基础。 |
+| J11-03 | Vue 前端界面 | TODO |  | code/stage11/j11_03_agent_web/ | 发挥你现有 Vue 优势，做差异化作品。 |
+| J11-04 | 容器化与上线 | TODO |  | code/stage11/j11_04_deploy/ | 依赖 B0-04 Docker；产出公网可点开的 demo 链接。 |
+| J11-05 | 可观测与评估 | TODO |  | code/stage11/j11_05_observability/ | 接 LangSmith/Langfuse，呼应阶段 10 评估。 |
+| J11-06 | 作品集组合（2 旗舰 + 1 小项目） | TODO |  | notes/stage11/j11_06_portfolio.md | RAG 与可控 Agent 两个旗舰持续演化，另保留一个结构化抽取小项目；至少一个旗舰带前端并部署。 |
+| J11-07 | 简历与岗位匹配 | TODO |  | notes/stage11/j11_07_resume.md | 把 .NET+Vue+AI 串成「全栈 AI 应用落地」故事。 |
+| J11-08 | 面试准备 | TODO |  | notes/stage11/j11_08_interview.md | 中等算法 + 系统设计 + AI 八股。 |
+| J11-Gate | 求职冲刺关 | TODO |  |  | 公开作品集 + 简历 + 面试自测。 |
+| S-01 | 多厂商模型切换 | TODO |  | （A4-Gate 后、J11-02 前） | 先抽 provider 边界，再接第二个真实 provider；不与 T3-Gate 挤在同一周末。 |
+| S-02 | 真实向量数据库 | TODO |  | （挂阶段6 R6-02） | 补充项：Chroma/FAISS 或 pgvector，别手写相似度。 |
+| S-03 | 上下文工程 | PASS | 2026-06-30 | notes/stage2/s03_context_engineering.md ＋ code/stage2/s03_context_experiment.py | 已通过；详见 daily/2026-06-30.md。 |
+| S-04 | 多 Agent 动手 | TODO |  | code/（挂阶段7 D7-02） | 补充项：supervisor+worker 最小协作 demo。 |
+| S-05 | 安全与 Guardrails | TODO |  | code/（A4-Gate 基线 + W11 强化） | A4-Gate 先做白名单/限步/人工确认，W11 再补注入、越权与攻击测试。 |
+| S-06 | 微调 vs RAG vs Prompt 判断 | TODO |  | notes/（挂阶段6 或 10） | 补充项：概念笔记，应用岗不动手微调但要会判断。 |
+| S-07 | async 基础与异步接口 | TODO |  | code/（J11-02 前，W9） | async/await、FastAPI 异步接口与 SSE；J11-02 前完成。 |
+| S-08 | Microsoft Agent Framework 扫读（可选） | TODO |  | notes/（挂求职期 W16） | 以 Microsoft Agent Framework 为主，Semantic Kernel/AutoGen 仅作迁移背景；形成 .NET 团队 Agent 选型表达。 |

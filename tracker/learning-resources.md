@@ -3,8 +3,8 @@
 ## 一、够不够用？结论先说
 
 - **阶段 0–10 的资料：绰绰有余，甚至偏多。** `repos/` 里已经躺着完整的书和课程，不用再到处找。你现在的风险不是「资料不够」，而是「收集太多、消化太少」。先把现成的按顺序读完 + 动手，别陷入收集癖。
-- **真正缺资料的，是新增的工程 / 求职层**（S-01~S-06、阶段 11 J11）：FastAPI、Vue+SSE、向量库、Docker 部署、可观测、多厂商、算法、系统设计 / 八股。这些原路线没分配资料，已在本文件第四节补齐。
-- **D:\AI-Knowledge 现状：是一个配置好但内容几乎为空的 Obsidian 知识库。** 插件齐全（copilot、dataview、smart-connections、omnisearch、git、kanban），但还没有你的知识笔记——它是「容器」，随着你过关由复习流程往里沉淀。所以不是资料不够，是还没开始往里写。用法建议见第六节。
+- **真正缺资料的，是新增的工程 / 求职层**（S-01~S-08、阶段 11 J11）：FastAPI、Vue+SSE、向量库、Docker 部署、可观测、多厂商、算法、系统设计 / 八股。这些原路线没分配资料，已在本文件第四节补齐。
+- **D:\AI-Knowledge 已进入持续沉淀阶段。** 截至 2026-07-10 已有 Agent、LLM、Engineering 等概念卡，不再按“空库/阶段 0 尾”处理；后续继续在 PASS/Gate 后同步稳定结论即可。
 
 ## 二、你已有的核心资料（都在 repos/，离线可用）
 
@@ -39,11 +39,11 @@
 - **阶段 9 MCP**：HA 第 10 章《智能体通信协议》→ ADP 第 10 章 MCP → 读 `HelloAgents .../protocols/mcp/` → 写 M9。可选对照：agentskillsdev.com《Agent Skills L0》（中文免费，基于吴恩达×Anthropic 官方课）——只读「Skills vs Tools/MCP/Subagents」辨析一节当面试谈资，**别提前陷进 Skills 生态**（同第五节对马克视频的提醒）。
 - **阶段 10 评估 + 综合项目**：HA 第 12 章 + ADP 第 19 章 → HF `bonus-unit2` 可观测与评估 → 参考 HA 第 13/14 章项目 → 做 FINAL。
 
-## 四、新增层补充资料（S-01~S-06 + J11，原路线没有的）
+## 四、新增层补充资料（S-01~S-08 + J11，原路线没有的）
 
 | 主题 | 挂载 | 推荐资料（优先中文 / 官方） |
 | --- | --- | --- |
-| 多厂商模型（S-01） | 阶段1后 | Anthropic 文档 `docs.anthropic.com`；OpenRouter `openrouter.ai/docs`（一个 key 调多家）；本地模型 Ollama `ollama.com` |
+| 多厂商模型（S-01） | A4-Gate 后、J11-02 前 | 先抽 provider 接口，再查 Anthropic 文档 `docs.anthropic.com`、OpenRouter `openrouter.ai/docs` 或本地 Ollama；不与 T3-Gate 挤在同一周末 |
 | 真实向量库（S-02） | 阶段6 | Chroma 官方 `docs.trychroma.com`（最易上手）；FAISS（本地）；pgvector（接你的 SQL）；RAG 面试题（知乎 `zhuanlan.zhihu.com/p/2029999895302628181`） |
 | 上下文工程（S-03） | 阶段2/4 | **HA 第 9 章（已有）**；Anthropic《Building effective agents》（Hub 里有链接） |
 | 多 Agent（S-04） | 阶段7 | **ADP 第 7 章（已有）**；HF 中文 unit2 多节点 graph |
@@ -55,7 +55,7 @@
 | 可观测（J11-05） | 阶段11 | Langfuse 中文 `langfuse.com/cn`（开源，推荐）；LangSmith 中文 `langsmith.langchain.ac.cn` |
 | 算法（J11-08） | 阶段11（W4 起启动） | **原理教材：《Hello 算法》`hello-algo.com`**（免费开源，动画图解＋Python 代码一键可跑，非科班友好）——W4 算法启动先读复杂度/数组与链表/哈希表打底，之后刷到哪个专题回头补哪章原理；刷题路线：代码随想录 `programmercarl.com`（含视频，按专题刷）＋ LeetCode 热题 100 `leetcode.cn`（题单） |
 | 系统设计 / 八股（J11-08） | 阶段11 | 小林 coding `xiaolincoding.com`（有「2026 Agent / AI 应用 / 大模型面试题」合集）；Anthropic / OpenAI 官方 agent 指南（Hub） |
-| .NET Agent 生态扫读（S-08，可选） | 求职期 W15 | 微软 ai-agents-for-beginners（`github.com/microsoft/ai-agents-for-beginners`，中文在 `translations/zh-CN/`）——绑 Microsoft Agent Framework（Semantic Kernel＋AutoGen 的合并后继）＋Azure Foundry；**概念课与 HA/ADP/HF 三重重叠，别重复学**，只扫 1–2 课「.NET 团队怎么落地 Agent」做面试差异化；动手需 Azure 账号，不当主线 |
+| .NET Agent 生态扫读（S-08，可选） | 求职期 W16 | Microsoft Agent Framework 官方文档 + 微软 ai-agents-for-beginners 中文版；它是 Semantic Kernel/AutoGen 的后继但仍在 preview，只扫 Agent/Workflow/MCP/telemetry 与 Python 栈的映射，不押注具体 API、不重复学概念课 |
 
 ## 五、视频清单（中文，按需补，不是主线）
 
@@ -69,7 +69,7 @@
 
 - 定位分工：`AI-Agent-Learning` 放**过程**（练习代码、每日打卡、笔记草稿、源码）；`AI-Knowledge` 放**沉淀**（稳定结论、概念卡片、面试复习卡、踩坑记录）。
 - 建议节奏：每过一个 **Gate**，把该阶段的核心概念、自己的问答、踩的坑，整理成 1–2 张 Obsidian 笔记同步进去。用 `smart-connections` / `omnisearch` 在复习和面试前快速检索。
-- 现在它是空的很正常——你才到阶段 0 尾。等 L1-Gate 过了，就可以写第一张「大模型 API 调用要点」卡片进去。
+- 当前已在持续写入概念卡；每过一个 Gate 继续沉淀 1–2 张高价值笔记即可，不按文件数量追求“填满知识库”。
 
 ## 七、怎么用 Agent-Learning-Hub（嫁接 3 样，别照搬）
 
@@ -82,11 +82,11 @@ Hub 的 11 级项目阶梯，大半正好能套在你已有的 Gate / J11 上—
 | Hub 阶梯 | 对应本路线任务 | 定位 |
 | --- | --- | --- |
 | L1 计算器 Agent | T3-02 计算器工具 | 已有 |
-| L2 Web 研究 Agent | 阶段4 A4-Gate | 作品集① |
-| L3 PDF 问答 Agent | 阶段6 R6-Gate | 作品集② |
+| L2 Web 研究 Agent | 阶段4 A4-Gate → 阶段8/FINAL 持续演化 | 旗舰项目二，不重复起仓库 |
+| L3 PDF 问答 Agent | 阶段6 R6-Gate + FastAPI/Vue | 旗舰项目一 |
 | L4 代码审查 Agent | 额外可选 | 🎯 .NET 背景做这个是差异化亮点 |
 | L9 多 Agent 写作 | S-04 / D7-02（阶段7） | 多 Agent demo |
-| L11 生产级 Harness | 阶段10 + J11-05 可观测 | 作品集④ FINAL |
+| L11 生产级 Harness | 阶段10 + J11-05 可观测 | 给最强旗舰补齐生产能力，不另起作品集④ |
 
 ### 嫁接② Stage 0 两篇必读 + 心法清单（阶段4 入门时读）
 
