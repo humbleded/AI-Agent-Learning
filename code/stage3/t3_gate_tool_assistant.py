@@ -9,7 +9,7 @@ T3-Gate Tool Calling 闯关：真实三工具助手。
     2. 让 DeepSeek 真实返回 assistant.tool_calls，不用关键词 if/elif 代替模型选择。
     3. 客户端校验工具名和 JSON 参数，再从 TOOLS 注册表执行真实函数。
     4. 把结果以 role="tool" + tool_call_id 回填，第二次调用模型生成最终回答。
-    5. 覆盖无需工具、坏参数、工具失败、危险路径和最大工具轮数。
+    5. 覆盖无需工具、坏参数、工具失败、危险路径/恶意 URL 和最大工具轮数。
 
 模式约定：
     本关先显式使用 non-thinking mode：extra_body={"thinking": {"type": "disabled"}}。
@@ -18,7 +18,7 @@ T3-Gate Tool Calling 闯关：真实三工具助手。
 
 通过标准：
     - 计算、读文件、外部 API 各真跑至少 1 次。
-    - 无工具问题可直接回答；沙箱外路径必须拒绝。
+    - 无工具问题可直接回答；沙箱外路径、localhost/私网/metadata 等恶意 URL 必须拒绝。
     - eval_cases.json 含 10 正常 + 3 失败 + 1 危险输入，并有可重复运行的评估入口。
 
 注意：这是当前任务的即时骨架，只提供结构和 TODO，不包含可运行答案。
@@ -64,9 +64,13 @@ def execute_tool_call(tool_call):
     """校验一个模型 tool_call，执行真实工具并返回可 JSON 序列化的结果。
 
     提示顺序：取 name/arguments -> 校验工具白名单 -> json.loads -> 校验 dict
+    -> 对 public_api_tool 校验 scheme/host/port；禁用自动重定向或逐跳校验 Location
     -> TOOLS[name](**arguments) -> 捕获参数/执行错误并返回稳定 ok/error。
     """
-    # TODO：绝不能 eval(arguments)，也不能执行 TOOLS 以外的名字。
+    # TODO 1：绝不能 eval(arguments)，也不能执行 TOOLS 以外的名字。
+    # TODO 2：public_api_tool 不得接收任意 URL；拒绝 loopback、私网、link-local、
+    #         云 metadata 地址与重定向逃逸；不能只校验初始 URL 后自动跟随跳转。
+    #         为正常 URL、初始恶意 URL、危险重定向分别写可重复测试。
     raise NotImplementedError("T3-Gate：实现 execute_tool_call")
 
 
