@@ -32,16 +32,15 @@
 
 每天该学什么，三个课程文件对齐：`weekly-plan.md`（W1–W20 内容块 → 任务）+ `progress.md`（课程状态唯一事实源）+ `ai-agent-learning-tracker.md`（任务资料 / 产物 / 通过标准 / 必答问题）。工作场景的覆盖与证据等级只记在 `work-scenario-coverage.md`；岗位能力只在 Gate、作品集里程碑或 JD 审计时更新 `job-readiness.md`，普通概念 PASS 不冒充求职就绪。
 
-**当前执行入口（2026-07-10 校准，不替代 progress）**：W4 收尾；T3-01~04 已 PASS，下一硬检查点是 `T3-Gate`。`A4-01` 已作为等待周末时的概念预习 PASS。
+**当前执行入口（2026-07-12 校准，不替代 progress）**：W4 已收尾；T3-01~T3-Gate 全部 PASS，A4-01 已 PASS。当前进入 W5，下一主任务是 `A4-02`；W4 算法 0/4 已记 `DEBT`，在 W5 优先逐题补齐。
 
 **接下来的队列（顺着拉，不钉日期）**：
 
 ```text
-[当前工作日] T3-Gate 设计：核对 DeepSeek tools/tool_calls → 列 schema、分发器、消息回填、评估案例；只建 TODO 骨架
-[当前周末] T3-Gate 实现：真实模型选三工具 → 客户端执行 → role="tool" 回填 → 第二次模型回答 → 跑 14 条评估
-   ↓ Gate PASS 后
-A4-02 LLM 与 Agent 基础 → A4-03 ReAct → A4-04 Plan-and-Solve → A4-05 Reflection
-[周末] A4-Gate + 自动评估 + 最小日志 + 危险操作确认
+[当前] 先做 A4-02 LLM 与 Agent 基础；算法小节优先补 W4 结转的 4 道新题
+   ↓
+A4-03 ReAct → A4-04 Plan-and-Solve → A4-05 Reflection
+[周末] A4-Gate + 轻量案例核验/参数化 pytest + 最小日志 + 危险操作确认
    ↓
 S-01 先抽 provider 边界/错误分类/重试降级设计 → H5 在 2–3 个学习日追通一条调用链并收尾 → BE5-01/02/03
 [W9] B0-03/B0-04/B0-Gate → BE5-04/05/BE5-Gate

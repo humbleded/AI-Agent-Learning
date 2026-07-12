@@ -29,12 +29,17 @@ def public_api_tool(url=API_URL):
         return {"ok": False, "error": "请先安装 requests：pip install requests"}
 
     try:
-        response = requests.get(url, timeout=5)
+        response = requests.get(url, timeout=5, allow_redirects=False)
     except requests.Timeout:
         return {"ok": False, "error": "请求超时"}
     except requests.RequestException as exc:
         return {"ok": False, "error": f"请求失败：{exc}"}
-
+    if 300 <= response.status_code < 400:
+      return {
+          "ok": False,
+          "error": "拒绝重定向",
+          "status_code": response.status_code,
+      }
     return {
         "ok": response.ok,
         "status_code": response.status_code,

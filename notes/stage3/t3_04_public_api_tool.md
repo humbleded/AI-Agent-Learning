@@ -25,7 +25,7 @@
 -> 客户端把用户问题 + 工具菜单发给模型
 -> LLM 选择 public_api_tool，并生成 url 参数
 -> 客户端解析工具调用
--> public_api_tool(url) 发起 requests.get(url, timeout=5)
+-> public_api_tool(url) 发起 requests.get(url, timeout=5, allow_redirects=False)
 -> 成功：返回 ok / status_code / server / rate limit
 -> 失败：返回 ok=False / error
 -> 客户端把 dict 作为 Observation/tool message 放回上下文
@@ -42,11 +42,18 @@ def public_api_tool(url=API_URL):
         return {"ok": False, "error": "请先安装 requests：pip install requests"}
 
     try:
-        response = requests.get(url, timeout=5)
+        response = requests.get(url, timeout=5, allow_redirects=False)
     except requests.Timeout:
         return {"ok": False, "error": "请求超时"}
     except requests.RequestException as exc:
         return {"ok": False, "error": f"请求失败：{exc}"}
+
+    if 300 <= response.status_code < 400:
+        return {
+            "ok": False,
+            "error": "拒绝重定向",
+            "status_code": response.status_code,
+        }
 
     return {
         "ok": response.ok,
@@ -63,7 +70,7 @@ def public_api_tool(url=API_URL):
 |---|---|---|
 | `API_URL = "https://api.github.com"` | 默认公开 API 地址 | 直接运行脚本也能验证 |
 | `try: import requests` | 加载 HTTP 请求库 | 没安装第三方包时给清楚提示 |
-| `requests.get(url, timeout=5)` | 发起 GET 请求，最多等 5 秒 | 防止外部 API 卡死 Agent 链路 |
+| `requests.get(url, timeout=5, allow_redirects=False)` | 发起 GET 请求、最多等 5 秒且不自动跟随跳转 | 防止链路卡死，也防止允许域名通过 302 跳到本地/私网 |
 | `response = ...` | 保存响应对象 | 后面要读取 `ok/status_code/headers` |
 | `except requests.Timeout` | 单独捕获超时 | 给用户/模型明确“请求超时” |
 | `except requests.RequestException as exc` | 兜底其他请求异常 | 处理非法 URL、连接失败等网络层错误 |
@@ -176,7 +183,7 @@ except requests.RequestException as exc:
 ```text
 1. LLM 判断需要外部 API 工具，并生成工具名 public_api_tool 和参数 url。
 2. 客户端解析工具调用，把 url 传给 public_api_tool。
-3. public_api_tool 用 requests.get(url, timeout=5) 请求外部 API。
+3. Gate 分发器先校验 HTTPS、host allowlist 和端口，再由 public_api_tool 用 `requests.get(url, timeout=5, allow_redirects=False)` 请求外部 API。
 4. 工具返回成功摘要或稳定错误 dict。
 5. 客户端把 dict 作为 Observation/tool message 放回上下文。
 6. LLM 读取 Observation，再回答“能访问 / 路径不存在 / 请求超时 / 额度快用完”等信息。
@@ -300,7 +307,7 @@ Agent 工具里更合适的是：
 1. 默写这一行：
 
 ```python
-response = requests.get(url, timeout=5)
+response = requests.get(url, timeout=5, allow_redirects=False)
 ```
 
 2. 看到 404 时提醒自己：
@@ -326,5 +333,6 @@ response = requests.get(url, timeout=5)
 - `daily/2026-07-08.md`
 - `code/stage3/t3_04_public_api_tool.py`
 - `tracker/progress.md`
+- `notes/stage3/t3_gate_tool_assistant.md`
 - `tracker/weak-points.md`
 - `D:\AI-Knowledge\02-Concepts\Agent\外部 API 工具(External API Tool).md`

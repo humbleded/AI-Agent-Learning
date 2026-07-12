@@ -103,7 +103,7 @@ Hub 的 11 级项目阶梯，大半正好能套在你已有的 Gate / J11 上—
 ### 嫁接② Stage 0 两篇必读 + 心法清单（阶段4 入门时读）
 
 - [Anthropic《Building effective agents》](https://www.anthropic.com/engineering/building-effective-agents)、[OpenAI 实用 agent 指南](https://openai.com/business/guides-and-resources/a-practical-guide-to-building-ai-agents/)——尤其「**什么时候不该用 agent**」，应用岗面试高频。
-- Learning Principles 当贯穿全程的检查清单：先做再深读、小而可靠胜过炫 demo、**加 agent 前先加 eval**、工具用严格 schema、每次重要运行都 trace、危险操作留人工确认。
+- Learning Principles 当贯穿全程的检查清单：先做再深读、小而可靠胜过炫 demo、增加 Agent 复杂度前先定义最小验收与失败案例、工具用严格 schema、E10 前只记录排错所需的步骤/工具/错误/耗时、危险操作留人工确认；完整 eval 与 tracing 到 E10/J11 再系统建设。
 
 ### 嫁接③ README 当「到点查的索引」
 

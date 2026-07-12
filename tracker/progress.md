@@ -42,7 +42,7 @@
 | T3-02 | 计算器工具 | PASS | 2026-07-06 | code/stage3/t3_02_calculator_tool.py | 已通过；详见 daily/2026-07-06.md。 |
 | T3-03 | 文件工具 | PASS | 2026-07-07 | code/stage3/t3_03_file_reader_tool.py | 已通过；详见 daily/2026-07-07.md。 |
 | T3-04 | 外部 API 工具 | PASS | 2026-07-08 | code/stage3/t3_04_public_api_tool.py | 已通过；详见 daily/2026-07-08.md。 |
-| T3-Gate | Tool Calling 闯关 | TODO |  | code/stage3/t3_gate_tool_assistant.py | 当前硬检查点；即时骨架已按真实 `tools/tool_calls → 客户端执行 → role="tool" 回填 → 最终回答` 重建，待用户动手完成并跑 14 条评估。 |
+| T3-Gate | Tool Calling 闯关 | PASS | 2026-07-12 | code/stage3/t3_gate_tool_assistant.py + code/stage3/eval_cases.json | 原生三工具闭环与直接回答均真跑；`t3-gate-v2`（SHA `766649…C042F`）normal 10/10、failure 3/3、danger 1/1、holdout 3/3，详见 daily/2026-07-11.md。 |
 | A4-01 | 什么是 Agent | PASS | 2026-07-09 | notes/stage4/a4_01_what_is_agent.md | 已通过；详见 daily/2026-07-09.md。 |
 | A4-02 | LLM 与 Agent 基础 | TODO |  |  |  |
 | A4-03 | ReAct | TODO |  |  |  |

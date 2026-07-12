@@ -36,7 +36,7 @@
 | --- | --- | --- | --- | --- |
 | Python 基础与脚本 | COURSE_PASS | P0-01~Gate 已通过，能写函数、文件/JSON、异常、HTTP 与基础测试 | 在真实服务中补类型、分层、pytest/mock、lint/type-check、配置与日志 | BE5-01 |
 | LLM API、Prompt、结构化输出 | COURSE_PASS | L1、PR2、S-03 已通过；有聊天、流式、分类、JSON、邮件处理器 | 抽 provider、严格 schema、版本化 prompt/eval，并接入服务 | S-01、E10、旗舰项目 |
-| Tool Calling | LEARNING | T3-01~04 已通过，三个真实工具已有 | T3-Gate 真实 tools/tool_calls 闭环、14 条评估、失败/危险路径 | T3-Gate |
+| Tool Calling | COURSE_PASS | T3-01~Gate 已通过；原生三工具闭环、直接回答、`t3-gate-v2` 14/14、holdout 3/3、失败/危险路径均有执行证据 | 接入 A4→BE5 的可复现 Agent/服务工程，补维护型自动测试、README/架构、生产事故证据与独立交叉复核 | A4-Gate、BE5-Gate、旗舰二 |
 | Agent 原理与控制循环 | LEARNING | A4-01 已通过 | ReAct/Plan/Reflection、A4-Gate、日志/限步/HITL/恢复边界 | A4-02~Gate |
 | Agent Memory / Context 生命周期 | NOT_STARTED | 仅有聊天历史与上下文实验，不等于长期 Memory | 跨会话 CRUD/TTL/provenance/冲突/删除、租户隔离、PII/poisoning、无 Memory baseline | D7-03、D7/G8/FINAL |
 | Python Agent 后端 | NOT_STARTED | 现有产物以 CLI/脚本为主 | async、FastAPI/Pydantic、PostgreSQL/Redis、后台任务、认证、压测 | BE5-01~Gate |
@@ -46,7 +46,7 @@
 | 可恢复 LangGraph Agent | NOT_STARTED | 无 G8 课程证据 | persistence、checkpoint/thread、interrupt/resume、幂等、故障注入 | G8、旗舰二 |
 | MCP 生产接入 | NOT_STARTED | 仅前置 Tool Calling 概念 | 最新官方规范、STDIO/HTTP、认证边界、权限/断连/审计 | M9-Gate |
 | 安全与权限 | LEARNING | 文件沙箱、工具白名单、参数校验已有练习 | 威胁模型、注入/SSRF/越权/外泄/poisoning/MCP auth 攻击集 | S-05、D7/G8/M9/FINAL |
-| 评估与可观测 | LEARNING | 部分任务有小评估集与失败记录 | 版本化 dataset、baseline、代码+LLM evaluator、trace、回归门禁、在线闭环 | E10、J11-05 |
+| 评估与可观测 | LEARNING | T3 有自包含 v2 数据集、冻结 holdout、分项阈值和 14/14 正式结果；仍是早期 Gate 级证据 | 维护型自动测试、版本化 baseline/candidate、代码+LLM evaluator、trace、CI 回归门禁与在线闭环 | E10、J11-05 |
 | CI/CD、部署与运维 | NOT_STARTED | 无公网服务与自动发布证据 | CI、Docker build、secret、health、smoke、负载、日志、回滚、公网 demo | J11-04、W17 |
 | 作品集与项目表达 | LEARNING | 已有课程代码和 daily/notes 证据 | 2 旗舰+1 小项目、架构/指标/威胁模型/失败复盘、至少一个公网 demo | J11-01/06、FINAL |
 | 算法与系统设计 | NOT_STARTED | W4 已建 tracker，尚无通过题 | 50–70 道高质量题、错题复测、RAG/对话服务系统设计和模拟面试 | algorithm-progress、J11-08 |
@@ -105,7 +105,7 @@
 - [AI 应用/RAG：hybrid/rerank/pgvector/MCP/observability](https://www.gzlpsyaj.com/correcruit/content/id/54911.html)
 - [RAG 与智能体：Prompt A/B、Tool Calling、Agent、Python 服务](https://jobs.morganphilips.cn/en-cn/ai%E5%A4%A7%E6%A8%A1%E5%9E%94%E7%94%A8%E5%B7%A5%E7%A8%8B%E5%B8%88-rag%E4%B8%8E%E6%99%BA%E8%83%BD%E4%BD%93%E6%96%B9%E5%90%91-shenzhen-153501/)
 
-当前结论：尚未达到稳定投递的岗位证据门槛。下一最近升级点是 `T3-Gate → A4-Gate → BE5-Gate`；W12 生产 RAG 旗舰成形后开始小范围试投递，用真实反馈继续更新本表。
+当前结论：尚未达到稳定投递的岗位证据门槛。T3-Gate 已把 Tool Calling 升到 `COURSE_PASS`，下一最近升级点是 `A4-Gate → BE5-Gate`；W12 生产 RAG 旗舰成形后开始小范围试投递，用真实反馈继续更新本表。
 
 ## 审计记录
 

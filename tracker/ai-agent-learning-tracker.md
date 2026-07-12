@@ -48,7 +48,11 @@
 - `M9-Gate` MCP 闯关
 - `FINAL-Gate` 综合项目答辩
 
-从 `T3-Gate` 起，需要评估集的 Gate 通过标准额外包含可重复运行的评估集、分项结果与失败案例：`T3/A4-Gate` 至少 14 条，`R6/G8/M9-Gate` 至少 20 条，`FINAL-Gate` 至少 30 条。这里的最低条数是**回归/调试集与未揭示 holdout 的总数**。不能只报一句总通过率；按任务拆分检索、答案、工具选择、参数、轨迹、安全、延迟或成本等指标。每次重要修改后重跑同一版本化数据集并和 baseline 比较，防止修一处坏一处。
+从 `T3-Gate` 起，需要评估集的 Gate 通过标准额外包含固定评估集、分项结果与失败案例：`T3/A4-Gate` 至少 14 条，`R6/G8/M9-Gate` 至少 20 条，`FINAL-Gate` 至少 30 条。这里的最低条数是**回归/调试集与未揭示 holdout 的总数**。不能只报一句总通过率；按任务拆分检索、答案、工具选择、参数、轨迹、安全、延迟或成本等指标。
+
+所有 Gate 都使用“最小但充分”的证据：确定性软件契约优先进入项目现有 pytest/接口/集成/安全测试，非确定性模型质量才使用 eval cases；一次性核验使用直接执行、内存 mock/spy 或清理后的系统临时文件，结果写当天 `daily`。只有会持续保护真实代码、支持领域对照实验，或 task rubric 明确要求的测试、fixture、指标脚本、CI 和评估工程才长期保留。E10 前不得仅因案例数量创建通用 runner、独立 baseline 管理、报告归档或 tracing 平台；但本原则不得删除 BE5 以后真实软件所需的自动测试，也不得替代 E10/J11/FINAL 明确要求的 eval、CI、负载和恢复证据。
+
+`T3-Gate` 只长期保留自包含的 `code/stage3/eval_cases.json`，正式复核者直接执行全部案例并把数据集版本/SHA、逐类/逐组件结果、holdout、失败 ID、安全证据和精确命令写入当天 `daily`；不保留专用 runner、独立 baseline 或原始运行报告。重要修改与上一次同版本 daily 结果或 Git 历史比较。
 
 Gate 不能只有“题数”，还必须在第一次调参前写清验收阈值。确定性单元/接口/迁移测试必须全部通过；危险操作、越权、跨租户和敏感信息泄漏等关键安全案例必须 100% 拦截；非确定性任务按 Gate 预先定义任务成功、检索、引用、延迟和成本阈值。`T3/A4-Gate` 的 holdout 至少占总集 20% 且不少于 3 条，`R6/G8/M9/FINAL-Gate` 至少占 20% 且不少于 5 条；holdout 不能参与 prompt、规则或参数调优，若为修复而揭示就转入回归集并补充新的未揭示案例，不能看完结果后再倒推合格线。
 
@@ -916,7 +920,7 @@ Gate 预设阈值与 holdout 结果：
 - 完整走通：模型生成 tool call → 客户端校验工具名和 JSON 参数 → 从 `TOOLS` 注册表执行真实函数 → 以 `role="tool"` + `tool_call_id` 回填 Observation → 再次调用模型生成最终回答。
 - 同时覆盖“不需要工具直接回答”、未知工具、坏 JSON/错参数、工具自身失败、危险路径拒绝和最大工具轮数；不得把模型自编文本当真实 Observation。
 - 外部 API 工具不能把模型给出的任意 URL 直接交给 `requests`。T3-Gate 至少实现固定 endpoint/域名 allowlist，并拒绝 localhost、私网、云 metadata IP；对重定向要么关闭自动跟随，要么逐跳重新校验 `Location`，不能只检查初始 URL；S-05 再系统扩展 DNS rebinding 与网络出站策略。
-- 配 `eval_cases.json`：10 条正常 + 3 条失败 + 1 条危险输入；在首次调参前冻结其中至少 3 条为未揭示 holdout，再写可重复运行的评估入口，记录通过率与失败案例（面试讲「可靠性」的真材料）。危险集至少包含一个复合场景：坏工具参数/未知工具与恶意 URL、超时或限流同时出现，要求先找全问题再按优先级处理。
+- 配自包含的 `eval_cases.json`：10 条正常 + 3 条失败 + 1 条危险输入；在首次调参前冻结其中至少 3 条为未揭示 holdout，并在文件内写清目标、fixture、四种执行 mode、断言规则和预设阈值。正式检查由 `ai-agent-learning-review` 直接执行全部 14 条：正常模型行为使用真实 DeepSeek，坏 JSON、工具失败、最大轮数与危险网络输入使用内存注入/mock 确定性复现；通过率、逐例失败、holdout 和安全结果写入当天 daily，不保留 `run_evals.py`、`eval_baseline.json` 或原始报告。危险集至少包含一个复合场景：坏工具参数/未知工具与恶意 URL、超时或限流同时出现，要求先找全问题再按优先级处理。
 
 必须回答：
 
@@ -1058,7 +1062,7 @@ Gate 预设阈值与 holdout 结果：
 
 - 做 `code/stage4/a4_gate_research_summary_agent.py`。
 - 输入主题或资料路径，能调用工具、总结、反思修正。
-- 配 `eval_cases.json`：10 条正常 + 3 条失败 + 1 条危险输入，并用 `run_evals.py`/`pytest` 可重复执行、记录通过率与失败案例。
+- 配 10 条正常 + 3 条失败 + 1 条危险输入的自包含 `eval_cases.json`；正式检查直接执行，或复用项目已有的轻量参数化 pytest。只长期保留能持续保护 Agent 循环、停止条件、日志和安全边界的测试；结果写 daily，不为本关另建通用 runner、独立 baseline、报告归档或 tracing 平台。
 - 记录最小结构化日志：每步模型调用、工具名、耗时、错误和累计步数；设置 max_steps、timeout、重试上限。
 - 对写文件、执行命令等高风险/不可逆动作设置人工确认；本关至少演示一次允许/拒绝分支。
 
@@ -1309,7 +1313,7 @@ Gate 预设阈值与 holdout 结果：
 
 - 把 A4-Gate 或当前最完整 Agent 包成一个可复现后端服务，而不是新写玩具业务。
 - 提供 REST + SSE、Pydantic v2 schema、分层结构、PostgreSQL 持久化、Redis 的实际用途、后台任务、最小认证、结构化日志和 health endpoint。
-- `pytest` 覆盖单元/接口/数据库集成测试；Ruff + 类型检查通过；附小规模负载报告和已知瓶颈。
+- `pytest` 覆盖单元/接口/数据库集成测试；Ruff + 类型检查通过。执行小规模负载测试，并在 README 或 daily 用紧凑表格保存命令、负载参数、吞吐、p50/p95、错误率、瓶颈和结论，不另建报告系统。
 - README 包含架构图、环境变量、迁移、启动、测试、负载验证和常见排错；依赖可锁定，陌生人能从空环境运行。
 - 写 `system-design.md`：定义主要 API 契约、ER/状态模型、请求与数据流、预期并发/数据量、可测 SLI/SLO、缓存与后台任务取舍、前三类失败/降级路径和至少 2 条 ADR；做一次 30 分钟限时复述。
 - 从 `work-scenario-coverage.md` 选择至少两个复合事故：每个同时包含 2–4 类当前已引入问题；至少一个完成进程/依赖故障下的止损、恢复与无重复副作用验证。
@@ -1392,7 +1396,7 @@ Gate 预设阈值与 holdout 结果：
 通过标准：
 
 - 能返回相关片段。
-- 在带 reference chunk 的数据集上计算 Recall@k 或 MRR 中至少一个检索指标，并保存 baseline。
+- 在带 reference chunk 的小数据集上计算 Recall@k 或 MRR 中至少一个检索指标；把只向量检索作为 baseline 对照配置，只保留数据集、配置和紧凑指标快照，不建设通用评估平台。
 - metadata filter 能阻止跨知识库/跨用户取回无权限资料。
 
 ## R6-03 带引用问答
@@ -1429,7 +1433,7 @@ Gate 预设阈值与 holdout 结果：
 - 主线使用 pgvector；实现 metadata/权限 filter、hybrid search 和 rerank，并保留只做向量检索的 baseline 对照。
 - 每个 chunk 保留 `document_id`、来源、标题、页码/段落、hash、知识库/用户归属；重复导入不重复，更新/删除不残留旧向量。
 - 记录数据血缘与版本：解析器、chunk 配置、embedding/index 版本、导入任务、更新时间和删除审计；敏感文档/metadata 进入日志、trace、评估集前先脱敏。
-- 配版本化评估集至少 20 条，覆盖正常、跨文档、多跳/改写、无答案、解析失败、越权和注入输入；分别记录 Recall@k/MRR、答案正确/忠实、引用正确、拒答、安全、延迟和成本。
+- 配版本化评估集至少 20 条，覆盖正常、跨文档、多跳/改写、无答案、解析失败、越权和注入输入；复用项目 tests 和一个小型领域指标脚本，分别记录 Recall@k/MRR、答案正确/忠实、引用正确、拒答、安全、延迟和成本，结果保存为设计笔记/daily 的紧凑快照，E10 前不另建通用 evaluator 或报告归档。
 - 接入 BE5-Gate 的 FastAPI/SSE、PostgreSQL/Redis、认证和后台导入任务，形成旗舰一 v1；不是只在 CLI 中展示。
 - R6-Gate 当周即补最小 CI、Docker build、可访问测试环境/API demo 和部署后 smoke；J11-04/W17 再强化告警、负载、备份与回滚，不把第一次部署拖到所有框架学完。
 - 注入至少一个复合事故，例如 embedding/index 版本混用 + ACL filter 顺序错误 + 缓存 key 漏 tenant + 文档间接注入；要求根据检索/引用/trace/审计证据找齐根因并回归。
@@ -1446,7 +1450,7 @@ Gate 预设阈值与 holdout 结果：
 通过标准：
 
 - 从空库可复现导入、检索、问答、更新和删除全链路。
-- 有 baseline 与至少一次改进实验，指标和失败样例可追溯到配置/数据版本。
+- 有“只向量检索”baseline 与至少一次改进实验；保留数据/配置版本和紧凑指标/失败样例对比即可，指标和失败样例可追溯。
 - 越权、注入和资料外问题不会泄露内容或编造答案。
 - 最小部署的 CI/Docker/smoke 可重复运行；数据版本、权限和删除行为有审计证据。
 
@@ -1515,7 +1519,7 @@ Gate 预设阈值与 holdout 结果：
 - 保留模式阅读和 `notes/stage7/d7_03_reliability_patterns.md`，但不能只写笔记。
 - 在已有旗舰项目中实现最小生产级长期 Memory，不另起玩具：区分 thread/history/checkpoint/RAG 与跨会话 Memory；定义 `owner/source/type/created_at/updated_at/ttl/provenance`，支持显式写入、检索注入、更新、冲突处理、删除/忘记和 token 预算。
 - PostgreSQL 作为长期事实源，Redis 只能作为缓存；未受信工具/RAG 文本不得自动晋升为长期记忆。
-- 测试重启后保留、跨用户隔离、陈旧/冲突记忆、删除生效、secret/PII 不落库和 memory poisoning；与“无 Memory” baseline 对比任务成功、误记、遗漏、延迟和成本。
+- 测试重启后保留、跨用户隔离、陈旧/冲突记忆、删除生效、secret/PII 不落库和 memory poisoning；用同一小数据集与“无 Memory”配置做 A/B，对比任务成功、误记、遗漏、延迟和成本，结果写入设计笔记的紧凑表格，不单独建设 runner 或 baseline 管理系统。
 
 问答：
 
@@ -1539,7 +1543,7 @@ Gate 预设阈值与 holdout 结果：
 
 - 写 `notes/stage7/d7_gate_architecture_review.md`。
 - 选择你已做的一个 Agent，说明用了哪些模式、没用哪些模式、为什么。
-- 对这个 Agent 实施一个真实模式变更（默认使用 D7-03 Memory，也可选当前项目更需要的模式），用同一版本化 eval 比较质量、延迟、成本和失败分组。
+- 对这个 Agent 实施一个真实模式变更（默认使用 D7-03 Memory，也可选当前项目更需要的模式），复用同一轻量数据集和项目测试比较质量、延迟、成本和失败分组，把结果写成架构评审中的紧凑对比表。
 - 至少保留一个“增加 Planning/Reflection/Multi-Agent/Memory 后反而更差”的反例，说明为什么回退或限制该模式。
 
 通过标准：
@@ -1636,7 +1640,7 @@ Gate 预设阈值与 holdout 结果：
 - 输入主题，检索/整理/生成报告，过程可追踪。
 - 使用持久化 checkpointer、thread_id、结构化 state、timeout/retry/cancel、checkpoint resume 和 HITL approve/edit/reject；至少一次在进程退出后恢复未完成任务。
 - 需要写文件、更新数据库或调用有副作用工具时使用幂等键；用故障注入验证恢复不会重复副作用。
-- 配版本化评估集至少 20 条，分别评估任务完成、节点/工具轨迹、恢复、HITL、安全、延迟和成本；每次改完与 baseline 比较。
+- 配版本化评估集至少 20 条，分别评估任务完成、节点/工具轨迹、恢复、HITL、安全、延迟和成本；对影响控制流、恢复、HITL、安全或成本的关键修改，复用同一数据集和项目 tests 做对比并把结果写 daily/设计笔记，E10 前不另建通用评估平台。
 - 接入旗舰二的 FastAPI/SSE 与 Vue 工具/状态可视化，不把 Graph 留在单文件脚本。
 - 扩展系统设计包：明确 state/checkpoint 的存储与生命周期、恢复目标、幂等边界、超时/人工等待 SLO、成本上限和至少 2 条控制流 ADR。
 
@@ -1729,7 +1733,7 @@ Gate 预设阈值与 holdout 结果：
 - 做 `code/stage9/m9_gate_file_summary_agent.py`。
 - Agent 通过 MCP 读取指定目录文件并总结；至少演示本地 STDIO 与受保护 HTTP 中一种真实主链，另一种保留可运行最小样例。
 - 工具发现、schema、超时、断连、重连、权限拒绝、审计日志和长结果裁剪都有测试；恶意/未知 MCP server 不得默认获得本机敏感权限。
-- 配版本化评估集至少 20 条，分别记录工具发现、参数、权限、安全、最终答案、延迟和失败案例。
+- 配版本化评估集至少 20 条，分别记录工具发现、参数、权限、安全、最终答案、延迟和失败案例；优先把确定性部分写成长期维护的 MCP 集成/权限/断连测试，模型质量使用紧凑案例表，E10 前不为 M9 单独建设评估平台。
 - 写一页生产授权说明：resource server、authorization server、client、用户分别是谁，token 能发给谁；不得把 access token 写进 trace 或模型上下文。
 
 ---
