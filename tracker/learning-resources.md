@@ -2,9 +2,9 @@
 
 ## 一、够不够用？结论先说
 
-- **阶段 0–10 的资料：绰绰有余，甚至偏多。** `repos/` 里已经躺着完整的书和课程，不用再到处找。你现在的风险不是「资料不够」，而是「收集太多、消化太少」。先把现成的按顺序读完 + 动手，别陷入收集癖。
-- **真正缺资料的，是新增的工程 / 求职层**（S-01~S-08、阶段 11 J11）：FastAPI、Vue+SSE、向量库、Docker 部署、可观测、多厂商、算法、系统设计 / 八股。这些原路线没分配资料，已在本文件第四节补齐。
-- **D:\AI-Knowledge 已进入持续沉淀阶段。** 截至 2026-07-10 已有 Agent、LLM、Engineering 等概念卡，不再按“空库/阶段 0 尾”处理；后续继续在 PASS/Gate 后同步稳定结论即可。
+- **阶段 0–10 的概念教材已经足够，甚至偏多；生产工程资料必须以当前官方文档为主。** `repos/` 里的书和课程负责解释原理，FastAPI/Pydantic/SQLAlchemy/Redis/LangGraph/MCP/评估/安全等快速变化内容在开始任务当天核对官方文档，不能只照本地旧示例。
+- **原路线真正偏薄的是 Python Agent 后端、生产 RAG、可恢复执行、持续评估、安全和 CI/CD。** 现已加入阶段 5.5（BE5）并升级 R6/G8/M9/E10/J11/FINAL；资料见第四节，不再只写成“求职期顺带补”。
+- **D:\AI-Knowledge 已进入持续沉淀阶段。** 截至 2026-07-10 已有 Agent、LLM、Engineering 等概念卡，不再按“空库/阶段 0 尾”处理；使用「检查今天的学习」或明确授权时可在正式 PASS/Gate 后自动同步稳定结论，普通 PASS 先给建议路径并等用户确认。
 
 ## 二、你已有的核心资料（都在 repos/，离线可用）
 
@@ -27,35 +27,47 @@
 
 ## 三、按阶段的阅读顺序（先读什么 → 再读什么 → 动手）
 
+资料优先级：**当前官方文档/规范校准 → 中文教材建立直觉 → 参考代码对照 → 当前项目落地**。CSDN、知乎、视频和旧课程只能作辅助，不能作为版本字段、认证、安全和生产配置的事实源。
+
+英文资料采用渐进式训练：阶段 0–3 以中文建立直觉；阶段 4–5 保留英文原始标题、参数名与报错，让用户自己定位关键段落；从 BE5 起，短篇英文官方文档先由用户提取 2–3 条事实，卡住时再逐段翻译，不再默认整篇代译。
+
 - **阶段 0 Python**：廖雪峰对应小节 → CS50P 对应 Week → 写 `code/stage0/` 练习。（已基本完成）
 - **阶段 1 大模型 API**：OpenAI Quickstart → Text Generation / 流式文档 → DeepLearning.AI《Building Systems with ChatGPT API》对应小节 → 写 L1 代码。
 - **阶段 2 Prompt/结构化**：DeepLearning.AI《Prompt Engineering for Developers》Guidelines → OpenAI Prompt Engineering + Structured Outputs → 配合 **HA 第 9 章上下文工程（S-03）** → 写 PR2 代码。
 - **阶段 3 工具调用**：HF 中文 unit1 `tools/actions/observations` → HF `bonus-unit1` function calling → OpenAI Function Calling → 读 `HA code/chapter4` 工具代码 → 写 T3。
 - **阶段 4 Agent 原理**：HF unit1 `what-are-agents` → HA 第 1–4 章 → ADP 第 4/5/6 章（Reflection/Tool Use/Planning）→ 跑 `HA code/chapter4` 的 ReAct/Plan/Reflection。
-- **阶段 5 框架源码**：先 `HelloAgents-feature-branch-1/README` 跑通 example → 按 `core/ → agents/ → tools/ → memory/ → protocols/` 顺序读 → 配合 HA 第 7 章。
-- **阶段 6 RAG**：HA 第 8 章《记忆与检索》→ HF 中文 unit3 Agentic RAG → **真实向量库（S-02，见下）** → 跑 `HA code/chapter8` 的 RAG pipeline → 写 R6。
+- **阶段 5 框架源码**：先跑通一个 example → 只沿入口追到 Agent/LLM/Tool/Message，并改一个工具 → 2–3 个学习日内 H5-Gate 收尾；不再按目录通读。
+- **阶段 5.5 Python Agent 后端**：Python typing/asyncio/logging → pytest/Ruff/type-check → FastAPI/Pydantic v2 → SQLAlchemy/Alembic/PostgreSQL → Redis/后台任务/认证/负载测试 → BE5-Gate。
+- **阶段 6 RAG**：HA 第 8 章/HF unit3 建立直觉 → LangChain/LlamaIndex 官方 RAG 文档 → pgvector 主线 → hybrid/rerank → 增量索引/ACL → 检索与答案分项评估 → R6-Gate。
 - **阶段 7 设计模式**：ADP（中英对照）第 1–8 章 + 第 18/19 章，按需读，别全背 → 配合 **S-04 多 Agent、S-05 Guardrails 动手**。
-- **阶段 8 LangGraph**：HF 中文 unit2（`when_to_use` → `first_graph` → `building_blocks` → `document_analysis_agent`）→ HA 第 6 章 → LangGraph 官方文档备查 → 写 G8。
-- **阶段 9 MCP**：HA 第 10 章《智能体通信协议》→ ADP 第 10 章 MCP → 读 `HelloAgents .../protocols/mcp/` → 写 M9。可选对照：agentskillsdev.com《Agent Skills L0》（中文免费，基于吴恩达×Anthropic 官方课）——只读「Skills vs Tools/MCP/Subagents」辨析一节当面试谈资，**别提前陷进 Skills 生态**（同第五节对马克视频的提醒）。
-- **阶段 10 评估 + 综合项目**：HA 第 12 章 + ADP 第 19 章 → HF `bonus-unit2` 可观测与评估 → 参考 HA 第 13/14 章项目 → 做 FINAL。
+- **阶段 8 LangGraph**：LangGraph 官方 overview/persistence/interrupts/durable execution/testing 为主线 → HF 中文 unit2 与 HA 第 6 章辅助解释 → 写 G8。
+- **阶段 9 MCP**：最新 MCP 官方 specification/SDK 为主线（server capabilities、transport、authorization、安全）→ HA/ADP 作中文解释和框架对照 → 写 M9。可选只读「Skills vs Tools/MCP/Subagents」辨析，不提前陷进 Skills 生态。
+- **阶段 10 评估 + 综合项目**：LangSmith Evaluation/Observability 官方文档 → HA 第 12 章、ADP 第 19 章、HF `bonus-unit2` 辅助 → 建 dataset/evaluator/baseline/regression → 做 FINAL。
 
-## 四、新增层补充资料（S-01~S-08 + J11，原路线没有的）
+## 四、工程化与补充资料（BE5 + S-01~S-07 + J11）
 
 | 主题 | 挂载 | 推荐资料（优先中文 / 官方） |
 | --- | --- | --- |
+| Python 工程化（BE5-01） | 阶段5.5 | Python 官方 typing/dataclasses/logging；pytest、Ruff、mypy 或 pyright 官方文档；`packaging.python.org` 的 `pyproject.toml` 指南 |
+| async/并发（BE5-02） | 阶段5.5 | Python `asyncio` 官方文档；httpx async、FastAPI async tests 官方文档；重点核对 timeout/cancel/TaskGroup/Semaphore |
+| FastAPI/Pydantic（BE5-03） | 阶段5.5 | FastAPI 官方中文/英文；Pydantic v2 官方；Starlette/httpx 官方 SSE/测试资料，不以 CSDN 示例作主线 |
+| 数据/任务（BE5-04/05） | 阶段5.5 | SQLAlchemy 2、Alembic、PostgreSQL、Redis 官方；Celery/RQ/ARQ 任选一个官方 quickstart；Locust 或 k6 官方 |
 | 多厂商模型（S-01） | A4-Gate 后、J11-02 前 | 先抽 provider 接口，再查 Anthropic 文档 `docs.anthropic.com`、OpenRouter `openrouter.ai/docs` 或本地 Ollama；不与 T3-Gate 挤在同一周末 |
-| 真实向量库（S-02） | 阶段6 | Chroma 官方 `docs.trychroma.com`（最易上手）；FAISS（本地）；pgvector（接你的 SQL）；RAG 面试题（知乎 `zhuanlan.zhihu.com/p/2029999895302628181`） |
+| Provider 韧性与复合故障（BE5-02/FINAL） | 阶段5.5 起 | HTTP `Retry-After`/429 语义、Python `asyncio`/httpx 官方文档；重点练指数退避+jitter、可重试分类、取消传播、fallback、配额/成本上限和 fault injection，不把无限重试当可靠性 |
+| 生产向量检索（S-02） | 阶段6 | pgvector 官方为主；PostgreSQL full-text/BM25 方案、Qdrant/Milvus 官方按 JD 对照；RAGAS/LangSmith 评估官方资料 |
 | 上下文工程（S-03） | 阶段2/4 | **HA 第 9 章（已有）**；Anthropic《Building effective agents》（Hub 里有链接） |
 | 多 Agent（S-04） | 阶段7 | **ADP 第 7 章（已有）**；HF 中文 unit2 多节点 graph |
-| Guardrails / 注入（S-05） | 阶段7 | **ADP 第 18 章（已有）**；OWASP LLM Top 10（搜「OWASP LLM」） |
+| Agent 长期 Memory（D7-03/G8/FINAL） | 阶段7 起 | LangGraph 官方 Memory/Store 与 persistence 文档；PostgreSQL 作为事实源；OWASP Agentic Applications 的 Memory & Context Poisoning。重点区分 history、checkpoint、RAG 与跨会话 Memory，并实作 CRUD/TTL/provenance/隔离/删除/poisoning/baseline |
+| Guardrails / 注入（S-05） | 阶段7 | OWASP Top 10 for LLM/Agentic Applications 与 Threats and Mitigations（主线）；MCP Security Best Practices；ADP 第 18 章辅助 |
 | 微调 vs RAG（S-06） | 阶段6/10 | 概念为主：搜「RAG vs 微调 选型」；HA 第 8 章相关讨论 |
-| FastAPI 服务化（J11-02） | 阶段11 | FastAPI 官方中文 `fastapi.tiangolo.com/zh`；CSDN《基于 FastAPI 搭建 LLM 调用 API 服务》；Python `asyncio` 官方/廖雪峰异步小节 |
-| Vue + 流式（J11-03） | 阶段11 | Vue 官方文档（你已会）；MDN `EventSource` / `fetch` 流式读取 |
+| FastAPI 服务化（J11-02） | 阶段11 | 复用 BE5 官方资料；此处重点查认证、部署、SSE、取消、health/readiness、API 文档和负载测试，不重新学入门 |
+| Vue + 流式（J11-03） | 阶段11 | 按零基础复核 Vue 组件、状态、请求与错误处理；再读 Vue 官方文档和 MDN `EventSource` / `fetch` 流式读取，不因职业背景跳过验证 |
 | Docker 部署（J11-04） | 阶段11 | **B0-04 已有 Docker 中文文档 + 黑马视频**；上线平台 Railway `docs.railway.app` 或 Render `render.com/docs` |
-| 可观测（J11-05） | 阶段11 | Langfuse 中文 `langfuse.com/cn`（开源，推荐）；LangSmith 中文 `langsmith.langchain.ac.cn` |
+| 可观测/评估（E10/J11-05） | 阶段10/11 | LangSmith Evaluation/Observability 官方或 Langfuse 官方；OpenTelemetry GenAI conventions；代码 evaluator + LLM-as-judge + baseline/regression |
+| MCP（M9） | 阶段9 | `modelcontextprotocol.io/specification` 最新 revision 与官方 SDK；重点看 STDIO/Streamable HTTP、authorization/security，不以 HelloAgents 实现代替规范 |
+| CI/CD/上线（J11-04） | 工程上线 | GitHub Actions、Docker、目标云平台官方；health/readiness、secret、non-root、smoke、回滚、备份、Locust/k6 官方 |
 | 算法（J11-08） | 阶段11（W4 起启动） | **原理教材：《Hello 算法》`hello-algo.com`**（免费开源，动画图解＋Python 代码一键可跑，非科班友好）——W4 算法启动先读复杂度/数组与链表/哈希表打底，之后刷到哪个专题回头补哪章原理；刷题路线：代码随想录 `programmercarl.com`（含视频，按专题刷）＋ LeetCode 热题 100 `leetcode.cn`（题单） |
-| 系统设计 / 八股（J11-08） | 阶段11 | 小林 coding `xiaolincoding.com`（有「2026 Agent / AI 应用 / 大模型面试题」合集）；Anthropic / OpenAI 官方 agent 指南（Hub） |
-| .NET Agent 生态扫读（S-08，可选） | 求职期 W16 | Microsoft Agent Framework 官方文档 + 微软 ai-agents-for-beginners 中文版；它是 Semantic Kernel/AutoGen 的后继但仍在 preview，只扫 Agent/Workflow/MCP/telemetry 与 Python 栈的映射，不押注具体 API、不重复学概念课 |
+| 系统设计 / 架构论证（BE5/R6/G8/E10/J11-08） | BE5 起随旗舰 Gate 演化，J11-08 限时复述 | [AWS Well-Architected Framework](https://docs.aws.amazon.com/wellarchitected/latest/framework/welcome.html) 用于质量属性与架构取舍检查；[Google SRE Workbook：Implementing SLOs](https://sre.google/workbook/implementing-slos/) 用于 SLI/SLO 与错误预算；[Azure Well-Architected Framework](https://learn.microsoft.com/en-us/azure/well-architected/) 作可靠性、安全、成本、运维与性能的交叉清单。每次只读当前 Gate 所需小节，并落成 API/event 契约、数据模型、请求/数据流、容量假设、2–4 个可测 SLI/SLO、缓存/队列/同步异步取舍、降级方案与 ADR；小林 coding 与 Agent 面试题只用于 J11-08 问答补充，不作架构事实源。 |
 
 ## 五、视频清单（中文，按需补，不是主线）
 
@@ -68,12 +80,12 @@
 ## 六、关于 D:\AI-Knowledge（Obsidian 库）怎么用
 
 - 定位分工：`AI-Agent-Learning` 放**过程**（练习代码、每日打卡、笔记草稿、源码）；`AI-Knowledge` 放**沉淀**（稳定结论、概念卡片、面试复习卡、踩坑记录）。
-- 建议节奏：每过一个 **Gate**，把该阶段的核心概念、自己的问答、踩的坑，整理成 1–2 张 Obsidian 笔记同步进去。用 `smart-connections` / `omnisearch` 在复习和面试前快速检索。
-- 当前已在持续写入概念卡；每过一个 Gate 继续沉淀 1–2 张高价值笔记即可，不按文件数量追求“填满知识库”。
+- 建议节奏：每过一个 **Gate**，筛选该阶段的核心概念、自己的问答和踩过的坑，候选量控制在 1–2 张；使用「检查今天的学习」或已有明确授权时直接同步，普通 PASS 则先确认。用 `smart-connections` / `omnisearch` 在复习和面试前快速检索。
+- 当前已在持续写入概念卡；每过一个 Gate 继续筛选 1–2 张高价值候选即可，不按文件数量追求“填满知识库”，也不绕过授权边界自动写入。
 
 ## 七、怎么用 Agent-Learning-Hub（嫁接 3 样，别照搬）
 
-`repos/Agent-Learning-Hub/README.md`（Datawhale，hello-agents 同作者）是一份「现代生产视角的 Agent 学习路线图 + 项目阶梯 + 资料索引」。它**比本路线更超前、更偏 agent 基础设施**（钻 Claude Code / OpenClaw harness 内部），默认你已会 Python/LLM 基础。**结论：保留本路线当主干，从 Hub 只嫁接下面 3 样，其余当索引查，别整本照搬**（它资料量巨大，照搬会淹没，且和你已有的 hello-agents / agentic-design-patterns / agents-course 重复）。
+`repos/Agent-Learning-Hub/README.md`（Datawhale，hello-agents 同作者）是一份「现代生产视角的 Agent 学习路线图 + 项目阶梯 + 资料索引」。它**比本路线更超前、更偏 agent 基础设施**（钻 Claude Code / OpenClaw harness 内部），其原始内容默认读者已有 Python/LLM 基础，因此不能直接拿它的前提套到用户身上。**结论：保留本路线当主干，从 Hub 只嫁接下面 3 样，其余当索引查，别整本照搬**（它资料量巨大，照搬会淹没，且和已有的 hello-agents / agentic-design-patterns / agents-course 重复）。
 
 ### 嫁接① Project Ladder = 你的「作品集项目菜单」（最有价值）
 
@@ -84,14 +96,14 @@ Hub 的 11 级项目阶梯，大半正好能套在你已有的 Gate / J11 上—
 | L1 计算器 Agent | T3-02 计算器工具 | 已有 |
 | L2 Web 研究 Agent | 阶段4 A4-Gate → 阶段8/FINAL 持续演化 | 旗舰项目二，不重复起仓库 |
 | L3 PDF 问答 Agent | 阶段6 R6-Gate + FastAPI/Vue | 旗舰项目一 |
-| L4 代码审查 Agent | 额外可选 | 🎯 .NET 背景做这个是差异化亮点 |
+| L4 代码审查 Agent | 额外可选 | 可使用 Python 项目或通用 Git diff 做代码审查场景；不引入第二套后端技术栈 |
 | L9 多 Agent 写作 | S-04 / D7-02（阶段7） | 多 Agent demo |
 | L11 生产级 Harness | 阶段10 + J11-05 可观测 | 给最强旗舰补齐生产能力，不另起作品集④ |
 
 ### 嫁接② Stage 0 两篇必读 + 心法清单（阶段4 入门时读）
 
 - [Anthropic《Building effective agents》](https://www.anthropic.com/engineering/building-effective-agents)、[OpenAI 实用 agent 指南](https://openai.com/business/guides-and-resources/a-practical-guide-to-building-ai-agents/)——尤其「**什么时候不该用 agent**」，应用岗面试高频。
-- Learning Principles 当贯穿全程的检查清单：先做再深读、小而可靠胜过炫 demo、**加 agent 前先加 eval**、工具用严格 schema、每次重要运行都 trace、危险操作留人工确认。
+- Learning Principles 当贯穿全程的检查清单：先做再深读、小而可靠胜过炫 demo、增加 Agent 复杂度前先定义最小验收与失败案例、工具用严格 schema、E10 前只记录排错所需的步骤/工具/错误/耗时、危险操作留人工确认；完整 eval 与 tracing 到 E10/J11 再系统建设。
 
 ### 嫁接③ README 当「到点查的索引」
 
@@ -105,4 +117,4 @@ Hub 的 11 级项目阶梯，大半正好能套在你已有的 Gate / J11 上—
 
 ## 八、一句话原则
 
-资料不缺，缺的是「按顺序读完 + 动手 + 沉淀」。stage 0–10 用 `repos/` 里现成的；新增的工程 / 求职层按第四节补；**不要再花时间到处收集新资料了。**
+资料不缺，缺的是「按顺序读完 + 动手 + 验证 + 沉淀」。稳定概念优先用 `repos/` 中文资料建立直觉；API、框架、协议、安全、部署与评估必须在开始任务当天核对官方文档。按第四节补工程层，**不为收集而收集，也不拿旧教程替代当前规范。**

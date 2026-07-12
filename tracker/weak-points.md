@@ -33,11 +33,13 @@
 | WP-11 | prompt 里的 JSON 花括号 | PR2-01 | f-string / `.format` 撞 prompt 里的 `{}` → KeyError / 静默坏；改字符串拼接或转义 | 🟡 | 06-27 | 06-27 |
 | WP-13 | 上下文工程 vs 提示工程（跨层） | S-03 | 把 Compaction 和 trim 混为一谈 → Compaction 是上下文工程压缩、trim 是 truncation，别互套 | 🟡 | 06-29 | 06-29 |
 | WP-14 | 模型自编 Observation 的代码实景识别 | T3-01/A4-01 | 概念能背，但见「一次 call_model 吐出 Action+Observation+答案」的代码仍信结果来自工具 → 判别法=看代码有没有真执行（TOOLS/分发器/真调用）；假 Observation 文本上不可辨。2026-07-09 C1 首答只说“模型编造”，经订正补全“代码没有真实调用工具，所以不是真实返回值” | 🟡 | 07-01 | 2026-07-09 |
-| WP-16 | JSON 字符串 / Python dict / 文件 JSON 三层边界 | PR2-Gate | 把 `json.dump` 误说成“打印给用户”、把模型 JSON 字符串直接拿去 `validate_payload` → 正确链路：`json.loads` 成 dict → `validate_payload` 校验 → `json.dump` 写文件；`json.dumps` 才是转字符串常配合打印 | 🟡 | 2026-07-05 | 2026-07-05 |
-| WP-17 | 工具菜单与 Observation 回填的主语 | T3-02/T3-03/A4-01 | 说成“模型查自己有没有工具 / 模型把结果放进上下文”或把 Observation 当执行者 → 客户端提供工具菜单、解析并执行工具、把工具结果回填成 Observation；模型只选择工具并读取结果。2026-07-09 D3 首答把“工具和 Observation 负责返回结果”混在一起，经订正闭环 | 🟡 | 2026-07-07 | 2026-07-09 |
+| WP-16 | JSON 字符串 / Python dict / 文件 JSON 三层边界 | PR2-Gate/T3-Gate | 把 `json.dump` 误说成“打印给用户”、把模型 JSON 字符串直接拿去校验；2026-07-12 A3 又把 Python 外层单引号误当成 JSON 内容的一部分 → 先分清字符串定界符，再由 `json.loads` 得 dict、按 schema 校验；`json.dumps` 转字符串，`json.dump` 写文件 | 🟡 | 2026-07-05 | 2026-07-12 |
+| WP-17 | 工具菜单与 Observation 回填的主语 | T3-02/T3-03/A4-01/T3-Gate | 说成“模型查自己有没有工具 / 模型把结果放进上下文”或把 Observation 当执行者 → 客户端提供工具菜单、解析并执行工具、把结果回填；模型只选择并读取。2026-07-12 A1 首答仍有执行主语歧义，经订正明确 `TOOLS` 只由客户端访问 | 🟡 | 2026-07-07 | 2026-07-12 |
 | WP-18 | 工具返回结构字段名要按真实代码 | T3-02/T3-03 | 把 `{"ok": True/False}` 说成 `{"code": "成功/失败"}`，或把文件工具返回说成“返回最大字符数” → 按真实代码说字段：计算器成功 `ok/result`，文件工具成功 `ok/content/truncated`，失败统一 `ok/error` | 🟡 | 2026-07-06 | 2026-07-07 |
 | WP-19 | 沙箱路径要看 `resolve()` 后真实落点 | T3-03 | 先按 `..` 字面猜路径、又把 `resolve()`/`relative_to()` 混成不存在的 `resolve_to()` → 先 `(SANDBOX / relative_path).resolve()` 算最终绝对路径，再用 `target.relative_to(SANDBOX)` 判断是否仍在沙箱内 | 🟡 | 2026-07-07 | 2026-07-07 |
 | WP-21 | Action JSON 严格格式 | A4-01/T3-Gate | 写工具调用请求时用了弯引号、工具名未加字符串引号、字段名写成 `arg`，订正后又留下尾逗号 → Action 要写成客户端可解析的严格结构：`{"tool_name": "...", "arguments": {...}}`，JSON 最后一个字段后不能有尾逗号 | 🟡 | 2026-07-09 | 2026-07-09 |
+| WP-22 | Tool Calling 五种数量分层 | T3-Gate | 反复把模型 API 次数、工具轮数、`tool_call` 数、Python 真执行数和 `role="tool"` 回填数混为一谈；还把 `tool_rounds` 写成调用 ID → 沿轨迹逐层计数：一次响应可含多个调用，执行前拒绝仍需逐 ID 回填；最大轮数场景可能多发起一次模型 API 请求并收到一个不会执行的 `tool_call` | 🔴 | 2026-07-11 | 2026-07-12 |
+| WP-23 | `urlparse` 是宽松解析器 | T3-Gate | 以为 `https://host:` 已被自动赋默认 443 → `.port is None` 同时可能表示未写端口或空端口；先检查 `netloc` 的空端口，再允许 `None/443`，显式 `:443` 的 `.port` 是整数 443 | 🟡 | 2026-07-12 | 2026-07-12 |
 
 ## ✅ 间隔回炉池（已稳定，但到期仍抽查——不会永久遗忘）
 

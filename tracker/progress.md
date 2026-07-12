@@ -6,6 +6,8 @@
 
 本表是任务状态的唯一事实源，只保留状态、日期、目标产物路径和 1 句结论。详细代码检查、练习订正和易错点分别放在 `daily/`、知识库与 `tracker/weak-points.md`。
 
+本表的 `PASS` 是课程完成状态，不等于岗位就绪；岗位能力、作品证据和 JD 差距见 `tracker/job-readiness.md`。
+
 “代码/笔记”是计划目标路径：TODO 任务的文件可能尚未创建；代码骨架只在任务开始动手或 Gate 设计准备时即时建立。
 
 | 编号 | 任务 | 状态 | 最近日期 | 代码/笔记 | 批改反馈 |
@@ -40,27 +42,33 @@
 | T3-02 | 计算器工具 | PASS | 2026-07-06 | code/stage3/t3_02_calculator_tool.py | 已通过；详见 daily/2026-07-06.md。 |
 | T3-03 | 文件工具 | PASS | 2026-07-07 | code/stage3/t3_03_file_reader_tool.py | 已通过；详见 daily/2026-07-07.md。 |
 | T3-04 | 外部 API 工具 | PASS | 2026-07-08 | code/stage3/t3_04_public_api_tool.py | 已通过；详见 daily/2026-07-08.md。 |
-| T3-Gate | Tool Calling 闯关 | TODO |  | code/stage3/t3_gate_tool_assistant.py | 当前硬检查点；即时骨架已按真实 `tools/tool_calls → 客户端执行 → role="tool" 回填 → 最终回答` 重建，待用户动手完成并跑 14 条评估。 |
+| T3-Gate | Tool Calling 闯关 | PASS | 2026-07-12 | code/stage3/t3_gate_tool_assistant.py + code/stage3/eval_cases.json | 原生三工具闭环与直接回答均真跑；`t3-gate-v2`（SHA `766649…C042F`）normal 10/10、failure 3/3、danger 1/1、holdout 3/3，详见 daily/2026-07-11.md。 |
 | A4-01 | 什么是 Agent | PASS | 2026-07-09 | notes/stage4/a4_01_what_is_agent.md | 已通过；详见 daily/2026-07-09.md。 |
 | A4-02 | LLM 与 Agent 基础 | TODO |  |  |  |
 | A4-03 | ReAct | TODO |  |  |  |
 | A4-04 | Plan-and-Solve | TODO |  |  |  |
 | A4-05 | Reflection | TODO |  |  |  |
 | A4-Gate | 最小 Agent 闯关 | TODO |  |  |  |
-| H5-01 | 跑通指定分支 | TODO |  |  |  |
+| H5-01 | 跑通指定分支 | TODO |  |  | H5 全阶段压缩为 2–3 个学习日，只追一条真实调用链并改一处。 |
 | H5-02 | Core 层阅读 | TODO |  |  |  |
 | H5-03 | Agents 层阅读 | TODO |  |  |  |
 | H5-04 | Tools 层阅读与新增工具 | TODO |  |  |  |
 | H5-05 | Memory、Context、Protocol 阅读 | TODO |  |  |  |
 | H5-Gate | 源码学习闯关 | TODO |  |  |  |
+| BE5-01 | Python 工程化基础 | TODO |  | code/stage5_5/be5_01_python_service_core/ | typing、分层、pytest/mock、Ruff、类型检查、配置与日志。 |
+| BE5-02 | asyncio、并发与可靠 I/O | TODO |  | code/stage5_5/be5_02_async_io.py | 并发上限、timeout/cancel、阻塞隔离和部分失败。 |
+| BE5-03 | FastAPI、Pydantic v2 与流式接口 | TODO |  | code/stage5_5/be5_03_agent_api/ | REST/SSE、schema、分层、统一错误和接口测试。 |
+| BE5-04 | PostgreSQL、迁移与 Redis | TODO |  | code/stage5_5/be5_04_persistence/ | SQLAlchemy/Alembic、async driver、幂等、缓存/限流/状态。 |
+| BE5-05 | 后台任务、认证与负载测试 | TODO |  | code/stage5_5/be5_05_reliability/ | 后台任务、最小授权、取消/重试、p50/p95 压测。 |
+| BE5-Gate | Agent 后端工程闯关 | TODO |  | code/stage5_5/be5_gate_agent_service/ | 可维护、可测试、可并发、可持久化、可复现的 Agent 服务。 |
 | R6-01 | 文档读取与切分 | TODO |  |  |  |
 | R6-02 | Embedding 与检索 | TODO |  |  |  |
 | R6-03 | 带引用问答 | TODO |  |  |  |
 | R6-Gate | RAG 闯关 | TODO |  |  |  |
 | D7-01 | 基础编排模式 | TODO |  |  |  |
 | D7-02 | Agent 核心模式 | TODO |  |  |  |
-| D7-03 | 可靠性与工程模式 | TODO |  |  |  |
-| D7-Gate | 设计模式闯关 | TODO |  |  |  |
+| D7-03 | 可靠性、长期 Memory 与工程模式 | TODO |  | code/stage7/d7_03_agent_memory/ | 在现有旗舰实现跨会话 Memory 生命周期、隔离/poisoning 测试和无 Memory baseline。 |
+| D7-Gate | 设计模式闯关 | TODO |  | notes/stage7/d7_gate_architecture_review.md | 实施一个真实模式变更并用同一 eval 比较质量、延迟、成本和失败分组。 |
 | G8-01 | LangGraph 适用场景 | TODO |  |  |  |
 | G8-02 | 第一个 Graph | TODO |  |  |  |
 | G8-03 | 文档分析 Agent | TODO |  |  |  |
@@ -73,19 +81,17 @@
 | E10-02 | 综合项目设计 | TODO |  |  |  |
 | FINAL-Gate | 综合项目答辩 | TODO |  |  |  |
 | J11-01 | GitHub 与工程习惯 | TODO |  | （整理 code/ 现有项目） | 应用岗作品集阶段；从阶段 3 起并行启动。 |
-| J11-02 | Agent 后端服务（FastAPI） | TODO |  | code/stage11/j11_02_agent_api/ | 顺带补 async 和接口设计，弥补后端基础。 |
-| J11-03 | Vue 前端界面 | TODO |  | code/stage11/j11_03_agent_web/ | 发挥你现有 Vue 优势，做差异化作品。 |
-| J11-04 | 容器化与上线 | TODO |  | code/stage11/j11_04_deploy/ | 依赖 B0-04 Docker；产出公网可点开的 demo 链接。 |
-| J11-05 | 可观测与评估 | TODO |  | code/stage11/j11_05_observability/ | 接 LangSmith/Langfuse，呼应阶段 10 评估。 |
+| J11-02 | Agent 后端服务（FastAPI） | TODO |  | code/stage11/j11_02_agent_api/ | 复用 BE5 工程骨架，把 RAG/可控 Agent 接成认证、持久化、可观测的产品 API。 |
+| J11-03 | Vue 前端界面 | TODO |  | code/stage11/j11_03_agent_web/ | 按零基础标准复核 Vue/浏览器流式基础，再完成可验证前端交付。 |
+| J11-04 | CI/CD、容器化与上线 | TODO |  | code/stage11/j11_04_deploy/ | 依赖 B0/BE5；CI 门禁、Docker、secret、health、smoke、负载/回滚和公网 demo。 |
+| J11-05 | 可观测与持续评估 | TODO |  | code/stage11/j11_05_observability/ | tracing + 版本化 eval/baseline/regression + 线上失败回灌。 |
 | J11-06 | 作品集组合（2 旗舰 + 1 小项目） | TODO |  | notes/stage11/j11_06_portfolio.md | RAG 与可控 Agent 两个旗舰持续演化，另保留一个结构化抽取小项目；至少一个旗舰带前端并部署。 |
-| J11-07 | 简历与岗位匹配 | TODO |  | notes/stage11/j11_07_resume.md | 把 .NET+Vue+AI 串成「全栈 AI 应用落地」故事。 |
+| J11-07 | 简历与岗位匹配 | TODO |  | notes/stage11/j11_07_resume.md | W6/W12/W16/W19 做“京东/腾讯等大厂标杆 + 10 条真实可投样本”双轨审计；用 Python/FastAPI + Vue Agent 作品证明可迁移工程能力。 |
 | J11-08 | 面试准备 | TODO |  | notes/stage11/j11_08_interview.md | 中等算法 + 系统设计 + AI 八股。 |
 | J11-Gate | 求职冲刺关 | TODO |  |  | 公开作品集 + 简历 + 面试自测。 |
 | S-01 | 多厂商模型切换 | TODO |  | （A4-Gate 后、J11-02 前） | 先抽 provider 边界，再接第二个真实 provider；不与 T3-Gate 挤在同一周末。 |
-| S-02 | 真实向量数据库 | TODO |  | （挂阶段6 R6-02） | 补充项：Chroma/FAISS 或 pgvector，别手写相似度。 |
+| S-02 | 生产向量检索 | TODO |  | （挂阶段6 R6-02/R6-Gate） | pgvector 主线；hybrid、rerank、权限 filter、增量更新与检索指标。 |
 | S-03 | 上下文工程 | PASS | 2026-06-30 | notes/stage2/s03_context_engineering.md ＋ code/stage2/s03_context_experiment.py | 已通过；详见 daily/2026-06-30.md。 |
 | S-04 | 多 Agent 动手 | TODO |  | code/（挂阶段7 D7-02） | 补充项：supervisor+worker 最小协作 demo。 |
-| S-05 | 安全与 Guardrails | TODO |  | code/（A4-Gate 基线 + W11 强化） | A4-Gate 先做白名单/限步/人工确认，W11 再补注入、越权与攻击测试。 |
+| S-05 | 安全与 Guardrails | TODO |  | code/（A4-Gate 基线 + W13 强化） | A4-Gate 先做白名单/限步/人工确认，W13 再补注入、越权与攻击测试。 |
 | S-06 | 微调 vs RAG vs Prompt 判断 | TODO |  | notes/（挂阶段6 或 10） | 补充项：概念笔记，应用岗不动手微调但要会判断。 |
-| S-07 | async 基础与异步接口 | TODO |  | code/（J11-02 前，W9） | async/await、FastAPI 异步接口与 SSE；J11-02 前完成。 |
-| S-08 | Microsoft Agent Framework 扫读（可选） | TODO |  | notes/（挂求职期 W16） | 以 Microsoft Agent Framework 为主，Semantic Kernel/AutoGen 仅作迁移背景；形成 .NET 团队 Agent 选型表达。 |
