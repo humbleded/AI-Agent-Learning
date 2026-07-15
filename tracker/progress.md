@@ -1,6 +1,6 @@
 # AI Agent 学习总进度
 
-最后校准：2026-07-10。
+最后校准：2026-07-15。
 
 状态取值：`TODO`、`DOING`、`RETRY`、`PASS`、`FAIL`。
 
@@ -44,7 +44,7 @@
 | T3-04 | 外部 API 工具 | PASS | 2026-07-08 | code/stage3/t3_04_public_api_tool.py | 已通过；详见 daily/2026-07-08.md。 |
 | T3-Gate | Tool Calling 闯关 | PASS | 2026-07-12 | code/stage3/t3_gate_tool_assistant.py + code/stage3/eval_cases.json | 原生三工具闭环与直接回答均真跑；`t3-gate-v2`（SHA `766649…C042F`）normal 10/10、failure 3/3、danger 1/1、holdout 3/3，详见 daily/2026-07-11.md。 |
 | A4-01 | 什么是 Agent | PASS | 2026-07-09 | notes/stage4/a4_01_what_is_agent.md | 已通过；详见 daily/2026-07-09.md。 |
-| A4-02 | LLM 与 Agent 基础 | TODO |  |  |  |
+| A4-02 | LLM 与 Agent 基础 | PASS | 2026-07-15 | notes/stage4/a4_02_llm_agent_basics.md | 三个学习单元、12 个有效证据位及 Instruction Data/Tuning/Few-shot 独立迁移均通过；详见 daily/2026-07-14.md、daily/2026-07-15.md。 |
 | A4-03 | ReAct | TODO |  |  |  |
 | A4-04 | Plan-and-Solve | TODO |  |  |  |
 | A4-05 | Reflection | TODO |  |  |  |

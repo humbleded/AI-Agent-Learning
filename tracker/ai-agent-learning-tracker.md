@@ -970,14 +970,25 @@ Gate 预设阈值与 holdout 结果：
 
 ## A4-02 LLM 与 Agent 基础
 
-资料：
+必读资料：
 
-- Hello-Agents：第 2 章、第 3 章
+- Hello-Agents：2.4.3「基于大规模数据的预训练」、2.4.4「基于大语言模型的智能体」、3.1.3「Decoder-Only」、3.2.2「文本分词」、3.3.2「模型幻觉」
 - Hugging Face：`unit1/what-are-llms.mdx`、`messages-and-special-tokens.mdx`
+
+扩展资料（不计入本任务必读范围）：
+
+- Hello-Agents 第 2、3 章其余历史、完整 Transformer 推导、模型调用与选型小节，后续遇到对应任务再读。
+
+多日学习单元：
+
+1. LLM 机制：Token/Tokenizer、自回归预测、参数容量、Encoder/Decoder、注意力。
+2. 输入表示：System/User/Assistant、Special Token、Chat Template、Prompt 与指令微调。
+3. Agent 边界：LLM/客户端/工具/Observation、无状态会话、幻觉与可靠性防线。
 
 要做：
 
-- 写 `notes/stage4/a4_02_llm_agent_basics.md`。
+- 由助手根据实际资料、用户原始回答和订正过程自动整理 `notes/stage4/a4_02_llm_agent_basics.md`；带读中标 `DRAFT`，正式检查时定稿。用户不需要共写，除非明确要求。
+- 每个学习日只推进能在 3 小时总预算内完成的单元；未完成时保持 `DOING` 并记录下次起点。
 
 问答：
 
@@ -988,6 +999,8 @@ Gate 预设阈值与 holdout 结果：
 通过标准：
 
 - 能解释 LLM 不是执行器。
+- 能说明消息边界/Chat Template 为什么会影响模型理解。
+- 能说明幻觉在 Agent 中会放大成什么风险，以及工具、代码校验和人工确认分别兜哪一层。
 
 ## A4-03 ReAct
 
