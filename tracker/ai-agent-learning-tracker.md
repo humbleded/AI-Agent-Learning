@@ -1,4 +1,4 @@
-﻿# AI Agent 开发学习追踪清单
+# AI Agent 开发学习追踪清单
 
 根目录：`C:\Users\26823\Desktop\AI-Agent-Learning`
 
@@ -68,49 +68,16 @@ Gate 不能只有“题数”，还必须在第一次调参前写清验收阈值
 
 ## 每日打卡格式
 
-在 `daily/YYYY-MM-DD.md` 中记录：
+`daily/TEMPLATE.md` 是唯一字段模板，本文件不复制第二套 schema。新建或续写 `daily/YYYY-MM-DD.md` 时必须遵守：
 
-```text
-日期：
-目标学习时长：
-实际学习时长：
-完成任务编号：
-看了哪些视频/哪一集：
-读了哪些文档/哪一节：
-代码/产物位置：
-运行提示：
-验证命令与关键结果（Gate/项目日）：
-测试/eval/性能/安全摘要（Gate/项目日）：
-本次工作场景/复合故障：
-场景 ID 与类别：
-故障输入、复现命令与关键日志：
-定位证据与全部根因：
-修复/止损、定向测试与全量回归：
-恢复/再次故障注入结果：
-工作场景证据等级：
-Gate 预设阈值与 holdout 结果：
-算法内容块状态与证据（W4 起）：
-岗位证据候选（仅里程碑填写）：
-今日练习题（当天现出，不预埋）：
-我的作答：
-遇到的问题：
-我最不确定的点：
-希望复核/检查：
-批改判定：
-复核判定（普通任务默认留空；JOB_EVIDENCE、FINAL/J11-Gate、投递前必须由另一工具填写）：
-当天进度小结：
-总进度小结：
-对问题/不确定点的解释：
-问答点评与补充：
-超前内容提示：
-补救任务：
-```
-
-字段以 `daily/TEMPLATE.md` 为准（两处同步维护）。
+- 只记录 ≤180 分钟的计划学习预算，不记录实际学习时长；助手读取/处理/等待和自动写回不计入预算。
+- 同日多任务先维护 Session/任务索引；跨日续学链接并读取该任务全部前序 daily，按任务级覆盖接力。
+- 即时与正式证据 ID 使用 `<任务ID>-G1`、`<任务ID>-F1` 等任务命名空间。
+- 通用批改、工程验证、复习、算法与岗位候选字段均以模板为准。
 
 说明：批改者检查时会根据代码/产物位置实际运行代码并验证结果。只有当代码不是默认入口、需要特殊参数、需要先启动服务或配置环境变量时，才填写“运行提示”。
 
-`当天进度小结`、`总进度小结`、`对问题/不确定点的解释`、`问答点评与补充`、`超前内容提示` 由批改者（Claude / codex 均可）检查后填写。普通任务的 `复核判定` 留空；Gate 可抽样复核，但任何 `JOB_EVIDENCE` 升级、`FINAL/J11-Gate` 结论和正式投递前检查都必须由**另一个**工具交叉复核（Claude 主审 → codex 复核，反之亦然），未复核只能记录“候选证据”，不能升级岗位等级。遇到的问题如果属于后续阶段内容，不要求当天掌握，只标注应该学到哪个任务或阶段再深入。
+`当天进度小结`、`总进度小结`、`对问题/不确定点的解释`、`问答点评与补充`、`超前内容提示` 由批改者（Claude / Codex 均可）检查后填写。普通任务的 `复核判定` 留空；Gate 可抽样复核，但任何 `JOB_EVIDENCE` 升级、`FINAL/J11-Gate` 结论和正式投递前检查都必须由**另一个**工具交叉复核（Claude 主审 → Codex 复核，反之亦然），未复核只能记录“候选证据”，不能升级岗位等级。固定口令 **「交叉复核 <任务/Gate ID>」** 启动复核；复核工具必须独立读取该 ID 的 rubric、全部关联 daily 与真实产物，再填写 `复核判定`，不能只接受主审摘要。遇到的问题如果属于后续阶段内容，不要求当天掌握，只标注应该学到哪个任务或阶段再深入。
 
 ---
 
@@ -1073,6 +1040,7 @@ Gate 预设阈值与 holdout 结果：
 
 任务：
 
+- 先写一页 `problem-contract.md`：目标用户、要解决的任务、输入/输出、允许调用的工具、验收条件、失败/拒绝边界和本版明确不做什么；遇到含糊或冲突要求时先澄清并记录决定。
 - 做 `code/stage4/a4_gate_research_summary_agent.py`。
 - 输入主题或资料路径，能调用工具、总结、反思修正。
 - 配 10 条正常 + 3 条失败 + 1 条危险输入的自包含 `eval_cases.json`；正式检查直接执行，或复用项目已有的轻量参数化 pytest。只长期保留能持续保护 Agent 循环、停止条件、日志和安全边界的测试；结果写 daily，不为本关另建通用 runner、独立 baseline、报告归档或 tracing 平台。
@@ -1085,146 +1053,74 @@ Gate 预设阈值与 holdout 结果：
 2. 什么时候停止？
 3. 工具失败时如何恢复？
 4. 哪一步最容易产生幻觉？
+5. 哪条验收条件最容易被误解，你如何把它改写成可测试的规则？
 
 ---
 
-# 阶段 5：HelloAgents 源码学习
+# 阶段 4.5：LangGraph Lite（阶段 8 前置）
 
-目标：理解一个 Agent 框架如何组织 LLM、Agent、Tool、Memory、Protocol。
+目标：在已经独立写过 Agent 循环后，尽早获得一个主流编排框架的可执行基础；理解框架如何表达控制流，而不是用框架遮住 ReAct、停止条件和工具边界。
 
-时间边界：压缩在 2–3 个学习日内完成。只追通一个真实 example、读立即相关的文件并改一处；不按目录通读，不把教学框架源码当成求职主框架。节省的时间进入阶段 5.5 Python 工程化与 Agent 后端。
+资料（执行当天重新核对当前官方 API）：
+
+- [LangGraph overview](https://docs.langchain.com/oss/python/langgraph/overview)
+- [Graph API](https://docs.langchain.com/oss/python/langgraph/graph-api)
+- [Streaming](https://docs.langchain.com/oss/python/langgraph/streaming)
+- [Testing](https://docs.langchain.com/oss/python/langgraph/test)
+- [Tools / ToolNode](https://docs.langchain.com/oss/python/langchain/tools)
+
+范围边界：
+
+- 安排在 `A4-Gate` 之后，复用其一条真实工具调用路径，不另建聊天机器人玩具项目。
+- 只覆盖 `StateGraph`、state schema、node、`START/END`、固定/条件边、工具节点或等价工具分支、compile、invoke/stream 和节点/路由测试。
+- persistence/checkpointer、thread、interrupt/resume、durable execution、长期 Memory 和恢复幂等全部留到正式 G8，不提前扩课。
+
+## G8-00 最小迁移
+
+要做：
+
+- 写 `code/stage8/g8_00_langgraph_lite.py`，把 A4-Gate 的一条手写控制流迁移为 Graph；state 必须有明确 schema，路由必须保留停止条件和步数/递归上限。
+- 输出至少一种 state/node 更新流，并按执行时的官方文档记录所用 LangGraph 版本和 streaming API，避免把过时教程写法固化进课程。
+- 测试单节点、条件路由、工具失败和终止边界；对比迁移前后同一批固定案例，确认没有关键行为回归。
+- 在 README 或 daily 写一张“手写循环 ↔ Graph”的职责映射，并说明何时不值得引入 LangGraph。
+
+必须回答：
+
+1. state、node、edge 分别承载原手写 Agent 的哪部分职责？
+2. 条件边为什么必须有明确终止分支？
+3. 框架迁移后，哪些安全和工具执行责任仍属于应用代码？
+4. 什么简单任务继续使用普通函数/循环更合适？
+
+通过标准：
+
+- 同一条 Agent 路径可运行、可流式观察、可测试，固定正常/失败案例没有关键回归。
+- 能脱离代码解释控制流映射和框架边界；不能只会照抄 quickstart。
+- 本任务不创建持久化或恢复证据，也不冒充 G8-Gate 的可恢复 Agent 能力。
+
+---
+
+# 阶段 5：框架源码单链路追踪（角色相关压缩项）
+
+目标：证明能够从真实入口追到 Agent、LLM 和 Tool，并安全修改一处；它不是求职主框架课程，也不阻塞 BE5。
+
+时间与优先级：最多 1–2 个学习日；W6/W7 容量不足时顺延到补坑块。只做一条链路，不按 Core/Agents/Tools/Memory/Protocol 目录分别建任务和 notes。
 
 主资料：
 
 - `repos/HelloAgents-feature-branch-1`
 - `repos/hello-agents/docs/chapter7/第七章 构建你的Agent框架.md`
 
-## H5-01 跑通指定分支
-
-资料：
-
-- `HelloAgents-feature-branch-1/README.md`
-- `docs/tutorials/CONFIGURATION.md`
-- `examples/chapter07_basic_setup.py`
+## H5-01 框架源码单链路追踪（可选）
 
 要做：
 
-- 在 `notes/stage5/h5_01_run_log.md` 记录安装、运行命令、错误和结果。
-
-问答：
-
-1. 为什么我们用 `feature-branch-1`？
-2. 这个框架的入口示例在哪里？
-3. 配置文件/环境变量承担什么职责？
+- 跑通一个与当前 A4 工具链相近的 example，从入口追到 Agent → LLM → Tool → 最终输出；在 `notes/stage5/h5_01_framework_trace.md` 只记录真实调用链、关键文件/行号、运行命令和遇到的错误。
+- 新增一个小工具或修改一个明确行为，并用真实运行或测试证明改动进入了这条调用链；不抄目录职责，不预读后续 Memory/MCP 内容。
 
 通过标准：
 
-- 至少跑通一个 example，或清楚记录无法跑通的错误。
-
-## H5-02 Core 层阅读
-
-资料：
-
-- `hello_agents/core/agent.py`
-- `hello_agents/core/llm.py`
-- `hello_agents/core/message.py`
-- `hello_agents/core/config.py`
-
-要做：
-
-- 不逐文件抄源码；选一个已跑通 example，从入口开始追到 Agent、LLM、Message/Config，写 `notes/stage5/h5_02_core_reading.md` 记录一条真实调用链和关键行号。
-
-问答：
-
-1. Agent 基类负责什么？
-2. LLM 封装层为什么有必要？
-3. Message 抽象解决什么问题？
-
-通过标准：
-
-- 能画出 Core 层关系。
-
-## H5-03 Agents 层阅读
-
-资料：
-
-- `hello_agents/agents/simple_agent.py`
-- `hello_agents/agents/react_agent.py`
-- `hello_agents/agents/plan_solve_agent.py`
-- `hello_agents/agents/reflection_agent.py`
-
-要做：
-
-- 精读 `simple_agent.py` 与当前马上要用的一个 Agent（默认 `react_agent.py`）；Plan/Reflection 只定位控制流差异。写 `notes/stage5/h5_03_agents_compare.md`，不做重复概念摘抄。
-
-问答：
-
-1. simple/react/plan/reflection 的差异是什么？
-2. 哪种 Agent 最适合工具任务？
-3. 哪种 Agent 最适合写作改进？
-
-通过标准：
-
-- 能用表格对比 4 类 Agent。
-
-## H5-04 Tools 层阅读与新增工具
-
-资料：
-
-- `hello_agents/tools/base.py`
-- `hello_agents/tools/registry.py`
-- `hello_agents/tools/builtin/calculator.py`
-- `hello_agents/tools/builtin/rag_tool.py`
-
-要做：
-
-- 新增一个工具，放入 `code/stage5/custom_tool/` 或框架本地实验分支。
-
-问答：
-
-1. 工具注册流程是什么？
-2. 工具输入输出如何约束？
-3. 如何定位工具没有被调用的问题？
-
-通过标准：
-
-- 自定义工具能被 Agent 调用。
-
-## H5-05 Memory、Context、Protocol 阅读
-
-资料：
-
-- `hello_agents/memory/`
-- `hello_agents/context/builder.py`
-- Datawhale Hello-Agents 第 8-9 章
-- `hello_agents/protocols/mcp/` 只看入口和目录关系，真实 MCP 深读留到阶段 9，避免重复学习。
-
-要做：
-
-- 写 `notes/stage5/h5_05_memory_protocol.md`。
-
-问答：
-
-1. Memory 和消息历史有什么区别？
-2. Context builder 解决什么问题？
-3. MCP 是框架、协议，还是工具？
-
-通过标准：
-
-- 能区分 Memory、Context、Protocol。
-
-## H5-Gate 源码学习闯关
-
-任务：
-
-- 用真实 example 说明一次请求从 Agent 进入，到调用 LLM/Tool，再回到最终输出的路径；新增的自定义工具必须能在这条链路里被实际调用。此关重点是“追通一条链路 + 改一处”，不是读完所有目录。
-
-必须回答：
-
-1. 入口类是哪一个？
-2. 工具如何注册和执行？
-3. 消息如何组织？
-4. 你最想重构哪一处，为什么？
+- 能指出入口、消息组织、工具注册/执行和返回路径，并用运行证据证明修改生效。
+- 若暂缓本任务，不影响进入 BE5；后续真实框架 debug 也可提供等价证据后再收口。
 
 ---
 
@@ -1280,7 +1176,7 @@ Gate 预设阈值与 holdout 结果：
 
 要做：
 
-- 在 `code/stage5_5/be5_03_agent_api/` 用分层结构暴露普通 JSON 与 SSE `/chat` 接口。
+- 在 `code/stage5_5/be5_03_agent_api/` 复用 A4-Gate/G8-00 的真实 Agent 逻辑，用分层结构暴露普通 JSON 与 SSE `/chat` 接口；不另写无关聊天玩具。
 - 使用 Pydantic v2 校验请求/响应，统一错误结构，区分 4xx 与 5xx；API Key 只在服务端读取。
 - 加 request ID、health/readiness endpoint、超时与客户端断开处理；用 FastAPI TestClient/httpx 写接口测试。
 
@@ -1322,11 +1218,14 @@ Gate 预设阈值与 holdout 结果：
 
 ## BE5-Gate Agent 后端工程闯关
 
+前置：完成 `B0-03`、`B0-04` 与 `B0-Gate`；最小部署不能绕过数据库迁移、Docker 和可复现启动。
+
 任务：
 
 - 把 A4-Gate 或当前最完整 Agent 包成一个可复现后端服务，而不是新写玩具业务。
 - 提供 REST + SSE、Pydantic v2 schema、分层结构、PostgreSQL 持久化、Redis 的实际用途、后台任务、最小认证、结构化日志和 health endpoint。
 - `pytest` 覆盖单元/接口/数据库集成测试；Ruff + 类型检查通过。执行小规模负载测试，并在 README 或 daily 用紧凑表格保存命令、负载参数、吞吐、p50/p95、错误率、瓶颈和结论，不另建报告系统。
+- 配最小 CI 门禁（pytest、Ruff、类型检查、Docker build），部署一个临时或公开可访问的后端测试环境并执行 health/API smoke；这是求职反馈用的薄纵切，不提前建设完整告警、备份和回滚平台。
 - README 包含架构图、环境变量、迁移、启动、测试、负载验证和常见排错；依赖可锁定，陌生人能从空环境运行。
 - 写 `system-design.md`：定义主要 API 契约、ER/状态模型、请求与数据流、预期并发/数据量、可测 SLI/SLO、缓存与后台任务取舍、前三类失败/降级路径和至少 2 条 ADR；做一次 30 分钟限时复述。
 - 从 `work-scenario-coverage.md` 选择至少两个复合事故：每个同时包含 2–4 类当前已引入问题；至少一个完成进程/依赖故障下的止损、恢复与无重复副作用验证。
@@ -1343,7 +1242,8 @@ Gate 预设阈值与 holdout 结果：
 
 - 一条命令启动依赖与服务，自动测试/静态检查可重复运行。
 - 正常、失败、并发、取消、未授权和重复提交均有可观察结果。
-- WS-01/03/04/05/06/08/09/14 达到本表要求的证据等级；关键安全/越权测试不得有漏放。
+- WS-01/03/04/05/06/08/09/13/14 达到本表要求的证据等级；关键安全/越权测试不得有漏放。
+- CI 失败不得部署；测试环境可从空配置启动，部署后 smoke 可重复执行并关联到具体提交。
 - 系统设计中的容量、SLO 和取舍能用压测/日志/代码证据校验，不是只画框图。
 - 课程 PASS 后只在 `job-readiness.md` 记为 `COURSE_PASS`；只有项目进入旗舰、补齐公开/可复现证据后才升 `JOB_EVIDENCE`。
 
@@ -1437,18 +1337,18 @@ Gate 预设阈值与 holdout 结果：
 - 不对资料外问题胡编。
 - 能区分“检索没找到”“找到但模型答错”“引用与答案不一致”三类失败。
 
-## R6-Gate RAG 闯关
+## R6-Gate 领域 RAG 闯关
 
 任务：
 
-- 做 `code/stage6/r6_gate_personal_kb.py`。
+- 做 `code/stage6/r6_gate_domain_kb/`。在 W6/W10 岗位校准与用户既有领域经验的交集中选一个具体场景，使用公开、脱敏或可授权资料；默认不做没有目标用户和业务流程的通用个人知识库。
+- 先写 `problem-contract.md`：目标用户、原工作流程、要缩短/减少的人工步骤、输入/输出、权限边界、验收条件、失败时如何人工接管，以及至少 1 个可测业务/操作指标（如任务成功率、人工纠错率、单次处理时间或每题成本）。
 - 功能 Gate 导入至少 20 篇或 50 页、多种长度/格式资料，支持增量导入、更新、删除、去重、问答、可定位引用和无答案拒答；不得只证明 3 篇玩具样例能跑。
 - 主线使用 pgvector；实现 metadata/权限 filter、hybrid search 和 rerank，并保留只做向量检索的 baseline 对照。
 - 每个 chunk 保留 `document_id`、来源、标题、页码/段落、hash、知识库/用户归属；重复导入不重复，更新/删除不残留旧向量。
 - 记录数据血缘与版本：解析器、chunk 配置、embedding/index 版本、导入任务、更新时间和删除审计；敏感文档/metadata 进入日志、trace、评估集前先脱敏。
 - 配版本化评估集至少 20 条，覆盖正常、跨文档、多跳/改写、无答案、解析失败、越权和注入输入；复用项目 tests 和一个小型领域指标脚本，分别记录 Recall@k/MRR、答案正确/忠实、引用正确、拒答、安全、延迟和成本，结果保存为设计笔记/daily 的紧凑快照，E10 前不另建通用 evaluator 或报告归档。
-- 接入 BE5-Gate 的 FastAPI/SSE、PostgreSQL/Redis、认证和后台导入任务，形成旗舰一 v1；不是只在 CLI 中展示。
-- R6-Gate 当周即补最小 CI、Docker build、可访问测试环境/API demo 和部署后 smoke；J11-04/W17 再强化告警、负载、备份与回滚，不把第一次部署拖到所有框架学完。
+- 接入 BE5-Gate 的 FastAPI/SSE、PostgreSQL/Redis、认证和后台导入任务，形成旗舰一 v1；复用并更新 BE5-Gate 已建立的 CI/Docker/测试部署/smoke，不把 R6 当第一次上线。
 - 注入至少一个复合事故，例如 embedding/index 版本混用 + ACL filter 顺序错误 + 缓存 key 漏 tenant + 文档间接注入；要求根据检索/引用/trace/审计证据找齐根因并回归。
 - 扩展系统设计包：分别画导入与查询数据流，估算文档/chunk/并发规模，定义检索质量与 p95 延迟 SLO，说明索引更新一致性、成本、ACL 和降级策略，并记录关键 ADR。
 
@@ -1459,13 +1359,15 @@ Gate 预设阈值与 holdout 结果：
 3. 如何证明是检索变好了，而不是模型偶然答对？
 4. 如何避免用户 A 检索到用户 B 的文档？
 5. 更新或删除文档时如何保证关系数据和向量数据一致？
+6. 技术指标变好后，哪一个用户流程或业务指标也得到改善，证据是什么？
 
 通过标准：
 
 - 从空库可复现导入、检索、问答、更新和删除全链路。
 - 有“只向量检索”baseline 与至少一次改进实验；保留数据/配置版本和紧凑指标/失败样例对比即可，指标和失败样例可追溯。
 - 越权、注入和资料外问题不会泄露内容或编造答案。
-- 最小部署的 CI/Docker/smoke 可重复运行；数据版本、权限和删除行为有审计证据。
+- 更新后的 CI/Docker/deploy/smoke 可重复运行；数据版本、权限和删除行为有审计证据。
+- 至少一个业务/操作指标有基线、候选版本和失败样例；没有改善时如实解释瓶颈，不只展示技术栈清单。
 
 ---
 
@@ -1568,33 +1470,33 @@ Gate 预设阈值与 holdout 结果：
 
 # 阶段 8：LangGraph / 可控工作流
 
-目标：做有状态、可控、可持久化、可暂停恢复的 Agent 工作流；不能只画出节点和边。
+目标：在 G8-00 已验证的基础 Graph 上，做可持久化、可暂停恢复、可安全重放的 Agent 工作流；本阶段重点是 durable execution，不重复教授 node/edge 入门。
 
 主资料：
 
-- LangGraph 官方文档：overview、persistence/checkpointer、interrupts、durable execution、streaming、testing。
+- LangGraph 官方文档：[Graph API](https://docs.langchain.com/oss/python/langgraph/graph-api)、[Persistence](https://docs.langchain.com/oss/python/langgraph/persistence)、[Interrupts](https://docs.langchain.com/oss/python/langgraph/interrupts)、[Fault tolerance](https://docs.langchain.com/oss/python/langgraph/fault-tolerance)、[Streaming](https://docs.langchain.com/oss/python/langgraph/streaming)、[Testing](https://docs.langchain.com/oss/python/langgraph/test)。
 - Hugging Face Agents Course：Unit 2 LangGraph
 - Datawhale Hello-Agents 第 6 章 LangGraph
 - LangSmith tracing/evaluation 官方文档作为运行证据
 
-## G8-01 LangGraph 适用场景
+## G8-01 持久化与恢复边界
 
 资料：
 
-- Hugging Face：`unit2/langgraph/when_to_use_langgraph.mdx`
-- Datawhale：`docs/chapter6/第六章 框架开发实践.md`
+- LangGraph 官方：persistence、fault tolerance、interrupts。
+- G8-00 的手写循环 ↔ Graph 职责映射和测试结果。
 
 问答：
 
-1. 为什么有些 Agent 不适合纯 while 循环？
-2. LangGraph 的 state 解决什么问题？
-3. 什么任务不需要 LangGraph？
+1. 只在内存里运行的 Graph 遇到进程退出会丢什么？
+2. checkpoint/thread state 与跨会话长期 Memory 有什么区别？
+3. 哪些节点允许 replay，哪些外部副作用必须先设计幂等？
 
 产出：
 
-- `notes/stage8/g8_01_when_to_use_langgraph.md`
+- `notes/stage8/g8_01_durable_boundary.md`
 
-## G8-02 第一个 Graph
+## G8-02 持久化 Graph
 
 资料：
 
@@ -1610,9 +1512,9 @@ Gate 预设阈值与 holdout 结果：
 
 问答：
 
-1. 节点是什么？
-2. 边是什么？
-3. state 如何在节点之间流动？
+1. checkpoint 在什么时机保存了哪些状态？
+2. `thread_id` 如何隔离不同执行实例，错误复用会造成什么问题？
+3. 多个节点更新同一 state key 时，reducer/更新规则为什么必须明确？
 
 通过标准：
 
@@ -1798,7 +1700,7 @@ Gate 预设阈值与 holdout 结果：
 
 候选项目：
 
-- 个人知识库问答 Agent
+- 面向具体领域与工作流程的知识问答/决策辅助 Agent
 - 文件整理与总结 Agent
 - Deep Research 简化版
 - 旅行规划 Agent
@@ -1884,8 +1786,9 @@ Gate 预设阈值与 holdout 结果：
 要做：
 
 - 把 `code/` 里的练习整理成规范的 GitHub 仓库：清晰 `README`、`requirements.txt`、`.env.example`、有意义的提交记录。
-- 每个要进作品集的项目都写：解决什么问题、怎么运行、用到哪些技术。
+- 每个要进作品集的项目都写：目标用户、原流程/痛点、解决什么问题、验收标准、怎么运行、用到哪些技术和如何衡量效果。
 - 完成一次可审计的团队协作闭环：issue/需求与验收条件 → feature branch → PR → CI 失败 → review feedback → 修改 → merge；再演练一次 merge conflict 或 `revert`，保留 PR、检查结果和变更说明。
+- 至少选一次实质性改动记录 AI coding 协作链：AI 提出候选方案/补丁 → 用户审查 diff 与依赖 → 运行测试/静态检查/安全检查 → 接受、修改或拒绝；不能把“AI 生成并能运行”直接当作本人掌握或安全证据。
 
 问答：
 
@@ -1940,16 +1843,16 @@ Gate 预设阈值与 holdout 结果：
 
 - 一个别人打开浏览器就能用的 Web 应用；能独立解释组件、状态、流式消费、错误处理和前后端安全边界。
 
-## J11-04 CI/CD、容器化与上线
+## J11-04 CI/CD、容器化与上线强化
 
 依赖：
 
-- 先完成 `B0-04 Docker` 与 `BE5-Gate`；上线不是第一次补服务结构、数据库迁移或 async。
+- 先完成 `B0-04 Docker` 与 `BE5-Gate`；BE5-Gate 已有最小 CI/Docker/测试部署/smoke，本任务负责把薄纵切强化为可运维产品交付。
 
 要做：
 
 - 用 `Dockerfile` + `compose.yaml` 把前端、后端、（可选）向量库 / 数据库打包。
-- 部署到一个公网可访问地址（便宜云主机 / Railway / Render 等任一）。R6-Gate 后先完成最小 v1（CI、Docker、deploy、smoke），本任务再补齐负载、备份、告警和回滚，不把第一次部署拖到全部框架学完。
+- 把 BE5-Gate 的后端测试部署和 R6-Gate 的领域 RAG v1 演化为公网产品 demo（便宜云主机 / Railway / Render 等任一），补齐前端、域名/HTTPS、负载、备份、告警和回滚；不重建第三套部署工程。
 - 配置 CI/CD：测试、Ruff、类型检查、eval regression、Docker build、部署后 smoke test；失败不得发布。
 - 加 health/readiness、非 root 用户、secret 注入、持久化 volume、日志与备份/恢复说明；使用 HTTPS，记录一次部署失败或回滚演练。
 - 用 k6/Locust 做部署前后小规模负载测试，记录 p50/p95、错误率、吞吐和资源瓶颈。Kubernetes 只作可选加分，不作为主线门槛。
@@ -1999,9 +1902,9 @@ Gate 预设阈值与 holdout 结果：
 
 - 整理成“1 个小而完整 + 2 个旗舰”而不是 3–5 个都重做：
   1. 小项目：结构化信息抽取工具（阶段 2，轻量 README + 测试）。
-  2. 旗舰一：个人知识库 RAG 问答（阶段 6，FastAPI + Vue + 引用 + 评估 + 部署）。
+  2. 旗舰一：面向明确用户和业务流程的领域 RAG 应用（阶段 6，FastAPI + Vue + 引用 + 技术/业务指标 + 部署）；只有能证明真实使用流程和验收价值时，个人知识库才可作为具体领域，而不是默认题目。
   3. 旗舰二：从 A4-Gate 持续演化到 LangGraph/FINAL 的可控 Agent（工具、安全确认、trace、失败恢复）；不要把 A4、G8、FINAL 拆成三个互不复用的新仓库。
-- 每个项目写清楚：解决什么问题、用了哪些技术、难点、你做的取舍。
+- 每个项目写清楚：为谁解决什么流程问题、基线是什么、用了哪些技术、难点、取舍和指标结果；没有改善的指标也要解释原因和下一实验。
 - 每个旗舰附：架构/数据流/信任边界图、版本化评估报告、负载报告、威胁模型、失败复盘、CI 状态和可复现部署说明；至少记录一次真实迭代前后对比。
 - 旗舰项目中至少一个在完成基础复核后，展示 Python/FastAPI Agent 后端与 Vue 前端的真实集成边界（SSE/HTTP、认证、错误契约、任务状态）；只把项目中已经验证的部分写成差异化，不引入第二套后端技术栈。
 
@@ -2016,6 +1919,7 @@ Gate 预设阈值与 holdout 结果：
 - 按目标 JD（大模型应用 / Agent 应用开发）写一版简历；既往工作经历如实保留，项目主线突出 `Python/FastAPI + Vue + Agent/RAG` 的完整应用落地证据。
 - 按 `tracker/job-readiness.md` 做双轨样本：4–6 条京东/腾讯等大厂岗位校准工程上限；另收集 10 条当前在招岗位、至少 7 条满足硬门槛，用于计算真实匹配率和差距。
 - 这不是 W19 才第一次做：W6、W12、W16、W19 都更新双轨审计；W19 负责把累计证据收束进简历。Java/C++、学历或年限不匹配的大厂岗位只能作为标杆，不能写成“已满足”。
+- BE5-Gate/W10 完成最小部署后做一次轻量求职材料校准：把新证据写成项目描述，并拿 2–3 条 `HARD_ELIGIBLE` 岗位检查缺口；它不替代 W12 正式双轨审计，也不要求证据不足时强行投递。
 
 问答：
 

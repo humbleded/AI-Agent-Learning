@@ -45,16 +45,12 @@
 | T3-Gate | Tool Calling 闯关 | PASS | 2026-07-12 | code/stage3/t3_gate_tool_assistant.py + code/stage3/eval_cases.json | 原生三工具闭环与直接回答均真跑；`t3-gate-v2`（SHA `766649…C042F`）normal 10/10、failure 3/3、danger 1/1、holdout 3/3，详见 daily/2026-07-11.md。 |
 | A4-01 | 什么是 Agent | PASS | 2026-07-09 | notes/stage4/a4_01_what_is_agent.md | 已通过；详见 daily/2026-07-09.md。 |
 | A4-02 | LLM 与 Agent 基础 | PASS | 2026-07-15 | notes/stage4/a4_02_llm_agent_basics.md | 三个学习单元、12 个有效证据位及 Instruction Data/Tuning/Few-shot 独立迁移均通过；详见 daily/2026-07-14.md、daily/2026-07-15.md。 |
-| A4-03 | ReAct | PASS | 2026-07-22 | code/stage4/a4_03_react_agent.py | 完整两轮轨迹可运行，15/15 边界断言通过；能解释职责、停止条件与 max_steps，详见 daily/2026-07-21.md、daily/2026-07-22.md。 |
-| A4-04 | Plan-and-Solve | TODO |  |  |  |
+| A4-03 | ReAct | PASS | 2026-07-22 | code/stage4/a4_03_react_agent.py + notes/stage4/a4_03_react.md | 完整两轮轨迹可运行，15/15 边界断言通过；能解释职责、停止条件与 max_steps，详见 daily/2026-07-21.md、daily/2026-07-22.md。 |
+| A4-04 | Plan-and-Solve | PASS | 2026-07-30 | code/stage4/a4_04_plan_solve_demo.py | 可运行 demo 输出计划、3 步结果、事实复盘和最终答案；39/39 聚焦边界断言通过，G1–G7 与 F1–F3 全部闭合，详见 daily/2026-07-22.md～2026-07-30.md。 |
 | A4-05 | Reflection | TODO |  |  |  |
 | A4-Gate | 最小 Agent 闯关 | TODO |  |  |  |
-| H5-01 | 跑通指定分支 | TODO |  |  | H5 全阶段压缩为 2–3 个学习日，只追一条真实调用链并改一处。 |
-| H5-02 | Core 层阅读 | TODO |  |  |  |
-| H5-03 | Agents 层阅读 | TODO |  |  |  |
-| H5-04 | Tools 层阅读与新增工具 | TODO |  |  |  |
-| H5-05 | Memory、Context、Protocol 阅读 | TODO |  |  |  |
-| H5-Gate | 源码学习闯关 | TODO |  |  |  |
+| G8-00 | LangGraph Lite 最小迁移 | TODO |  | code/stage8/g8_00_langgraph_lite.py | A4-Gate 后前移的主流框架基础；只覆盖 state/node/edge/条件路由/tool/stream/test，持久化与恢复留到 G8。 |
+| H5-01 | 框架源码单链路追踪（可选） | TODO |  | notes/stage5/h5_01_framework_trace.md | 角色相关压缩项：1–2 个学习日跑通一个 example、追一条调用链并改一处；可顺延到补坑块，不阻塞 BE5。 |
 | BE5-01 | Python 工程化基础 | TODO |  | code/stage5_5/be5_01_python_service_core/ | typing、分层、pytest/mock、Ruff、类型检查、配置与日志。 |
 | BE5-02 | asyncio、并发与可靠 I/O | TODO |  | code/stage5_5/be5_02_async_io.py | 并发上限、timeout/cancel、阻塞隔离和部分失败。 |
 | BE5-03 | FastAPI、Pydantic v2 与流式接口 | TODO |  | code/stage5_5/be5_03_agent_api/ | REST/SSE、schema、分层、统一错误和接口测试。 |
@@ -64,13 +60,13 @@
 | R6-01 | 文档读取与切分 | TODO |  |  |  |
 | R6-02 | Embedding 与检索 | TODO |  |  |  |
 | R6-03 | 带引用问答 | TODO |  |  |  |
-| R6-Gate | RAG 闯关 | TODO |  |  |  |
+| R6-Gate | 领域 RAG 闯关 | TODO |  | code/stage6/r6_gate_domain_kb/ | 用真实领域资料、业务验收指标和生产 RAG 链路形成旗舰一，不默认做通用个人知识库。 |
 | D7-01 | 基础编排模式 | TODO |  |  |  |
 | D7-02 | Agent 核心模式 | TODO |  |  |  |
 | D7-03 | 可靠性、长期 Memory 与工程模式 | TODO |  | code/stage7/d7_03_agent_memory/ | 在现有旗舰实现跨会话 Memory 生命周期、隔离/poisoning 测试和无 Memory baseline。 |
 | D7-Gate | 设计模式闯关 | TODO |  | notes/stage7/d7_gate_architecture_review.md | 实施一个真实模式变更并用同一 eval 比较质量、延迟、成本和失败分组。 |
-| G8-01 | LangGraph 适用场景 | TODO |  |  |  |
-| G8-02 | 第一个 Graph | TODO |  |  |  |
+| G8-01 | 持久化与恢复边界 | TODO |  | notes/stage8/g8_01_durable_boundary.md | 区分 checkpoint/thread state、长期 Memory、replay 与副作用幂等。 |
+| G8-02 | 持久化 Graph | TODO |  | code/stage8/g8_02_first_graph.py | 使用持久化 checkpointer、thread 隔离并验证进程重启恢复。 |
 | G8-03 | 文档分析 Agent | TODO |  |  |  |
 | G8-Gate | LangGraph 闯关 | TODO |  |  |  |
 | M9-01 | MCP 概念 | TODO |  |  |  |
@@ -83,7 +79,7 @@
 | J11-01 | GitHub 与工程习惯 | TODO |  | （整理 code/ 现有项目） | 应用岗作品集阶段；从阶段 3 起并行启动。 |
 | J11-02 | Agent 后端服务（FastAPI） | TODO |  | code/stage11/j11_02_agent_api/ | 复用 BE5 工程骨架，把 RAG/可控 Agent 接成认证、持久化、可观测的产品 API。 |
 | J11-03 | Vue 前端界面 | TODO |  | code/stage11/j11_03_agent_web/ | 按零基础标准复核 Vue/浏览器流式基础，再完成可验证前端交付。 |
-| J11-04 | CI/CD、容器化与上线 | TODO |  | code/stage11/j11_04_deploy/ | 依赖 B0/BE5；CI 门禁、Docker、secret、health、smoke、负载/回滚和公网 demo。 |
+| J11-04 | CI/CD、容器化与上线强化 | TODO |  | code/stage11/j11_04_deploy/ | BE5-Gate 先完成最小 CI/Docker/测试部署/smoke；本任务补 secret、告警、负载、备份、回滚和公网产品 demo。 |
 | J11-05 | 可观测与持续评估 | TODO |  | code/stage11/j11_05_observability/ | tracing + 版本化 eval/baseline/regression + 线上失败回灌。 |
 | J11-06 | 作品集组合（2 旗舰 + 1 小项目） | TODO |  | notes/stage11/j11_06_portfolio.md | RAG 与可控 Agent 两个旗舰持续演化，另保留一个结构化抽取小项目；至少一个旗舰带前端并部署。 |
 | J11-07 | 简历与岗位匹配 | TODO |  | notes/stage11/j11_07_resume.md | W6/W12/W16/W19 做“京东/腾讯等大厂标杆 + 10 条真实可投样本”双轨审计；用 Python/FastAPI + Vue Agent 作品证明可迁移工程能力。 |

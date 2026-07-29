@@ -26,7 +26,7 @@
 
 ## 当前路线规则
 
-- 截至 2026-07-10，阶段 0–2 已收尾，T3-01~04 已 PASS；当前硬检查点是 `T3-Gate`，A4-01 已作为概念预习 PASS。
+- 实时课程状态只读 `tracker/progress.md`，当前执行入口由 `tracker/daily-plan.md` 派生；README 不复制易过期的任务快照。
 - `T3-Gate` 必须走真实模型 `tools/tool_calls → 客户端执行 → role="tool" 回填 → 最终回答`，关键词规则路由只能作对照。
 - 未开始任务不预建代码骨架；Gate 在设计准备日、普通任务在开始动手时即时建骨架。
 - 阶段 0.5 工程基础不再整块卡住 Agent 主线，而是按场景穿插补：
@@ -34,7 +34,8 @@
   - 环境配置时补 venv、包安装、环境变量。
   - Memory/RAG 需要持久化时补 SQL 和数据库。
   - 本地多服务或部署时补 Docker Compose。
-- A4/H5 后加入阶段 5.5：Python 工程化、async、FastAPI/Pydantic v2、PostgreSQL/Redis、后台任务、认证和负载测试；H5 源码阅读压缩到 2–3 个学习日。
+- A4-Gate 后先做 `G8-00 LangGraph Lite`，只迁移一条既有 Agent 路径；高级持久化、interrupt/resume 和故障恢复仍留到 G8。H5 压成可选的 1–2 日源码单链路追踪，不阻塞阶段 5.5。
+- 阶段 5.5 系统补 Python 工程化、async、FastAPI/Pydantic v2、PostgreSQL/Redis、后台任务、认证和负载测试；BE5-Gate 在完成 B0 Docker 后即交付最小 CI/Docker/测试部署/smoke，R6 复用该部署形成领域 RAG 旗舰。
 - R6/G8/M9/FINAL 不只要求“能跑”：必须有版本化评估、组件指标、失败/危险样例和 baseline；旗舰还需 CI/CD、可恢复执行、安全/权限、负载与公开可复现证据。
 - 正式练习按任务形态调整：概念/阅读日 8–12 题；编码/Gate/项目日 5–8 个高质量检查点，把主要时间留给真实产物、测试和故障注入。
 

@@ -12,7 +12,7 @@
 | --- | --- | --- | --- |
 | Hello-Agents 全书（16 章） | `repos/hello-agents/docs/chapterX/第X章*.md` | Agent 主教材：原理 / 范式 / 框架 / 记忆 / RAG / 上下文 / 评估 / 项目 | 中（另有英文版） |
 | Hello-Agents 配套代码 | `repos/hello-agents/code/chapterX/` | 每章可运行示例 | 中注释 |
-| HelloAgents 框架源码（指定分支） | `repos/HelloAgents-feature-branch-1/hello_agents/` | 阶段 5 源码精读对象 | — |
+| HelloAgents 框架源码（指定分支） | `repos/HelloAgents-feature-branch-1/hello_agents/` | H5-01 可选单链路源码追踪对象 | — |
 | HuggingFace Agents Course（中文版） | `repos/agents-course/units/zh-CN/` | 工具/动作/观察、function calling、LangGraph、Agentic RAG、评估 | 中 |
 | Agentic Design Patterns（21 章 + 附录） | `repos/agentic-design-patterns/bilingual/`（中英）`/chapters/`（英） | 阶段 7 设计模式主资料；MCP/RAG/Guardrails/评估都有 | 中英对照 |
 | Agent Learning Hub 路线图 | `repos/Agent-Learning-Hub/README.md` | 现代生产视角的 todo / Project Ladder / 官方资料索引 | 中 |
@@ -36,11 +36,12 @@
 - **阶段 2 Prompt/结构化**：DeepLearning.AI《Prompt Engineering for Developers》Guidelines → OpenAI Prompt Engineering + Structured Outputs → 配合 **HA 第 9 章上下文工程（S-03）** → 写 PR2 代码。
 - **阶段 3 工具调用**：HF 中文 unit1 `tools/actions/observations` → HF `bonus-unit1` function calling → OpenAI Function Calling → 读 `HA code/chapter4` 工具代码 → 写 T3。
 - **阶段 4 Agent 原理**：HF unit1 `what-are-agents` → HA 第 1–4 章 → ADP 第 4/5/6 章（Reflection/Tool Use/Planning）→ 跑 `HA code/chapter4` 的 ReAct/Plan/Reflection。
-- **阶段 5 框架源码**：先跑通一个 example → 只沿入口追到 Agent/LLM/Tool/Message，并改一个工具 → 2–3 个学习日内 H5-Gate 收尾；不再按目录通读。
+- **G8-00 LangGraph Lite（A4-Gate 后前置）**：当前官方 Graph API → StateGraph/state/node/edge/条件路由/tool/stream/test → 把 A4-Gate 一条路径迁移并对照测试；不读 persistence/interrupt/resume。
+- **阶段 5 框架源码（可选）**：容量允许或补坑块再跑一个 example → 只沿入口追到 Agent/LLM/Tool/Message，并改一处 → 1–2 个学习日收口；不按目录通读、不阻塞 BE5。
 - **阶段 5.5 Python Agent 后端**：Python typing/asyncio/logging → pytest/Ruff/type-check → FastAPI/Pydantic v2 → SQLAlchemy/Alembic/PostgreSQL → Redis/后台任务/认证/负载测试 → BE5-Gate。
-- **阶段 6 RAG**：HA 第 8 章/HF unit3 建立直觉 → LangChain/LlamaIndex 官方 RAG 文档 → pgvector 主线 → hybrid/rerank → 增量索引/ACL → 检索与答案分项评估 → R6-Gate。
+- **阶段 6 RAG**：先确定具体领域、用户流程和业务基线 → HA 第 8 章/HF unit3 建立直觉 → LangChain/LlamaIndex 官方 RAG 文档 → pgvector 主线 → hybrid/rerank → 增量索引/ACL → 检索、答案与业务指标分项评估 → R6-Gate。
 - **阶段 7 设计模式**：ADP（中英对照）第 1–8 章 + 第 18/19 章，按需读，别全背 → 配合 **S-04 多 Agent、S-05 Guardrails 动手**。
-- **阶段 8 LangGraph**：LangGraph 官方 overview/persistence/interrupts/durable execution/testing 为主线 → HF 中文 unit2 与 HA 第 6 章辅助解释 → 写 G8。
+- **阶段 8 LangGraph 高级**：复用 G8-00 → LangGraph 官方 persistence/interrupts/durable execution/testing 为主线 → HF 中文 unit2 与 HA 第 6 章辅助解释 → 完成 checkpoint/thread、进程恢复、HITL 与副作用幂等。
 - **阶段 9 MCP**：最新 MCP 官方 specification/SDK 为主线（server capabilities、transport、authorization、安全）→ HA/ADP 作中文解释和框架对照 → 写 M9。可选只读「Skills vs Tools/MCP/Subagents」辨析，不提前陷进 Skills 生态。
 - **阶段 10 评估 + 综合项目**：LangSmith Evaluation/Observability 官方文档 → HA 第 12 章、ADP 第 19 章、HF `bonus-unit2` 辅助 → 建 dataset/evaluator/baseline/regression → 做 FINAL。
 
