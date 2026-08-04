@@ -44,6 +44,7 @@
 | WP-23 | `urlparse` 是宽松解析器 | T3-Gate | 以为 `https://host:` 已被自动赋默认 443 → `.port is None` 同时可能表示未写端口或空端口；先检查 `netloc` 的空端口，再允许 `None/443`，显式 `:443` 的 `.port` 是整数 443 | 🟡 | 2026-07-12 | 2026-07-12 |
 | WP-25 | 内部步骤结果 vs 外部编排返回契约 | A4-04 | 把编排函数空计划返回的 `None` 当成会污染 history，又在成功路径返回整个 `StepResult`，并混淆 prompts/return/stdout → `execute_plan` 内部必须维持 `(step, str)`，外层函数按 `str \| None` 返回，屏幕输出另用捕获文本验证 | 🟡 | 2026-07-30 | 2026-07-30 |
 | WP-26 | 约束集合不等于可执行剩余计划 | A4-04 | 只复述“不能再买票/不能用酒店 A”或提前写死酒店 B → 每一步都要写成动作，并携带约束、真实产出及后续数据依赖；已完成副作用必须保留且不可重复 | 🟡 | 2026-07-30 | 2026-07-30 |
+| WP-12 | 模型软评审、代码硬门槛与外部证据分层 | PR2-02/A4-02/A4-03/A4-05 | 把 Reflection prompt 缩窄成“只规定输出格式”，并一度把模型反馈或未覆盖语义维度的硬检查当成整体质量证明 → prompt 负责写明评审标准与反馈协议但仍是软约束；客户端只对已编码条件作硬判定，工具事实/外部测试提供独立证据，高风险动作还需人工确认，失败/超时必须保持未知。A4-05-F1 首答走错控制流并经两次订正闭合；失败的 `CD-003` 回炉合并到本项 | 🟡 | 2026-06-27 | 2026-08-04 |
 
 ## 📌 核心定义间隔池（正式 PASS 后才入池）
 
@@ -53,7 +54,6 @@ ID 使用 `CD-001` 起的递增编号。`状态/版本` 可写 `active`、`due` 
 |----|----------|----------|----------------|-----------------|----------|--------|----------|-------------|
 | CD-001 | 区分 Instruction Data、Instruction Tuning、Prompting 与 Few-shot | A4-02 | 分清训练数据、更新参数的训练过程和当前上下文示例；说明参数是否改变及效果何时跨请求保留 | `notes/stage4/a4_02_llm_agent_basics.md`；KB Prompt 工程页 | `daily/2026-07-15.md` F1 PASS | +2周 | 2026-07-29 | active |
 | CD-002 | messages → Chat Template → Prompt → Token IDs 与边界 | A4-02 | 能说明模板如何序列化角色/顺序/边界，以及模板不匹配为何会破坏模型理解 | `notes/stage4/a4_02_llm_agent_basics.md`；KB Special Tokens 页 | `daily/2026-07-14.md` G8/C2 PASS | +2周 | 2026-07-29 | active |
-| CD-003 | 幻觉在 Agent 中的风险放大与分层防线 | A4-02 | 从错误生成追踪到错误 Action/业务后果，并区分工具事实、代码硬校验和人工确认；失败/超时保持未知 | `notes/stage4/a4_02_llm_agent_basics.md`；KB Hallucination 页 | `daily/2026-07-14.md` G9/C3 PASS | +2周 | 2026-07-29 | active |
 | CD-004 | ReAct 的成功停止与安全停止 | A4-03 | 区分“证据足够后返回非空 Finish”的成功停止，与缺失/无效 Action、步数耗尽等安全停止；说明 `max_steps` 如何给循环和 LLM 调用次数设上界 | `code/stage4/a4_03_react_agent.py`；KB ReAct 页 | `daily/2026-07-21.md` G5/F1、`daily/2026-07-22.md` 正式复核 PASS | +2周 | 2026-08-05 | active |
 | CD-005 | Plan-and-Solve 的两阶段职责与执行上下文 | A4-04 | Planner 只把目标拆成有序可执行步骤；Executor 逐步执行并同时看到原始目标、完整计划、当前步骤和绑定步骤名的历史结果；能说明静态执行器为何不会自动 Replanning | `code/stage4/a4_04_plan_solve_demo.py`；`D:\AI-Knowledge\02-Concepts\Agent\计划与求解(Plan-and-Solve).md` | `daily/2026-07-22.md` G1/G3、`daily/2026-07-30.md` 正式复核 PASS | +2周 | 2026-08-13 | active |
 
@@ -65,7 +65,6 @@ ID 使用 `CD-001` 起的递增编号。`状态/版本` 可写 `active`、`due` 
 | WP-04 | 规则版 vs 模型版分类 | PR2-03 | 一度以为规则版也调模型 → 规则版=纯代码字面匹配、零模型调用；模型版才调 LLM | 2026-07-05 | +2周 | 2026-07-19 |
 | WP-05 | temperature 的作用 | L1-05 | 以为「只是随机」→ 是把候选概率的差距压平/拉大；低温=可复现（代码/数学） | 2026-07-01 | +2周 | 2026-07-15 |
 | WP-06 | 贪心解码在温度哪一端 | L1-05 | 把 `k=1 / T→0` 误接高温端 → 是贪心/低温到底（最确定那端） | 2026-07-01 | +2周 | 2026-07-15 |
-| WP-12 | 代码兜底 ≠ 约束模型 | PR2-02/A4-03 | 以为加代码校验就=让模型守规矩 → prompt 是事前软请求，客户端代码是模型返回后的硬校验/补救；A4-03 空 `Finish[]` 场景独立复测通过 | 2026-07-21（7/22 正式复核） | +1月 | 2026-08-21 |
 | WP-15 | 术语↔概念绑定（Observation 槽位名 / JSONDecodeError） | T3-01 | 机制会说但名词接不上：「被占槽位」叫不出 Observation；坏 JSON 异常答成 TypeError → 是 `json.JSONDecodeError`（ValueError 子类）；TypeError=类型不匹配操作（如 `answer += None`） | 2026-07-05 | +2周 | 2026-07-19 |
 | WP-20 | API 工具异常分支不能依赖 `response`，也别把捕获说成抛出 | T3-04 | 把 `response` 说成响应体、异常分支想用 `response.ok`，并把 `RequestException`/timeout 说成“捕获并抛出/返回异常” → `response` 是响应对象；请求异常时可能没有 `response`，应捕获 `requests.Timeout` / `requests.RequestException` 后返回稳定 `{"ok": False, "error": ...}`；404 是已有响应里的状态码，不进 except。2026-07-09 D2/D4 独立复测通过 | 2026-07-09 | +2周 | 2026-07-23 |
 | WP-17 | 工具菜单与 Observation 回填的主语 | T3-02/T3-03/A4-02 | 曾说成“模型查工具 / 模型回填结果”或把 Observation 当执行者 → 客户端提供工具菜单、解析校验并执行，工具返回真实结果，客户端回填 Observation，模型只选择并读取；A4-02 C1 新文件场景已独立订正通过 | 2026-07-14（7/15 正式复核） | +2周 | 2026-07-29 |
