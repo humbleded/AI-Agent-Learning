@@ -1,6 +1,6 @@
 # 工作场景与复合故障覆盖
 
-最后校准：2026-08-04。
+最后校准：2026-08-06。
 
 本表是“实际工作问题是否被练过、实跑过、修过并在故障下恢复过”的唯一事实源。`tracker/weak-points.md` 记录已经暴露的个人易错点；本表同时记录**尚未覆盖**的工作场景，两者不能互相替代。
 
@@ -26,7 +26,7 @@
 
 | ID | 工作场景类别 | 典型复合问题 | 最早正式引入 | 主要硬检查点 | 当前等级 | 最近证据/日期 | 下次必须命中 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| WS-01 | 需求澄清与 API/事件契约 | 模糊需求、冲突验收条件、接口兼容、变更影响 | A4-Gate | A4/BE5/R6/E10/J11 | NOT_VERIFIED |  | A4-Gate |
+| WS-01 | 需求澄清与 API/事件契约 | 模糊需求、冲突验收条件、接口兼容、变更影响 | A4-Gate | A4/BE5/R6/E10/J11 | EXPLAINED | `code/stage4/problem-contract.md`；`daily/2026-08-05.md`、`daily/2026-08-06.md`：输入/输出、工具、停止、重试、人工确认、日志和评估边界已收敛并通过静态核验 | A4-Gate（必须以真实 Agent 与失败轨迹达到 EXECUTED） |
 | WS-02 | 日志、指标与运行轨迹排错 | 错误堆栈、request ID、错误率/p95、根因与表象 | A4-Gate | BE5/G8/E10/J11/FINAL | DIAGNOSED_AND_FIXED | `daily/2026-07-29.md`、`daily/2026-07-30.md`：沿 `None → history → 第 3 步 prompt → .strip()` 复现、定位、修复并完成 39/39 回归 | A4-Gate（补 request/trace ID 与结构化日志） |
 | WS-03 | 测试、CI 与回归 | 单测通过但集成失败、flaky、eval 回归、发布门禁 | P0-07/L1-Gate | BE5/E10/J11/FINAL | DIAGNOSED_AND_FIXED | `daily/2026-08-04.md`：fake SDK 请求契约 12/15 → 15/15；正式 39/39、真实正常与故障分支均通过 | BE5-Gate |
 | WS-04 | 并发、取消与流中断 | 超时、SSE 断连、悬挂任务、背压、部分失败 | BE5-02 | BE5/G8/J11/FINAL | NOT_VERIFIED |  | BE5-Gate |
@@ -69,3 +69,4 @@ A4–M9 的“运行轨迹”可以是结构化日志或单次可复现步骤，
 | 2026-07-30 / A4-04 | WS-05 | 模型适配器异常分支返回 Python `None`，静态执行链需要稳定降级而不把非法类型继续传给后续模型 | 同上；修复前实际得到 `('s2', None)` 与 `AttributeError`，修复后得到 `('s2', '')` | 适配器违反 `str -> str` 合同，而 Executor 缺少进入状态前的运行时归一化 | 把 `None` 降级为空失败结果；复盘根据空结果标记任务未完成 | 再注入后流程不崩、history 无 `None`、最终状态未完成；完整正常路径仍通过 | DIAGNOSED_AND_FIXED | `code/stage4/a4_04_plan_solve_demo.py`；`daily/2026-07-29.md`；`daily/2026-07-30.md` |
 | 2026-08-04 / A4-05 | WS-03 | DeepSeek 适配器请求契约错误：模型常量与 thinking 字段不符合项目约定 | fake SDK 首测 `12/15 PASS`；正式复核运行内存契约断言与真实主程序 | 实现使用了错误模型名，并把 thinking 开关放在顶层参数；注释/意图不能替代实际请求字段 | 改用固定 `deepseek-v4-pro`，通过 `extra_body` 关闭 thinking；保留缺 key、`None → ""` 和输出审计 | 用户订正后 15/15；正式 39/39、`py_compile`、真实正常与故障路径全部通过 | DIAGNOSED_AND_FIXED | `code/stage4/a4_05_reflection_writer.py`；`daily/2026-08-04.md` |
 | 2026-08-04 / A4-05 | WS-05 | 真实模型正常初稿总是合格，改进分支未自然覆盖；同时需验证坏模型输出不会直接成为最终稿 | 正常命令 2 次真实调用提前停止；验证包装器只注入缺固定日期/地点的首稿，后 2 次委托真实 DeepSeek | 自然采样不能稳定制造坏初稿；修改停止条件会破坏生产逻辑；模型反馈本身不能代替同标准硬校验 | 首稿注入仅限验证边界；真实 Reflection/Refinement 生成修订；候选必须重跑 `evaluate_draft()`，失败时回退初稿 | 故障分支 12/12，候选日期/地点/长度全通过并被接受；正常路径仍为 2 次调用、无回归 | RECOVERED_UNDER_FAULT | `code/stage4/a4_05_reflection_writer.py`；`daily/2026-08-04.md` |
+| 2026-08-06 / A4-Gate 设计 | WS-01 | 把“按研究主题或沙箱路径生成摘要”的模糊需求收敛成可执行合同，并明确跨日范围与用户/助手职责 | 对 `problem-contract.md` 执行无持久 runner 的编码安全静态核验：章节 11/11、关键安全/循环/评估项 7/7、TODO 0 | 原始任务未限定输入分支、证据来源、失败状态、重试/停止和人工确认；文档任务边界一度让用户承担机械整理 | 固定请求/结果/工具合同、来源真实性、停止/重试、风险确认、日志和 14 条评估蓝图；实现留到下一 A4 Session | 设计与静态检查通过，但 Agent 代码、真实工具失败、日志轨迹和安全停止尚未执行 | EXPLAINED | `code/stage4/problem-contract.md`；`daily/2026-08-05.md`；`daily/2026-08-06.md` |
