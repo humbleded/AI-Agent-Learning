@@ -1,6 +1,6 @@
 # AI Agent 学习总进度
 
-最后校准：2026-08-06。
+最后校准：2026-08-07。
 
 状态取值：`TODO`、`DOING`、`RETRY`、`PASS`、`FAIL`。
 
@@ -48,7 +48,7 @@
 | A4-03 | ReAct | PASS | 2026-07-22 | code/stage4/a4_03_react_agent.py + notes/stage4/a4_03_react.md | 完整两轮轨迹可运行，15/15 边界断言通过；能解释职责、停止条件与 max_steps，详见 daily/2026-07-21.md、daily/2026-07-22.md。 |
 | A4-04 | Plan-and-Solve | PASS | 2026-07-30 | code/stage4/a4_04_plan_solve_demo.py | 可运行 demo 输出计划、3 步结果、事实复盘和最终答案；39/39 聚焦边界断言通过，G1–G7 与 F1–F3 全部闭合，详见 daily/2026-07-22.md～2026-07-30.md。 |
 | A4-05 | Reflection | PASS | 2026-08-04 | code/stage4/a4_05_reflection_writer.py | 初稿/反思/改进稿/同标准对比闭环可运行；39/39 确定性断言、真实 2 调用提前停止与受控坏初稿后的真实修正分支均通过，10 个语义证据闭合；详见 daily/2026-08-04.md。 |
-| A4-Gate | 最小 Agent 闯关 | DOING | 2026-08-06 | code/stage4/problem-contract.md + code/stage4/a4_gate_research_summary_agent.py + code/stage4/eval_cases.json | 关前设计单元正式核验：Problem Contract 11/11 节、关键安全/循环/评估静态项 7/7；Agent 代码与 14 条 eval 尚未创建，未达到 Gate PASS。 |
+| A4-Gate | 最小 Agent 闯关 | DOING | 2026-08-07 | code/stage4/problem-contract.md + code/stage4/a4_gate_research_summary_agent.py + code/stage4/eval_cases.json | Problem Contract 已核验，C1 固定结果/输入边界正式 133/133；工具、真实循环、Reflection、日志/HITL 与 14 条 eval 仍未完成。 |
 | G8-00 | LangGraph Lite 最小迁移 | TODO |  | code/stage8/g8_00_langgraph_lite.py | A4-Gate 后前移的主流框架基础；只覆盖 state/node/edge/条件路由/tool/stream/test，持久化与恢复留到 G8。 |
 | H5-01 | 框架源码单链路追踪（可选） | TODO |  | notes/stage5/h5_01_framework_trace.md | 角色相关压缩项：1–2 个学习日跑通一个 example、追一条调用链并改一处；可顺延到补坑块，不阻塞 BE5。 |
 | BE5-01 | Python 工程化基础 | TODO |  | code/stage5_5/be5_01_python_service_core/ | typing、分层、pytest/mock、Ruff、类型检查、配置与日志。 |

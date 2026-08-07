@@ -25,7 +25,7 @@
 }
 ```
 
-- `input_type`：必填，类型为 `str`；只允许 `topic` 或 `relative_path`，其他值一律拒绝。每次请求只能选择其中一种输入语义。
+- `input_type`：必填，类型为 `str`。客户端先执行 `normalized_input_type = input_type.strip()`；结果为空时拒绝，再对规范化后的值执行白名单校验。只允许 `topic` 或 `relative_path`，其他值一律拒绝。每次请求只能选择其中一种输入语义。
 - `value`：必填，类型为 `str`。客户端先执行 `normalized_value = value.strip()`；结果为空时拒绝输入，并返回第 4 节定义的失败格式。
 - 当 `input_type == "topic"` 时，`normalized_value` 必须为 1～50 个字符，超过 50 个字符时拒绝。
 - 当 `input_type == "relative_path"` 时：
