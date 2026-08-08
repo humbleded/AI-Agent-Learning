@@ -1,6 +1,6 @@
 # 工作场景与复合故障覆盖
 
-最后校准：2026-08-07。
+最后校准：2026-08-08。
 
 本表是“实际工作问题是否被练过、实跑过、修过并在故障下恢复过”的唯一事实源。`tracker/weak-points.md` 记录已经暴露的个人易错点；本表同时记录**尚未覆盖**的工作场景，两者不能互相替代。
 
@@ -28,11 +28,11 @@
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | WS-01 | 需求澄清与 API/事件契约 | 模糊需求、冲突验收条件、接口兼容、变更影响 | A4-Gate | A4/BE5/R6/E10/J11 | EXECUTED | `problem-contract.md` + `a4_gate_research_summary_agent.py`；`daily/2026-08-05.md`～`2026-08-07.md`：合同已收敛，C1 输入切片编译通过并正式聚焦 133/133 | A4-Gate（补完整 Agent、失败日志与安全停止复合轨迹） |
 | WS-02 | 日志、指标与运行轨迹排错 | 错误堆栈、request ID、错误率/p95、根因与表象 | A4-Gate | BE5/G8/E10/J11/FINAL | DIAGNOSED_AND_FIXED | `daily/2026-07-29.md`、`daily/2026-07-30.md`：沿 `None → history → 第 3 步 prompt → .strip()` 复现、定位、修复并完成 39/39 回归 | A4-Gate（补 request/trace ID 与结构化日志） |
-| WS-03 | 测试、CI 与回归 | 单测通过但集成失败、flaky、eval 回归、发布门禁 | P0-07/L1-Gate | BE5/E10/J11/FINAL | DIAGNOSED_AND_FIXED | `daily/2026-08-04.md`：fake SDK 请求契约 12/15 → 15/15；正式 39/39、真实正常与故障分支均通过 | BE5-Gate |
+| WS-03 | 测试、CI 与回归 | 单测通过但集成失败、flaky、eval 回归、发布门禁 | P0-07/L1-Gate | BE5/E10/J11/FINAL | DIAGNOSED_AND_FIXED | `daily/2026-08-08.md` A4 C2b：39/39 与独立 310/310 后，提交前状态域审计补出 100/199 误报成功；订正后本地 131/131、独立 646/646，真实 Wikipedia 无回归 | A4-Gate（补 14 条 Agent 全量 eval）；BE5-Gate |
 | WS-04 | 并发、取消与流中断 | 超时、SSE 断连、悬挂任务、背压、部分失败 | BE5-02 | BE5/G8/J11/FINAL | NOT_VERIFIED |  | BE5-Gate |
-| WS-05 | 模型/provider 韧性与成本 | 429、Retry-After、退避+jitter、配额耗尽、fallback、context 超限 | T3-04/S-01 | BE5/E10/FINAL | RECOVERED_UNDER_FAULT | `daily/2026-08-04.md`：受控坏初稿后，真实 Reflection/Refinement 修复并通过 12/12；正常 2 调用提前停止无回归 | A4-Gate（模型/工具失败与安全停止）；BE5-Gate（补 429/Retry-After、退避与 fallback） |
+| WS-05 | 模型/provider 韧性与成本 | 429、Retry-After、退避+jitter、配额耗尽、fallback、context 超限 | T3-04/S-01 | BE5/E10/FINAL | RECOVERED_UNDER_FAULT | `daily/2026-08-04.md`：真实 Reflection/Refinement 故障恢复 12/12；`daily/2026-08-08.md`：搜索 timeout、429/5xx、坏 JSON 与确定性失败分类均经再注入通过，但完整 Agent 重试循环尚未实现 | A4-Gate（模型/工具失败、重试与安全停止）；BE5-Gate（补 Retry-After、退避与 fallback） |
 | WS-06 | 身份、授权与多租户 | 猜 ID、跨用户读写、ACL filter、principal 丢失、日志越权 | BE5-05 | BE5/R6/M9/FINAL | NOT_VERIFIED |  | BE5-Gate |
-| WS-07 | 工具与 Agent 安全 | 坏参数、路径逃逸、SSRF、间接注入、secret/PII 外泄、过度授权 | T3-03/T3-Gate | A4/R6/M9/FINAL | DIAGNOSED_AND_FIXED | T3-Gate：未知工具/SSRF/302/路径逃逸拦截；A4 C1（2026-08-07）：常见 URL、绝对路径、`..` 逃逸与根目录边界实跑 133/133 | A4-Gate（补工具执行前二次校验、HITL 与安全停止） |
+| WS-07 | 工具与 Agent 安全 | 坏参数、路径逃逸、SSRF、间接注入、secret/PII 外泄、过度授权 | T3-03/T3-Gate | A4/R6/M9/FINAL | DIAGNOSED_AND_FIXED | A4 C1/C2（`daily/2026-08-07.md`、`2026-08-08.md`）：输入边界 133/133，`read_material` 执行前二次沙箱校验 14/14，搜索固定 Wikipedia endpoint、禁止重定向并严格校验结果结构 | A4-Gate（补工具白名单分发、HITL 与安全停止） |
 | WS-08 | 数据库、迁移与幂等 | 事务回滚、迁移失败、重复提交、缓存不一致、恢复后重复写 | B0-03/BE5-04 | BE5/R6/G8/FINAL | NOT_VERIFIED |  | BE5-Gate |
 | WS-09 | 后台任务与队列 | worker 崩溃、重复投递、重试风暴、取消、死信/积压 | BE5-05 | BE5/R6/J11/FINAL | NOT_VERIFIED |  | BE5-Gate |
 | WS-10 | RAG 数据与质量生命周期 | 解析失败、旧向量残留、ACL、检索差、引用错、无答案、注入 | R6-01 | R6/E10/FINAL | NOT_VERIFIED |  | R6-Gate |
@@ -72,3 +72,5 @@ A4–M9 的“运行轨迹”可以是结构化日志或单次可复现步骤，
 | 2026-08-06 / A4-Gate 设计 | WS-01 | 把“按研究主题或沙箱路径生成摘要”的模糊需求收敛成可执行合同，并明确跨日范围与用户/助手职责 | 对 `problem-contract.md` 执行无持久 runner 的编码安全静态核验：章节 11/11、关键安全/循环/评估项 7/7、TODO 0 | 原始任务未限定输入分支、证据来源、失败状态、重试/停止和人工确认；文档任务边界一度让用户承担机械整理 | 固定请求/结果/工具合同、来源真实性、停止/重试、风险确认、日志和 14 条评估蓝图；实现留到下一 A4 Session | 设计与静态检查通过，但 Agent 代码、真实工具失败、日志轨迹和安全停止尚未执行 | EXPLAINED | `code/stage4/problem-contract.md`；`daily/2026-08-05.md`；`daily/2026-08-06.md` |
 | 2026-08-07 / A4-Gate C1 | WS-01 | 把已冻结的输入/失败合同落实为固定结果构造和可执行请求前置边界 | 一体式初稿聚焦诊断 0/5；最终 `.venv\Scripts\python.exe -W error -m py_compile ...` + 无落盘聚焦检查 133/133 | 初稿未返回规范化值、漏校验 `input_type`、把文件存在性放错层，并使实现与字段合同漂移 | 拆分形状、字符串规范化、类型白名单、主题和路径值校验，再由 `prepare_request` 统一编排；同步合同中的 `input_type.strip()` | 编译通过；合法/非法/边界输入 133/133；只证明输入合同切片，尚无完整 Agent 轨迹 | EXECUTED | `code/stage4/problem-contract.md`；`code/stage4/a4_gate_research_summary_agent.py`；`daily/2026-08-07.md` |
 | 2026-08-07 / A4-Gate C1 | WS-07 | 路径输入曾错误相对项目根解释、放行绝对路径/URL，并误拒绝沙箱根目录 `.` | 路径聚焦结果 `2/6 → 3/6 → 4/6 → 5/6 → 10/10`；正式总检查再注入 HTTPS/FTP/file URL、沙箱内外绝对路径和多级逃逸 | 混淆输入形式与最终落点；`.parents` 不含路径自身；URL 成员判断方向错误；输入层不应检查文件是否存在 | 先拒绝常见 URL/绝对形式，再用 `SANDBOX.resolve()` + `target.relative_to(sandbox_root)` 校验解析后归属 | C1 总回归 133/133；无 `://` scheme、工具执行时二次校验与 HITL/安全停止留到后续 A4 eval | DIAGNOSED_AND_FIXED | `code/stage4/a4_gate_research_summary_agent.py`；`daily/2026-08-07.md` |
+| 2026-08-08 / A4-Gate C2 | WS-03、WS-05 | Wikipedia 搜索适配器真实主链可用，但首次回归未覆盖 HTTP 1xx 状态域 | 内存 mock/spy 首测 `13/23`，订正后 39/39、独立复核 310/310；提交前再注入先得 5/7，修复后本地 131/131、独立 646/646 | 既有请求/异常/结构根因均已修；新增根因是状态分支只覆盖 3xx～5xx，未把 1xx 纳入“所有非 2xx”拒绝集合，导致 100/199 解析合法空 JSON 后误报成功 | 保留固定参数、3xx～5xx/JSON/API/结构订正；新增 `status_code < 200` 的解析前不可重试失败分支 | 100/199 均在 JSON 前停止；200/299、3xx～5xx、异常与结构边界无回归；真实查询 3 条和零命中通过，完整 Agent 重试/安全停止仍待后续 | DIAGNOSED_AND_FIXED | `code/stage4/a4_gate_research_summary_agent.py`；`daily/2026-08-08.md` |
+| 2026-08-08 / A4-Gate C2 | WS-07 | 文件工具需要在模型参数进入执行边界后再次校验输入与最终落点，同时不能用广泛异常捕获掩盖程序 bug | 系统临时沙箱注入空白/非字符串、父级逃逸、URL、绝对路径、目录、坏 UTF-8、PermissionError 与意外 RuntimeError | 首稿跳过运行时规范化并捕获 `Exception`；之后虽收窄异常，仍一度把内部 RuntimeError 伪装成资料读取失败 | 复用字符串规范化；以解析后目标相对沙箱根校验归属；只把 UnicodeDecodeError/OSError 映射为工具失败，让意外 RuntimeError fail-fast | `9/12 → 12/12 → 14/14`；C1 冒烟 5/5，无输入边界回归；HITL 与工具白名单分发留到完整循环 | DIAGNOSED_AND_FIXED | `code/stage4/a4_gate_research_summary_agent.py`；`daily/2026-08-08.md` |

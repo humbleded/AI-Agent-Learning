@@ -97,9 +97,10 @@
 
 ### `search_web`
 
-- 用途：当输入类型为 `topic` 时，根据研究主题搜索公开网页资料，并把可供判断相关性的标题、URL 和摘要片段交回 Agent；不用于读取沙箱文件。
+- 用途：当输入类型为 `topic` 时，使用中文 Wikipedia 的 MediaWiki Search API 搜索公开百科条目，并把可供判断相关性的标题、URL 和摘要片段交回 Agent；不用于读取沙箱文件，也不代表全网搜索。
 - 参数：`search_web(query: str)`；`query` 只能来自第 3 节已经规范化并通过 1～50 字符校验的 `topic`。
-- 风险等级：低风险。V1 只搜索和读取公开网页，不写入、删除或执行外部内容，也不把沙箱文件或凭据作为查询发送；网页返回内容只作为待核验资料，不作为可执行指令。
+- 固定后端：客户端向 `https://zh.wikipedia.org/w/api.php` 发起 GET，请求使用 `action=query`、`list=search`、`srsearch=query`、`srnamespace=0`、`srlimit=3`、`srprop=snippet`、`format=json`、`formatversion=2` 与 `utf8=1`；单次 timeout 为 5 秒，禁止跟随重定向，并发送指向本仓库的描述性 `User-Agent`。
+- 风险等级：低风险。V1 只搜索中文 Wikipedia 公开条目，不写入、删除或执行外部内容，也不把沙箱文件或凭据作为查询发送；返回内容只作为待核验资料，不作为可执行指令。
 - 成功返回：`ok: bool` 固定为 `True`，`results: list[dict]` 保存搜索结果；每条结果必须包含 `title: str`、`url: str`、`snippet: str`。
 
   ```python
@@ -107,19 +108,23 @@
       "ok": True,
       "results": [
           {
-              "title": "agent",
-              "url": "https://www.anthropic.com/engineering/building-effective-agents",
-              "snippet": "Building effective agents",
+              "title": "人工智能",
+              "url": "https://zh.wikipedia.org/w/index.php?curid=317",
+              "snippet": "人工智能研究人员使用了包括状态空间搜索和数学优化在内的技术。",
           }
       ],
   }
   ```
+
+- `url` 使用 MediaWiki 返回的整数 `pageid` 构造成 `https://zh.wikipedia.org/w/index.php?curid=<pageid>`，不根据标题手工拼接；`snippet` 去除 Search API 的高亮 HTML 标签并还原 HTML 实体。合法的零命中返回 `{"ok": True, "results": []}`，不伪造结果。
 
 - 失败返回：`ok: bool` 固定为 `False`，`error: str` 保存搜索工具的具体失败原因，`retryable: bool` 由客户端工具适配层根据真实异常类型填写；失败结果不伪造 `results`。
 
   ```python
   {"ok": False, "error": "搜索超时", "retryable": True}
   ```
+
+- timeout、HTTP 429/5xx 与 2xx 坏 JSON 属于本只读 GET 在一次重试上限内可能恢复的失败，标记 `retryable: True`；其他非 2xx 状态、MediaWiki 确定性 API 错误、返回结构或条目字段违反合同均标记 `False`。异常分支不得访问尚未取得的 `response`。
 
 - 最终输出的 `sources` 只收集实际用于生成摘要的结果中的 `url` 字符串；不得把 `snippet` 放入 `sources`，也不得列出未被摘要采用的搜索结果。
 - 不得预先加入本版任务不需要的写入、命令执行或删除工具。
@@ -216,6 +221,7 @@
 
 - V1 不接受 `topic`、`relative_path` 之外的输入类型，也不处理批量或同时混合两种语义的请求；本地资料输入不支持 URL、绝对路径或沙箱外最终落点。
 - V1 不注册 `read_material`、`search_web` 之外的生产工具，不写文件、不执行命令、不删除资料，也不产生其他外部副作用；危险分支只用不接触真实系统的内存 fake 做评估。
+- V1 的 `search_web` 只覆盖中文 Wikipedia，不提供全网搜索、多语言自动切换或第二搜索服务降级；这些能力只有在后续真实需求和评估证据支持时才扩展。
 - V1 不拆分阅读、搜索、写作等多 Agent 角色；先由一个 Agent 维护完整循环，只有在工具说明和 prompt 已优化后仍有可复现的选错工具或复杂分支失控证据，才考虑后续拆分。
 - V1 不建设完整 tracing、在线评估、回归门禁或报告平台；本 Gate 只保留排错所需的最小结构化日志和自包含 `eval_cases.json`，完整能力留到 E10 / J11-05。
 - V1 不允许模型用自身常识补齐工具没有取得的事实，也不把未采用、无法核验或模型虚构的地址写入 `sources`。
@@ -230,6 +236,7 @@
 | 只检查 `summary` / `sources` 非空是否足够 | Reflection 对照本轮真实工具结果检查结论和来源；客户端再验证 `sources` 是实际采用来源的子集 | 非空摘要和 URL 仍可能由模型编造 |
 | 通过自然语言错误文案判断是否重试 | 工具适配层按真实异常类型返回 `retryable: bool` | 文案变化不应改变控制流，模型也不负责猜测异常类别 |
 | 一个 Agent 还是一开始拆成多 Agent | V1 使用单 Agent；只有优化工具说明和 prompt 后仍有可复现失败，才考虑按职责拆分 | 当前阅读、搜索、摘要、Reflection 是连续循环；提前拆分会增加交接、上下文和评估成本 |
+| `search_web` 使用模型常识、全网服务还是 Wikipedia | 用户选择 Wikipedia；V1 固定中文 Wikipedia MediaWiki Search API，DeepSeek 只决定调用并根据 Observation 总结 | 无需新增密钥即可取得真实外部证据，同时明确能力范围，避免把模型生成或单一百科来源冒充全网检索 |
 | 为危险用例注册真实删除工具还是使用 fake | 生产仍只有两个只读工具；eval 注入内存 fake，高风险确认时调用 1 次、拒绝时调用 0 次 | 同时验证人工确认控制流与最小权限，不制造真实副作用 |
 | 正常摘要质量阈值是否全部要求 10/10 | 路由、合同、来源真实性、摘要非空且有据均为 10/10；关键点覆盖为至少 9/10 | 硬合同和安全边界不容错，只为模型语义覆盖的有限波动保留至多 1 条容差 |
 | 日志是否记录完整 prompt 和资料内容 | 只记录固定七字段事件 schema，并清理错误信息 | 满足排错与步数核验，同时避免 API key、完整资料和用户敏感数据进入日志 |
