@@ -41,16 +41,16 @@
 
 每天该学什么，三个课程文件对齐：`weekly-plan.md`（W1–W20 内容块 → 任务）+ `progress.md`（课程状态唯一事实源）+ `ai-agent-learning-tracker.md`（任务资料 / 产物 / 通过标准 / 必答问题）。工作场景的覆盖与证据等级只记在 `work-scenario-coverage.md`；岗位能力只在 Gate、作品集里程碑或 JD 审计时更新 `job-readiness.md`，普通概念 PASS 不冒充求职就绪。
 
-**派生执行入口（2026-08-10 快照，不是事实源）**：每次生成学习计划都必须先从 `progress.md` 重新推导；若本段与 progress 冲突，忽略本段并更新快照。当前快照为：W4 课程主线已收尾；T3-01~T3-Gate 与 A4-01~A4-05 全部 PASS，下一主任务为 A4-Gate；Problem Contract、C1/C2、C3a/C3b/C3c 已核验，真实 DeepSeek topic / relative_path 均完成模型选工具 → 白名单执行 → Observation → 候选摘要。下一实现单元为 C3d Reflection 与来源真实性 / 子集硬校验；七字段日志、恢复 / 停止、HITL 与 14 条 eval 仍是 Gate 后续。W4 算法 4/4、内容块 `PASS`，历史算法债务已清零；后续算法块只在新日计划明确安排时启动常规 `3 新 + 1 旧错题`。
+**派生执行入口（2026-08-10 快照，不是事实源）**：每次生成学习计划都必须先从 `progress.md` 重新推导；若本段与 progress 冲突，忽略本段并更新快照。当前快照为：W4 课程主线已收尾；T3-01~T3-Gate 与 A4-01~A4-05 全部 PASS，下一主任务为 A4-Gate；Problem Contract、C1/C2、C3a/C3b/C3c，以及 C3d 的本轮来源白名单、Reflection prompt、Refinement JSON-only prompt 和最终三字段 / 来源子集硬门已核验。下一实现单元为 Reflection → Refinement 两次模型调用、`response_format` / 响应外壳、`json.loads` → validator 与 topic/path fake + 真实端到端；七字段日志、恢复 / 停止、HITL 与 14 条 eval 仍是其后 Gate 范围。W4 算法 4/4、内容块 `PASS`，历史算法债务已清零；后续算法块只在新日计划明确安排时启动常规 `3 新 + 1 旧错题`。
 
-间隔复习的跨会话执行状态以 `weak-points.md` 的“当前回炉调度状态”为唯一事实源。当前仍为 `RECOVERY_BLOCK_PENDING`：2026-08-09 的回收块已经完成，`CD-001` 升档至 2026-09-09，`CD-002` 因核心链路未独立闭合转入活跃 `WP-32`；正式重算后仍有 `WP-02`、`WP-04`、`WP-15`、`WP-24` 共 4 个到期项，最老为 2026-07-15，因此按剩余积压重新签发。2026-08-10 的短续学不追溯追加；后续第一个合适的 ≤180 分钟完整计划仍安排一个 20～30 分钟回收块，替换部分主块，每天最多一个。
+间隔复习的跨会话执行状态以 `weak-points.md` 的“当前回炉调度状态”为唯一事实源。当前仍为新一轮 `RECOVERY_BLOCK_PENDING`：2026-08-10 S3 已完成本轮 `WP-15` / `WP-02`，二者均升至 `+1月`、下次回炉 2026-09-10；正式重算后只剩 `WP-04`、`WP-24` 两个到期项，最老为 2026-07-19，数量阈值已解除但最老项仍逾期 22 天，因此重新签发。2026-08-10 已用完每天一个回收块；后续第一个合适的 ≤180 分钟完整计划安排一个 20～30 分钟回收块，替换部分主块，不能在当天再追加。
 
 **接下来的队列（顺着拉，不钉日期）**：
 
 ```text
-[间隔回收块] 下一个合适的完整计划先预留 20～30 分钟，按 weak-points preflight 选择最多 2 个到期目标
+[间隔回收块] 新 pending：下一个合适的完整计划预留 20～30 分钟；当前到期为 WP-04 / WP-24，正式出题时再做 preflight，最多 2 个目标
 [后续算法] W4 已 PASS；下一算法内容块只在独立算法席位启动常规 3 新 + 1 旧错题，不挤占当前 Gate 收尾
-[下一主块/周末] A4-Gate 先做 C3d Reflection + 来源真实性 / 子集硬校验，再按合同完成最小日志、重试 / 停止、HITL 与 14 条 eval
+[下一主块/周末] A4-Gate 先续 C3d：Reflection → Refinement 两次模型调用 → JSON 响应外壳 / 解析 → validator → topic/path 双路径集成；再按合同完成最小日志、重试 / 停止、HITL 与 14 条 eval
    ↓
 G8-00 LangGraph Lite：只把 A4-Gate 一条路径迁移成可测试/可流式观察的基础 Graph，不做持久化/恢复
    ↓

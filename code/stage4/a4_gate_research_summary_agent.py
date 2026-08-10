@@ -18,7 +18,11 @@
 当前已完成 C3a：注册两个已通过工具，并构造模型可见的工具 Schema。
 当前已完成 C3b：严格校验一个模型工具请求，并只执行与规范化请求一致的白名单工具。
 当前已完成 C3c：真实 DeepSeek 双路径选择工具、Observation 回填与候选摘要正常链。
-后续 Reflection、日志、重试/停止、安全确认和 eval 不提前实现。
+当前已完成 C3d-C1：从本轮真实工具结果构造允许来源白名单。
+当前已完成 C3d-C2a：构造包含完整证据与成功合同的 Reflection prompt。
+当前已完成 C3d-C2b：构造证据受限、JSON-only 的 Refinement prompt。
+当前已完成 C3d-C3a：最终 success 候选的客户端硬校验。
+当前未创建新的活动代码骨架；后续模型调用、JSON 解析、日志、重试/停止、安全确认和 eval 尚未实现。
 """
 
 import html
@@ -541,3 +545,178 @@ def generate_candidate_summary(
         "tool_name": tool_name,
         "tool_result": tool_result,
     }
+
+
+def derive_allowed_sources(
+    normalized_request: dict[str, str],
+    tool_name: str,
+    tool_result: dict[str, object],
+) -> list[str]:
+    """根据规范化请求和本轮成功工具结果构造来源白名单。
+
+    合法输入返回保持工具结果顺序的 ``list[str]``；结构、路由或来源字段
+    不符合当前合同的输入抛出 ``ValueError``。本函数不调用模型或工具，
+    不生成摘要，也不构造最终 ``success`` 结果。
+    """
+    if tool_result.get("ok") is not True:
+        raise ValueError("工具结果不成功，无法构造来源白名单")
+    if tool_name == "read_material":
+        if normalized_request.get("input_type") != "relative_path":
+            raise ValueError("工具名与 input_type 路由不一致")
+        relative_path = normalized_request.get("value")
+        if not isinstance(relative_path, str) or relative_path.strip() == "":
+            raise ValueError("规范化请求缺少 value 字段")
+        return [relative_path]
+    elif tool_name == "search_web":
+        if normalized_request.get("input_type") != "topic":
+            raise ValueError("工具名与 input_type 路由不一致")
+        results = tool_result.get("results")
+        if not isinstance(results, list):
+            raise ValueError("工具结果缺少 results 字段或类型不正确")
+        sources = []
+        for item in results:
+            if not isinstance(item, dict):
+                raise ValueError("工具结果中的条目不是字典类型")
+            url = item.get("url")
+            if not isinstance(url, str) or url.strip() == "":
+                raise ValueError("工具结果中的 url 字段非法")
+            sources.append(url)
+        return sources
+    else:
+        raise ValueError(f"未知的工具: {tool_name}")
+
+# 构造 Reflection prompt
+def build_reflection_prompt(
+    normalized_request: dict[str, str],
+    candidate_summary: str,
+    tool_name: str,
+    tool_result: dict[str, object],
+    allowed_sources: list[str],
+) -> str:
+    """构造只依据本轮真实证据评审候选摘要的 Reflection prompt。
+
+    本函数只返回 prompt 文本，不调用模型或工具，不解析 / 修订候选，
+    也不构造最终 ``success`` 结果。
+    """
+    if not isinstance(candidate_summary, str) or candidate_summary.strip() == "":
+        raise ValueError("候选摘要必须是非空字符串")
+    if not isinstance(tool_name, str) or tool_name.strip() == "":
+        raise ValueError("工具名必须是非空字符串")
+    if not isinstance(tool_result, dict):
+        raise ValueError("工具结果必须是字典类型")
+    if not isinstance(allowed_sources, list) or not all(
+        isinstance(source, str) for source in allowed_sources
+    ):
+        raise ValueError("allowed_sources 必须是字符串列表")
+    if tool_name == "read_material":
+        if "content" not in tool_result:
+            raise ValueError("工具结果缺少 content 字段")
+    elif tool_name == "search_web":
+        if "results" not in tool_result:
+            raise ValueError("工具结果缺少 results 字段")
+    review_instructions = (
+        "请逐项检查候选摘要是否由本轮工具结果支持，"
+        "摘要结论只能依据本轮 read_material.content 或 search_web.results。"
+        "不得使用模型常识补充工具没有取得的事实。"
+        "allowed_sources 只能证明来源来自本轮 Observation，不能替代正文证据。"
+        "成功候选的具体合同："
+        "status 必须是字符串 \"success\"；"
+        "summary 必须是非空字符串；"
+        "sources 必须是非空字符串列表；"
+        "sources 必须是 allowed_sources 的子集。"
+        "有问题时逐项输出“问题、证据、修改建议”。"
+        "全部通过时只输出精确短语“无需改进”。"
+    )
+
+    prompt = {
+        "normalized_request": normalized_request,
+        "candidate_summary": candidate_summary,
+        "tool_name": tool_name,
+        "tool_result": tool_result,
+        "allowed_sources": allowed_sources,
+    }
+    prompt["review_instructions"] = review_instructions
+    return json.dumps(prompt, ensure_ascii=False)
+
+def build_refinement_prompt(
+    normalized_request: dict[str, str],
+    candidate_summary: str,
+    tool_name: str,
+    tool_result: dict[str, object],
+    allowed_sources: list[str],
+    feedback: str,
+) -> str:
+    """构造依据 Reflection 反馈生成结构化候选的 Refinement prompt。
+
+    本函数只返回 prompt 文本，不调用模型或工具，不解析模型输出，
+    也不执行最终客户端硬校验。
+    """
+    refinement_instructions = (
+        "请根据 Reflection 反馈对候选摘要进行修订，"
+        "修订应严格依据本轮工具结果，不得添加模型常识。"
+        "文件路径分支只能依据 read_material.content；搜索分支只能依据 search_web.results。"
+        "只输出一个 JSON 对象；JSON 前后不得有任何解释、标题、提示语或其他文字。"
+        "不得使用 Markdown 代码围栏（```）包装 JSON。"
+        "sources 必须从 allowed_sources 中选择，不能扩大白名单。"
+        "JSON 对象的键必须恰好是 status、summary、sources；不得增加其他键。"
+        "示例：{\"status\": \"success\", \"summary\": \"...\", \"sources\": [\"...\"]}。"
+        "成功候选必须满足：status == \"success\"，summary 为非空字符串，"
+        "sources 为非空字符串列表且是 allowed_sources 的子集。"
+        "如果反馈为“无需改进”，保留候选事实含义；"
+        "其他反馈只依据本轮证据修订。"
+    )
+
+    prompt = {
+        "normalized_request": normalized_request,
+        "candidate_summary": candidate_summary,
+        "tool_name": tool_name,
+        "tool_result": tool_result,
+        "allowed_sources": allowed_sources,
+        "feedback": feedback,
+    }
+    prompt["refinement_instructions"] = refinement_instructions
+    return json.dumps(prompt, ensure_ascii=False)
+
+
+def validate_success_result(
+    candidate: object,
+    allowed_sources: list[str],
+) -> dict[str, object]:
+    """硬校验模型候选，并返回固定三字段的 ``success`` 结果。
+
+    本函数不调用模型或工具；任何结构、类型、成功非空条件或来源子集
+    不符合合同的输入都抛出 ``ValueError``。
+    """
+    if (
+        not isinstance(allowed_sources, list)
+        or not allowed_sources
+        or not all(
+            isinstance(source, str) and source.strip() != ""
+            for source in allowed_sources
+        )
+    ):
+        raise ValueError("allowed_sources 必须是非空字符串列表")
+    if not isinstance(candidate, dict):
+        raise ValueError("候选摘要必须是字典类型")
+    expected_keys = {"status", "summary", "sources"}
+    if set(candidate.keys()) != expected_keys:
+        raise ValueError(f"候选摘要的键必须恰好是 {expected_keys}")
+    status = candidate.get("status")
+    if not isinstance(status, str) or status != "success":
+        raise ValueError("status 必须是字符串 'success'")
+    summary = candidate.get("summary")
+    if not isinstance(summary, str) or summary.strip() == "":
+        raise ValueError("summary 必须是非空字符串")
+    sources = candidate.get("sources")
+    if (
+        not isinstance(sources, list)
+        or not sources
+        or not all(
+            isinstance(source, str) and source.strip() != ""
+            for source in sources
+        )
+    ):
+        raise ValueError("sources 必须是非空字符串列表")
+    if not set(sources).issubset(set(allowed_sources)):
+        raise ValueError("sources 必须是 allowed_sources 的子集")
+    return make_result("success", summary.strip(), sources)
