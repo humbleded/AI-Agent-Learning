@@ -1,6 +1,6 @@
 # 工作场景与复合故障覆盖
 
-最后校准：2026-08-08。
+最后校准：2026-08-10。
 
 本表是“实际工作问题是否被练过、实跑过、修过并在故障下恢复过”的唯一事实源。`tracker/weak-points.md` 记录已经暴露的个人易错点；本表同时记录**尚未覆盖**的工作场景，两者不能互相替代。
 
@@ -26,13 +26,13 @@
 
 | ID | 工作场景类别 | 典型复合问题 | 最早正式引入 | 主要硬检查点 | 当前等级 | 最近证据/日期 | 下次必须命中 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| WS-01 | 需求澄清与 API/事件契约 | 模糊需求、冲突验收条件、接口兼容、变更影响 | A4-Gate | A4/BE5/R6/E10/J11 | EXECUTED | `problem-contract.md` + `a4_gate_research_summary_agent.py`；`daily/2026-08-05.md`～`2026-08-07.md`：合同已收敛，C1 输入切片编译通过并正式聚焦 133/133 | A4-Gate（补完整 Agent、失败日志与安全停止复合轨迹） |
+| WS-01 | 需求澄清与 API/事件契约 | 模糊需求、冲突验收条件、接口兼容、变更影响 | A4-Gate | A4/BE5/R6/E10/J11 | DIAGNOSED_AND_FIXED | `daily/2026-08-05.md`～`2026-08-10.md`：合同与 C1～C3c 落地；旧 Tool Calling 字段、SDK 对象访问、assistant / tool 回填和 ID 等偏差均经复现、定位、订正、fake 回归与真实双路径验证 | A4-Gate（补 Reflection / 最终输出合同，并完成失败 + 七字段日志 + 重试 / 安全停止复合轨迹） |
 | WS-02 | 日志、指标与运行轨迹排错 | 错误堆栈、request ID、错误率/p95、根因与表象 | A4-Gate | BE5/G8/E10/J11/FINAL | DIAGNOSED_AND_FIXED | `daily/2026-07-29.md`、`daily/2026-07-30.md`：沿 `None → history → 第 3 步 prompt → .strip()` 复现、定位、修复并完成 39/39 回归 | A4-Gate（补 request/trace ID 与结构化日志） |
-| WS-03 | 测试、CI 与回归 | 单测通过但集成失败、flaky、eval 回归、发布门禁 | P0-07/L1-Gate | BE5/E10/J11/FINAL | DIAGNOSED_AND_FIXED | `daily/2026-08-08.md` A4 C2b：39/39 与独立 310/310 后，提交前状态域审计补出 100/199 误报成功；订正后本地 131/131、独立 646/646，真实 Wikipedia 无回归 | A4-Gate（补 14 条 Agent 全量 eval）；BE5-Gate |
+| WS-03 | 测试、CI 与回归 | 单测通过但集成失败、flaky、eval 回归、发布门禁 | P0-07/L1-Gate | BE5/E10/J11/FINAL | DIAGNOSED_AND_FIXED | `daily/2026-08-08.md`～`2026-08-10.md`：C2b 补出 1xx 假绿；C3c 忠实 SDK fake / 独立外壳审计又补出旧字段、重复 assistant、无效 ID、空 choices 和失败 Observation 误入第二轮，订正后 R3 15/15、R4a 7/7、R4b 5/5、双路径 68/68 | A4-Gate（补 14 条 Agent 全量 eval）；BE5-Gate |
 | WS-04 | 并发、取消与流中断 | 超时、SSE 断连、悬挂任务、背压、部分失败 | BE5-02 | BE5/G8/J11/FINAL | NOT_VERIFIED |  | BE5-Gate |
-| WS-05 | 模型/provider 韧性与成本 | 429、Retry-After、退避+jitter、配额耗尽、fallback、context 超限 | T3-04/S-01 | BE5/E10/FINAL | RECOVERED_UNDER_FAULT | `daily/2026-08-04.md`：真实 Reflection/Refinement 故障恢复 12/12；`daily/2026-08-08.md`：搜索 timeout、429/5xx、坏 JSON 与确定性失败分类均经再注入通过，但完整 Agent 重试循环尚未实现 | A4-Gate（模型/工具失败、重试与安全停止）；BE5-Gate（补 Retry-After、退避与 fallback） |
+| WS-05 | 模型/provider 韧性与成本 | 429、Retry-After、退避+jitter、配额耗尽、fallback、context 超限 | T3-04/S-01 | BE5/E10/FINAL | RECOVERED_UNDER_FAULT | `daily/2026-08-04.md`：真实 Reflection/Refinement 故障恢复 12/12；`daily/2026-08-08.md`：工具依赖故障分类；`daily/2026-08-10.md`：C3c 对空响应、无 / 多 Tool Call、空候选与失败 Observation 做确定性拒绝，但本切片尚无重试恢复 | A4-Gate（模型/工具失败、重试与安全停止）；BE5-Gate（补 Retry-After、退避与 fallback） |
 | WS-06 | 身份、授权与多租户 | 猜 ID、跨用户读写、ACL filter、principal 丢失、日志越权 | BE5-05 | BE5/R6/M9/FINAL | NOT_VERIFIED |  | BE5-Gate |
-| WS-07 | 工具与 Agent 安全 | 坏参数、路径逃逸、SSRF、间接注入、secret/PII 外泄、过度授权 | T3-03/T3-Gate | A4/R6/M9/FINAL | DIAGNOSED_AND_FIXED | A4 C1/C2（`daily/2026-08-07.md`、`2026-08-08.md`）：输入边界 133/133，`read_material` 执行前二次沙箱校验 14/14，搜索固定 Wikipedia endpoint、禁止重定向并严格校验结果结构 | A4-Gate（补工具白名单分发、HITL 与安全停止） |
+| WS-07 | 工具与 Agent 安全 | 坏参数、路径逃逸、SSRF、间接注入、secret/PII 外泄、过度授权 | T3-03/T3-Gate | A4/R6/M9/FINAL | DIAGNOSED_AND_FIXED | A4 C1～C3c（`daily/2026-08-07.md`～`2026-08-10.md`）：沙箱 / HTTP 边界闭合；工具白名单、Schema、请求原值绑定和非空 ID 已接入，未知工具、坏参数、错路由 / 改值与非严格成功 Observation 均在副作用 / 第二模型前阻断 | A4-Gate（工具白名单已闭合；补 HITL 允许 / 拒绝、受控 `needs_manual` 与安全停止） |
 | WS-08 | 数据库、迁移与幂等 | 事务回滚、迁移失败、重复提交、缓存不一致、恢复后重复写 | B0-03/BE5-04 | BE5/R6/G8/FINAL | NOT_VERIFIED |  | BE5-Gate |
 | WS-09 | 后台任务与队列 | worker 崩溃、重复投递、重试风暴、取消、死信/积压 | BE5-05 | BE5/R6/J11/FINAL | NOT_VERIFIED |  | BE5-Gate |
 | WS-10 | RAG 数据与质量生命周期 | 解析失败、旧向量残留、ACL、检索差、引用错、无答案、注入 | R6-01 | R6/E10/FINAL | NOT_VERIFIED |  | R6-Gate |
@@ -74,3 +74,5 @@ A4–M9 的“运行轨迹”可以是结构化日志或单次可复现步骤，
 | 2026-08-07 / A4-Gate C1 | WS-07 | 路径输入曾错误相对项目根解释、放行绝对路径/URL，并误拒绝沙箱根目录 `.` | 路径聚焦结果 `2/6 → 3/6 → 4/6 → 5/6 → 10/10`；正式总检查再注入 HTTPS/FTP/file URL、沙箱内外绝对路径和多级逃逸 | 混淆输入形式与最终落点；`.parents` 不含路径自身；URL 成员判断方向错误；输入层不应检查文件是否存在 | 先拒绝常见 URL/绝对形式，再用 `SANDBOX.resolve()` + `target.relative_to(sandbox_root)` 校验解析后归属 | C1 总回归 133/133；无 `://` scheme、工具执行时二次校验与 HITL/安全停止留到后续 A4 eval | DIAGNOSED_AND_FIXED | `code/stage4/a4_gate_research_summary_agent.py`；`daily/2026-08-07.md` |
 | 2026-08-08 / A4-Gate C2 | WS-03、WS-05 | Wikipedia 搜索适配器真实主链可用，但首次回归未覆盖 HTTP 1xx 状态域 | 内存 mock/spy 首测 `13/23`，订正后 39/39、独立复核 310/310；提交前再注入先得 5/7，修复后本地 131/131、独立 646/646 | 既有请求/异常/结构根因均已修；新增根因是状态分支只覆盖 3xx～5xx，未把 1xx 纳入“所有非 2xx”拒绝集合，导致 100/199 解析合法空 JSON 后误报成功 | 保留固定参数、3xx～5xx/JSON/API/结构订正；新增 `status_code < 200` 的解析前不可重试失败分支 | 100/199 均在 JSON 前停止；200/299、3xx～5xx、异常与结构边界无回归；真实查询 3 条和零命中通过，完整 Agent 重试/安全停止仍待后续 | DIAGNOSED_AND_FIXED | `code/stage4/a4_gate_research_summary_agent.py`；`daily/2026-08-08.md` |
 | 2026-08-08 / A4-Gate C2 | WS-07 | 文件工具需要在模型参数进入执行边界后再次校验输入与最终落点，同时不能用广泛异常捕获掩盖程序 bug | 系统临时沙箱注入空白/非字符串、父级逃逸、URL、绝对路径、目录、坏 UTF-8、PermissionError 与意外 RuntimeError | 首稿跳过运行时规范化并捕获 `Exception`；之后虽收窄异常，仍一度把内部 RuntimeError 伪装成资料读取失败 | 复用字符串规范化；以解析后目标相对沙箱根校验归属；只把 UnicodeDecodeError/OSError 映射为工具失败，让意外 RuntimeError fail-fast | `9/12 → 12/12 → 14/14`；C1 冒烟 5/5，无输入边界回归；HITL 与工具白名单分发留到完整循环 | DIAGNOSED_AND_FIXED | `code/stage4/a4_gate_research_summary_agent.py`；`daily/2026-08-08.md` |
+| 2026-08-10 / A4-Gate C3c | WS-01、WS-03 | 宽松 fake 曾掩盖旧 Tool Calling 字段、SDK 对象访问、重复 assistant、无效 ID 与空 choices 保护顺序问题 | 使用忠实 SDK 属性对象、None / 空 / 多 Tool Call、重复消息和第二响应无效外壳逐项注入；再跑 topic / path 真实 DeepSeek | 混用旧 `functions` 协议与当前 `tools`；把 SDK 对象当 dict；请求与 Observation 消息职责重复；索引前未保护容器 / 对象 | 改用当前 tools/tool_calls 与 non-thinking；原 assistant 只回填一次；按精确 ID 构造 Tool Message；第二轮禁止工具并校验正文 | R3 15/15、R4a 7/7、双路径 68/68、主审 89/89、独立 112/112；真实 topic/path 均通过 | DIAGNOSED_AND_FIXED | `code/stage4/a4_gate_research_summary_agent.py`；`daily/2026-08-09.md`；`daily/2026-08-10.md` |
+| 2026-08-10 / A4-Gate C3b-C3c | WS-05、WS-07 | 模型可请求已注册但错误的工具 / 参数，失败 Observation 或 truthy 非布尔成功值又可能继续生成候选 | 注入未知工具、坏 JSON、错路由 / 改值、非法 ID、`ok=False`、缺失 `ok`、`ok=1` 与工具意外错误；检查工具与第二模型调用次数 | Schema 不是客户端硬边界；未绑定本轮规范化请求；truthiness 不能证明严格 `True`；正常链未隔离失败 Observation | 白名单 + 精确字段 + 请求原值绑定；ID 必须非空字符串；只有 `ok is True` 才允许第二轮，其余 fail-closed | C3b 14/14 + 9/9、R4b 5/5，非法分支无越界调用，正常双路径无回归；本切片只是确定性停止，尚无自动恢复 / HITL | DIAGNOSED_AND_FIXED | `code/stage4/a4_gate_research_summary_agent.py`；`daily/2026-08-09.md`；`daily/2026-08-10.md` |

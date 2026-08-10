@@ -15,13 +15,20 @@
 当前已完成 C1：固定结果构造与请求输入校验。
 当前已完成 C2a：``read_material`` 工具适配。
 当前已完成 C2b：``search_web`` Wikipedia 工具适配。
-后续 Agent 循环、Reflection、日志、安全确认和 eval 不提前实现。
+当前已完成 C3a：注册两个已通过工具，并构造模型可见的工具 Schema。
+当前已完成 C3b：严格校验一个模型工具请求，并只执行与规范化请求一致的白名单工具。
+当前已完成 C3c：真实 DeepSeek 双路径选择工具、Observation 回填与候选摘要正常链。
+后续 Reflection、日志、重试/停止、安全确认和 eval 不提前实现。
 """
 
 import html
+import json
+import os
 from pathlib import Path
 import re
 
+from dotenv import load_dotenv
+from openai import OpenAI
 import requests
 
 ROOT = Path(__file__).resolve().parents[2]  # 读取项目根目录
@@ -41,6 +48,8 @@ WIKIPEDIA_PAGE_URL_TEMPLATE = "https://zh.wikipedia.org/w/index.php?curid={page_
 WIKIPEDIA_USER_AGENT = "AI-Agent-Learning/0.1 (https://github.com/humbleded/AI-Agent-Learning)"  # 中文 Wikipedia 请求使用的 User-Agent
 SEARCH_TIMEOUT_SECONDS = 5
 MAX_SEARCH_RESULTS = 3  # 最大搜索结果条数
+DEEPSEEK_BASE_URL = "https://api.deepseek.com"
+DEEPSEEK_MODEL = "deepseek-v4-pro"
 
 
 # 构造结果对象的工具函数
@@ -306,3 +315,229 @@ def search_web(query: str) -> dict[str, object]:
         results.append({"title": title, "url": url, "snippet": snippet})
 
     return {"ok": True, "results": results}
+
+
+# C3a 只建立模型工具描述与客户端函数白名单；不得在注册时执行工具。
+TOOL_REGISTRY: dict[str, object] = {
+    "read_material": read_material,
+    "search_web": search_web,
+}
+
+
+def build_tool_schemas() -> list[dict[str, object]]:
+    """构造提供给模型的两个只读函数工具 Schema。"""
+    read_material_schema = {
+        "type": "function",
+        "function": {
+            "name": "read_material",
+            "description": (
+                "只有读取沙箱内资料的权限，输入必须是规范化的相对路径，"
+                "路径必须在 resources/sandbox/ 下,工具用于读取该路径对应的资料内容"
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "relative_path": {
+                        "type": "string",
+                        "description": "必须是相对于 resources/sandbox/ 的规范化路径",
+                    }
+                },
+                "required": ["relative_path"],
+                "additionalProperties": False,
+            },
+        },
+    }
+    search_web_schema = {
+        "type": "function",
+        "function": {
+            "name": "search_web",
+            "description": (
+                "这是一个只读工具，query必须是已经规范化的topic，"
+                "当前搜索后端仅为中文 Wikipedia，它不代表整个公开互联网或通用网页搜索"
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "必须是已经规范化的 topic",
+                    }
+                },
+                "required": ["query"],
+                "additionalProperties": False,
+            },
+        },
+    }
+    return [read_material_schema, search_web_schema]
+
+# 执行模型工具调用的统一入口，负责参数校验、白名单检查以及实际调用工具函数。
+def execute_tool_call(
+    tool_name: object,
+    raw_arguments: object,
+    normalized_request: dict[str, str],
+) -> dict[str, object]:
+    """校验一个模型工具请求，执行匹配的白名单工具并返回真实工具结果。"""
+    if not isinstance(tool_name, str):
+        return {"ok": False, "error": "工具名必须是字符串", "retryable": False}
+    tool_function = TOOL_REGISTRY.get(tool_name)
+    if tool_function is None:
+        return {"ok": False, "error": f"未注册的工具: {tool_name}", "retryable": False}
+    try:
+        if not isinstance(raw_arguments, str):
+            return {"ok": False, "error": "工具参数必须是 JSON 字符串", "retryable": False}
+        if not raw_arguments.strip():
+            return {"ok": False, "error": "工具参数不能为空", "retryable": False}
+        arguments = json.loads(raw_arguments)
+        if not isinstance(arguments, dict):
+            return {"ok": False, "error": "工具参数必须是 JSON 对象", "retryable": False}
+    except json.JSONDecodeError as e:
+        return {"ok": False, "error": f"解析工具参数失败: {e}", "retryable": False}
+
+    # 校验参数是否符合工具的 Schema
+    tool_schemas = {schema["function"]["name"]: schema for schema in build_tool_schemas()}
+    schema = tool_schemas.get(tool_name)
+    if schema is None:
+        return {"ok": False, "error": f"未找到工具的 Schema: {tool_name}", "retryable": False}
+    required_fields = (
+        schema.get("function", {}).get("parameters", {}).get("required", [])
+    )
+    for field in required_fields:
+        if field not in arguments:
+            return {"ok": False, "error": f"缺少必要的工具参数: {field}", "retryable": False}
+    additional_properties = (
+        schema.get("function", {})
+        .get("parameters", {})
+        .get("additionalProperties", True)
+    )
+    if not additional_properties:
+        for field in arguments:
+            if field not in required_fields:
+                return {"ok": False, "error": f"存在多余的工具参数: {field}", "retryable": False}
+    # 校验参数类型是否符合要求
+    properties = schema.get("function", {}).get("parameters", {}).get("properties", {})
+    for field, field_schema in properties.items():
+        if field in arguments:
+            expected_type = field_schema.get("type")
+            if expected_type == "string" and not isinstance(arguments[field], str):
+                return {"ok": False, "error": f"工具参数 {field} 类型不正确，期望为字符串", "retryable": False}
+
+    # 校验工具调用的参数是否与 normalized_request 完全一致。
+    if tool_name == "read_material":
+        if "relative_path" not in arguments:
+            return {"ok": False, "error": "缺少必要的工具参数: relative_path", "retryable": False}
+        if normalized_request.get("input_type") != "relative_path":
+            return {"ok": False, "error": "工具调用的 input_type 与 normalized_request 不一致", "retryable": False}
+        if arguments["relative_path"] != normalized_request.get("value"):
+            return {"ok": False, "error": "工具调用的 relative_path 与 normalized_request 不一致", "retryable": False}
+    elif tool_name == "search_web":
+        if "query" not in arguments:
+            return {"ok": False, "error": "缺少必要的工具参数: query", "retryable": False}
+        if normalized_request.get("input_type") != "topic":
+            return {"ok": False, "error": "工具调用的 input_type 与 normalized_request 不一致", "retryable": False}
+        if arguments["query"] != normalized_request.get("value"):
+            return {"ok": False, "error": "工具调用的 query 与 normalized_request 不一致", "retryable": False}
+    else:
+        return {"ok": False, "error": f"未知的工具: {tool_name}", "retryable": False}
+
+    # 校验通过，调用工具函数
+    return tool_function(**arguments)
+
+
+def create_deepseek_client() -> OpenAI:
+    """复用已 PASS 配置，创建真实 DeepSeek 客户端但不发起模型调用。"""
+    load_dotenv()
+    api_key = os.environ.get("DEEPSEEK_API_KEY")
+    if not api_key:
+        raise RuntimeError("DeepSeek API key is missing.")
+    return OpenAI(api_key=api_key, base_url=DEEPSEEK_BASE_URL)
+
+
+def generate_candidate_summary(
+    normalized_request: dict[str, str],
+    client: OpenAI | None = None,
+) -> dict[str, object]:
+    """运行一次两轮正常链，返回候选摘要与本轮真实工具证据。
+
+    返回的是 Reflection 前的中间对象，不得在这里标记最终 ``success``。
+    """
+    messages = [
+        {
+            "role": "system",
+            "content": """你是一个研究摘要 Agent，如果输出的类型是topic，那么你负责根据用户提供的主题或沙箱内资料路径，
+调用工具search_web获取证据，并生成研究摘要。如果输出的类型是relative_path，那么你负责根据用户提供的沙箱内资料路径，
+调用工具read_material获取证据，并生成研究摘要。请确保在生成摘要时，引用的证据来源必须来自于你调用的工具返回的结果。
+参数必须原样使用规范化 value，不能在取得 Observation 前直接写摘要，后续摘要只能依据真实 Observation生成。
+你必须严格遵守工具调用的参数规范，不能使用未注册的工具，也不能使用未规范化的参数。
+""",
+        },
+        {
+            "role": "user",
+            "content": json.dumps(normalized_request, ensure_ascii=False),
+        },
+    ]
+    tool_schemas = build_tool_schemas()
+    if client is None:
+        client = create_deepseek_client()
+    # 第一次调用模型，获取工具调用
+    response1 = client.chat.completions.create(
+        model=DEEPSEEK_MODEL,
+        messages=messages,
+        tools=tool_schemas,
+        stream=False,
+        extra_body={"thinking": {"type": "disabled"}},
+    )
+    if response1.choices is None or len(response1.choices) == 0:
+        raise RuntimeError("模型未返回任何选择")
+    assistant_message = response1.choices[0].message
+    if assistant_message is None:
+        raise RuntimeError("第一次模型调用未返回任何消息")
+    tool_calls = assistant_message.tool_calls
+    if tool_calls is None or len(tool_calls) == 0:
+        raise RuntimeError("模型未返回任何工具调用")
+    if len(tool_calls) != 1:
+        raise RuntimeError(f"模型返回了 {len(tool_calls)} 个工具调用，期望恰好 1 个")
+    if tool_calls[0].function is None or tool_calls[0].function.name is None:
+        raise RuntimeError("模型返回的工具调用缺少函数名")
+
+    tool_call = tool_calls[0]
+    tool_call_id = tool_call.id
+    tool_name = tool_call.function.name
+    raw_arguments = tool_call.function.arguments
+    if not isinstance(tool_call_id, str) or tool_call_id.strip() == "":
+        raise RuntimeError("工具调用 ID 必须是非空字符串")
+    tool_result = execute_tool_call(tool_name, raw_arguments, normalized_request)
+    if tool_result.get("ok") is not True:
+        raise RuntimeError(f"工具调用失败: {tool_result.get('error', '无法生成正常候选摘要')}")
+    # 回填工具结果到消息中
+    tool_result_message = {
+        "role": "tool",
+        "tool_call_id": tool_call_id,
+        "content": json.dumps(tool_result, ensure_ascii=False),
+    }
+    messages.append(assistant_message)  # 添加模型的完整 assistant 消息
+    messages.append(tool_result_message)  # 添加工具结果消息
+    # 第二次调用模型，获取候选摘要
+    response2 = client.chat.completions.create(
+        model=DEEPSEEK_MODEL,
+        messages=messages,
+        tools=tool_schemas,
+        stream=False,
+        extra_body={"thinking": {"type": "disabled"}},
+        tool_choice="none",
+    )
+    if response2.choices is None or len(response2.choices) == 0:
+        raise RuntimeError("第二次模型调用未返回任何选择")
+    assistant_message2 = response2.choices[0].message
+    if assistant_message2 is None or assistant_message2.content is None:
+        raise RuntimeError("模型未返回候选摘要")
+    if assistant_message2.tool_calls is not None and len(assistant_message2.tool_calls) > 0:
+        raise RuntimeError("模型在第二次调用中不应返回工具调用")
+    if not isinstance(assistant_message2.content, str) or assistant_message2.content.strip() == "":
+        raise RuntimeError("模型返回的候选摘要不是非空字符串类型")
+
+    candidate_summary = assistant_message2.content
+    return {
+        "candidate_summary": candidate_summary,
+        "tool_name": tool_name,
+        "tool_result": tool_result,
+    }
