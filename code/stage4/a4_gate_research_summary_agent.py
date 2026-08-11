@@ -22,7 +22,11 @@
 当前已完成 C3d-C2a：构造包含完整证据与成功合同的 Reflection prompt。
 当前已完成 C3d-C2b：构造证据受限、JSON-only 的 Refinement prompt。
 当前已完成 C3d-C3a：最终 success 候选的客户端硬校验。
-当前未创建新的活动代码骨架；后续模型调用、JSON 解析、日志、重试/停止、安全确认和 eval 尚未实现。
+当前已完成 C3d-I1：Reflection 单次模型调用与响应外壳。
+当前已完成 C3d-I2：Refinement JSON Output 调用与语法解析。
+当前已完成 C3d-I3：Reflection → Refinement → validator 两段编排。
+当前已完成 C3d-I4：原始请求到可信结果的正常路径接线与真实双路径验证。
+当前没有未完成代码骨架；后续日志、重试/停止、安全确认和 eval 尚未实现。
 """
 
 import html
@@ -129,7 +133,7 @@ def validate_relative_path_value(normalized_value: str) -> str | None:
         return f"相对路径 '{normalized_value}' 不在沙箱目录下"
     return None
 
-
+# 校验并规范化请求的工具函数
 def prepare_request(
     request: object,
 ) -> tuple[dict[str, str] | None, dict[str, object] | None]:
@@ -455,7 +459,7 @@ def create_deepseek_client() -> OpenAI:
         raise RuntimeError("DeepSeek API key is missing.")
     return OpenAI(api_key=api_key, base_url=DEEPSEEK_BASE_URL)
 
-
+# 生成候选摘要的工具函数
 def generate_candidate_summary(
     normalized_request: dict[str, str],
     client: OpenAI | None = None,
@@ -546,7 +550,7 @@ def generate_candidate_summary(
         "tool_result": tool_result,
     }
 
-
+# 判断候选摘要的合法来源，构造来源白名单。
 def derive_allowed_sources(
     normalized_request: dict[str, str],
     tool_name: str,
@@ -638,6 +642,7 @@ def build_reflection_prompt(
     prompt["review_instructions"] = review_instructions
     return json.dumps(prompt, ensure_ascii=False)
 
+# 构造 Refinement prompt
 def build_refinement_prompt(
     normalized_request: dict[str, str],
     candidate_summary: str,
@@ -677,7 +682,7 @@ def build_refinement_prompt(
     prompt["refinement_instructions"] = refinement_instructions
     return json.dumps(prompt, ensure_ascii=False)
 
-
+# 硬校验候选摘要并返回固定三字段的 success 结果
 def validate_success_result(
     candidate: object,
     allowed_sources: list[str],
@@ -720,3 +725,185 @@ def validate_success_result(
     if not set(sources).issubset(set(allowed_sources)):
         raise ValueError("sources 必须是 allowed_sources 的子集")
     return make_result("success", summary.strip(), sources)
+
+
+# 调用 Reflection 并获取反馈文本
+def request_reflection_feedback(
+    reflection_prompt: str,
+    client: OpenAI | None = None,
+) -> str:
+    """调用一次 Reflection，并返回经过外壳检查的非空反馈文本。
+
+    当前检查点只负责一次模型请求和响应外壳，不构造 Refinement prompt，
+    不解析 JSON，也不构造最终三字段结果。
+    """
+    if not isinstance(reflection_prompt, str) or reflection_prompt.strip() == "":
+        raise ValueError("reflection_prompt 必须是非空字符串")
+    if client is None:
+        client = create_deepseek_client()
+    response = client.chat.completions.create(
+        model=DEEPSEEK_MODEL,
+        messages=[
+            {
+                "role": "user",
+                "content": reflection_prompt
+            }
+        ],
+        stream=False,
+        extra_body={"thinking": {"type": "disabled"}},
+    )
+
+    if response is None:
+        raise RuntimeError("Reflection 响应为空")
+    if hasattr(response, "choices") is False:
+        raise RuntimeError("Reflection 响应缺少 choices 字段")
+    choices = response.choices
+    if not isinstance(choices, list) or not choices:
+        raise RuntimeError("Reflection 响应缺少 choices 字段或类型不正确")
+    if hasattr(choices[0], "message") is False:
+        raise RuntimeError("Reflection 响应中的 message 字段为空")
+    message = choices[0].message
+    if hasattr(choices[0], "finish_reason") is False:
+        raise RuntimeError("Reflection 响应中的 finish_reason 字段为空")
+    finish_reason = choices[0].finish_reason
+    if finish_reason != "stop":
+        raise RuntimeError("Reflection 未以 stop 结束")
+    # message.tool_calls 必须是 None 或空列表
+    if hasattr(message, "tool_calls") is False:
+        raise RuntimeError("Reflection 响应中的 tool_calls 字段为空")
+    tool_calls = message.tool_calls
+    if tool_calls is not None and tool_calls != []:
+        raise RuntimeError("Reflection 响应中的 tool_calls 字段必须是 None 或空列表")
+    if hasattr(message, "content") is False:
+        raise RuntimeError("Reflection 响应中的 content 字段为空")
+    content = message.content
+    if not isinstance(content, str) or content.strip() == "":
+        raise RuntimeError("Reflection 响应中的 content 字段非法")
+    return content.strip()
+
+
+# 调用 Refinement 并获取候选摘要对象
+def request_refinement_candidate(
+    refinement_prompt: str,
+    client: OpenAI | None = None,
+) -> object:
+    """调用一次 Refinement JSON Output，并返回解析后的不可信候选对象。
+
+    当前检查点只负责模型请求、响应外壳和 JSON 语法解析；不调用
+    ``validate_success_result``，也不构造最终可信三字段结果。
+    """
+    if not isinstance(refinement_prompt, str) or refinement_prompt.strip() == "":
+        raise ValueError("refinement_prompt 必须是非空字符串")
+    if client is None:
+        client = create_deepseek_client()
+    response = client.chat.completions.create(
+        model=DEEPSEEK_MODEL,
+        messages=[
+            {
+                "role": "user",
+                "content": refinement_prompt
+            }
+        ],
+        stream=False,
+        extra_body={"thinking": {"type": "disabled"}},
+        response_format={"type": "json_object"},
+        max_tokens=1600,
+    )
+
+    if response is None:
+        raise RuntimeError("Refinement 响应为空")
+    if hasattr(response, "choices") is False:
+        raise RuntimeError("Refinement 响应缺少 choices 字段")
+    choices = response.choices
+    if not isinstance(choices, list) or not choices:
+        raise RuntimeError("Refinement 响应缺少 choices 字段或类型不正确")
+    if hasattr(choices[0], "message") is False:
+        raise RuntimeError("Refinement 响应中的 message 字段为空")
+    message = choices[0].message
+    if hasattr(choices[0], "finish_reason") is False:
+        raise RuntimeError("Refinement 响应中的 finish_reason 字段为空")
+    finish_reason = choices[0].finish_reason
+    if finish_reason != "stop":
+        raise RuntimeError("Refinement 未以 stop 结束")
+    # message.tool_calls 必须是 None 或空列表
+    if hasattr(message, "tool_calls") is False:
+        raise RuntimeError("Refinement 响应中的 tool_calls 字段为空")
+    tool_calls = message.tool_calls
+    if tool_calls is not None and tool_calls != []:
+        raise RuntimeError("Refinement 响应中的 tool_calls 字段必须是 None 或空列表")
+    if hasattr(message, "content") is False:
+        raise RuntimeError("Refinement 响应中的 content 字段为空")
+    content = message.content
+    if not isinstance(content, str) or content.strip() == "":
+        raise RuntimeError("Refinement 响应中的 content 字段非法")
+    try:
+        return json.loads(content.strip())
+    except json.JSONDecodeError as e:
+        raise RuntimeError(f"Refinement 响应的 content 不是合法 JSON: {e}")
+
+# 编排 Reflection、Refinement 和最终硬校验的流程。
+def reflect_refine_and_validate(
+    normalized_request: dict[str, str],
+    candidate_summary: str,
+    tool_name: str,
+    tool_result: dict[str, object],
+    client: OpenAI | None = None,
+) -> dict[str, object]:
+    """编排一次 Reflection、一次 Refinement，并返回硬校验结果。
+
+    当前检查点只连接已经通过的 C3d 组件；不重新调用工具，不负责
+    C3c 候选生成，也不加入日志、重试或最终 Agent 控制器。
+    """
+    allowed_sources = derive_allowed_sources(
+        normalized_request,
+        tool_name,
+        tool_result,
+    )
+    reflection_prompt = build_reflection_prompt(
+        normalized_request,
+        candidate_summary,
+        tool_name,
+        tool_result,
+        allowed_sources,
+    )
+    if client is None:
+        client = create_deepseek_client()
+    feedback = request_reflection_feedback(reflection_prompt, client)
+    refinement_prompt = build_refinement_prompt(
+        normalized_request,
+        candidate_summary,
+        tool_name,
+        tool_result,
+        allowed_sources,
+        feedback,
+    )
+    candidate = request_refinement_candidate(refinement_prompt, client)
+    return validate_success_result(candidate, allowed_sources)
+
+
+# 连接原始请求、C3c 候选生成与 C3d 反思改写的单次正常路径
+def run_research_summary_once(
+    request: object,
+    client: OpenAI | None = None,
+) -> dict[str, object]:
+    """从原始请求运行一次正常链，并返回最终可信三字段结果。
+
+    当前检查点只连接已经通过的 C1、C3c 与 C3d；不加入日志、重试、
+    HITL 或失败状态映射，已有工具 / 模型 / 校验异常继续向上抛出。
+    """
+    normalized_request, invalid_result = prepare_request(request)
+    if normalized_request is None:
+        return invalid_result
+    if client is None:
+        client = create_deepseek_client()
+    gen_res = generate_candidate_summary(normalized_request, client)
+    candidate_summary = gen_res["candidate_summary"]
+    tool_name = gen_res["tool_name"]
+    tool_result = gen_res["tool_result"]
+    return reflect_refine_and_validate(
+        normalized_request,
+        candidate_summary,
+        tool_name,
+        tool_result,
+        client,
+    )
