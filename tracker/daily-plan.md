@@ -41,16 +41,16 @@
 
 每天该学什么，三个课程文件对齐：`weekly-plan.md`（W1–W20 内容块 → 任务）+ `progress.md`（课程状态唯一事实源）+ `ai-agent-learning-tracker.md`（任务资料 / 产物 / 通过标准 / 必答问题）。工作场景的覆盖与证据等级只记在 `work-scenario-coverage.md`；岗位能力只在 Gate、作品集里程碑或 JD 审计时更新 `job-readiness.md`，普通概念 PASS 不冒充求职就绪。
 
-**派生执行入口（2026-08-11 快照，不是事实源）**：每次生成学习计划都必须先从 `progress.md` 重新推导；若本段与 progress 冲突，忽略本段并更新快照。当前快照为：W4 课程主线已收尾；T3-01~T3-Gate 与 A4-01~A4-05 全部 PASS，下一主任务为 A4-Gate；Problem Contract、C1/C2、C3a/C3b/C3c 与 C3d 均已核验，C3d 的 Reflection 普通文本、Refinement JSON Output、响应外壳、`json.loads` → validator、shared client 及 topic/path 真实正常链已正式通过。下一实现单元为 `A4-Gate-C4a`：统一 `request_id/step`、七字段日志、一次可重试工具故障、`max_steps=6` 与 `needs_manual` 安全收口；随后仍有 HITL allow/deny、14 条 eval 与正式 Gate 复核。W4 算法 4/4、内容块 `PASS`，历史算法债务已清零；后续算法块只在新日计划明确安排时启动常规 `3 新 + 1 旧错题`。
+**派生执行入口（2026-08-13 快照，不是事实源）**：每次生成学习计划都必须先从 `progress.md` 重新推导；若本段与 progress 冲突，忽略本段并更新快照。当前快照为：W4 课程主线已收尾；T3-01~T3-Gate 与 A4-01~A4-05 全部 PASS，当前主任务为 A4-Gate；Problem Contract、C1/C2、C3a～C3d 与 `C4a-1` 均已核验。C4a-1 已闭合单请求 `run_context`、固定七字段日志、五个真实调用点的共享 step 1～5、`max_steps=6` 调用前硬门、请求隔离和首次模型 `finish_reason == "tool_calls"` 守门。下次新 Session 的唯一实现起点为 `A4-Gate-C4a-2a`：可重试工具第一次失败后，用同一参数最多重试一次并成功，形成六步轨迹；失败状态映射、HITL allow/deny、14 条 eval 与正式 Gate 复核仍在其后。W4 算法 4/4、内容块 `PASS`，历史算法债务已清零；后续算法块只在新日计划明确安排时启动常规 `3 新 + 1 旧错题`。
 
-间隔复习的跨会话执行状态以 `weak-points.md` 的“当前回炉调度状态”为唯一事实源。当前仍为重新签发后的 `RECOVERY_BLOCK_PENDING`：2026-08-11 S2 已完成本轮 `WP-04` / `WP-24`；`WP-24` 经 changed-surface 复测升至 `+1月`、下次回炉 2026-09-11，`WP-04` 虽代码追踪 PASS，但受同日近端语义提示影响不作间隔升档。正式重算后唯一到期项为 `WP-04`，最老到期日仍为 2026-07-19、已逾期 23 天，故时长阈值继续触发。2026-08-11 已用完每天一个回收块；后续第一个合适的 ≤180 分钟完整计划继续安排一个 20～30 分钟回收块，替换部分主块，不能在当天再追加。
+间隔复习的跨会话执行状态以 `weak-points.md` 的“当前回炉调度状态”为唯一事实源。2026-08-12 已在 180 分钟计划内先执行 25 分钟回收块；`WP-04` 在 C4a 教学 / 编码前用 hybrid“规则优先、LLM fallback”新表面完成 `PARTIAL → PASS`，正式升至 `+1月`、下次回炉 2026-09-12。重算后当前到期间隔项为 0，状态转为 `NORMAL`，没有新的 20～30 分钟强制回收块；后续仍须在每次正式练习前按 `weak-points.md` 当日扫描。
 
 **接下来的队列（顺着拉，不钉日期）**：
 
 ```text
-[间隔回收块] 新 pending：下一个合适的完整计划预留 20～30 分钟；当前唯一到期为 WP-04，正式出题时仍先做语义去重；若执行日有新项目到期，再按当日快照决定第二目标
+[间隔回收块] 2026-08-12 已完成并正式重算；当前 `NORMAL`、到期项 0，不再占用后续主块。最近的 `CD-005` / `WP-08` 于 2026-08-13 到期，届时只按正常旧复习席位与阈值规则 preflight，不预先制造回收块债务
 [后续算法] W4 已 PASS；下一算法内容块只在独立算法席位启动常规 3 新 + 1 旧错题，不挤占当前 Gate 收尾
-[下一主块/周末] A4-Gate 从 C4a 开始：统一 request_id/step + 七字段日志 + 一次可重试工具故障 + max_steps=6 / needs_manual 安全收口；再完成 HITL allow/deny 与 14 条 eval
+[下一主块/周末] A4-Gate 从 C4a-2a 继续：retryable 工具第一次失败后同参数至多重试一次；两次真实尝试分别占 step、分别写日志，闭合正常六步恢复轨迹后再做失败状态映射
    ↓
 G8-00 LangGraph Lite：只把 A4-Gate 一条路径迁移成可测试/可流式观察的基础 Graph，不做持久化/恢复
    ↓

@@ -26,7 +26,18 @@
 当前已完成 C3d-I2：Refinement JSON Output 调用与语法解析。
 当前已完成 C3d-I3：Reflection → Refinement → validator 两段编排。
 当前已完成 C3d-I4：原始请求到可信结果的正常路径接线与真实双路径验证。
-当前没有未完成代码骨架；后续日志、重试/停止、安全确认和 eval 尚未实现。
+当前已完成 C4a-1a：初始化单次请求共享的运行上下文。
+当前已完成 C4a-1b：调用前硬门与共享占步，并已接入现有模型 / 工具调用链。
+当前已完成 C4a-1c：追加固定七字段调用事件，并已接入现有模型 / 工具调用链。
+当前已完成 C4a-1d：补齐第二候选响应的 ``finish_reason`` 守门。
+当前已完成 C4a-1e：第一次模型调用的占步、计时与成功 / 异常日志。
+当前已完成 C4a-1f：真实工具调用的占步、计时与成功 / 异常日志。
+当前已完成 C4a-1g：第二次模型调用的占步、计时与成功 / 异常日志。
+当前已完成 C4a-1h：Reflection 模型调用的占步、计时与成功 / 异常日志。
+当前已完成 C4a-1i：Refinement 模型调用的占步、计时与成功 / 异常日志。
+当前已完成 C4a-1j：首次模型 ``finish_reason == "tool_calls"`` 守门。
+当前已完成 C4a-1k：无重试五步轨迹、请求隔离与第 7 次调用硬门整体验收。
+后续 C4a-2 重试 / 失败状态映射、安全确认和 eval 尚未完成；当前无活动 TODO。
 """
 
 import html
@@ -34,6 +45,8 @@ import json
 import os
 from pathlib import Path
 import re
+from time import perf_counter
+import uuid
 
 from dotenv import load_dotenv
 from openai import OpenAI
@@ -58,6 +71,130 @@ SEARCH_TIMEOUT_SECONDS = 5
 MAX_SEARCH_RESULTS = 3  # 最大搜索结果条数
 DEEPSEEK_BASE_URL = "https://api.deepseek.com"
 DEEPSEEK_MODEL = "deepseek-v4-pro"
+MAX_STEPS = 6
+CALL_LOG_FIELDS = (
+    "request_id",
+    "step",
+    "event_type",
+    "model",
+    "tool_name",
+    "duration_ms",
+    "error",
+)
+
+# 初始化单次请求共享的运行上下文的工具函数
+def create_run_context(
+    request_id: str | None = None,
+) -> dict[str, object]:
+    """初始化一个请求内共享的运行上下文。
+
+    当前检查点只建立 ``request_id``、初始 ``step`` 和空 ``logs``；
+    不调用模型或工具，不记录事件，也不修改现有 Agent 正常链。
+    """
+    if request_id is None:
+        request_id = uuid.uuid4().hex
+    else:
+        if not isinstance(request_id, str):
+            raise ValueError("显式 request_id 必须是字符串类型")
+        request_id = request_id.strip()
+        if not request_id:
+            raise ValueError("显式 request_id 不能为空")
+    return {
+        "request_id": request_id,
+        "step": 0,
+        "logs": [],
+    }
+
+# 占用调用步骤的工具函数, 在真实模型或工具调用前使用, 返回当前调用的 step。判断是否超过最大步骤限制。
+def reserve_call_step(
+    run_context: dict[str, object],
+) -> int:
+    """在真实模型或工具调用前，占用并返回本次调用的共享 step。"""
+    if not isinstance(run_context, dict):
+        raise ValueError("run_context 必须是字典类型")
+    if "step" not in run_context:
+        raise ValueError("run_context 缺失 'step' 字段")
+    step = run_context["step"]
+    if type(step) is not int or step < 0:
+        raise ValueError("run_context 中的 'step' 必须是非负整数")
+    if step == MAX_STEPS:
+        raise RuntimeError("已达到最大步骤限制")
+    if step > MAX_STEPS:
+        raise ValueError("run_context 中的 'step' 超过最大步骤限制")
+    run_context["step"] = step + 1
+    return run_context["step"]
+
+# 追加调用日志的工具函数
+def append_call_log(
+    run_context: dict[str, object],
+    *,
+    step: int,
+    event_type: str,
+    model: str | None,
+    tool_name: str | None,
+    duration_ms: int,
+    error: str | None,
+) -> dict[str, object]:
+    """校验、追加并返回一条固定七字段调用事件。"""
+    if not isinstance(run_context, dict):
+        raise ValueError("run_context 必须是字典类型")
+    if "logs" not in run_context:
+        raise ValueError("run_context 缺失 'logs' 字段")
+    if not isinstance(run_context["logs"], list):
+        raise ValueError("run_context 中的 'logs' 字段必须是列表类型")
+    if not type(step) is int or step < 0:
+        raise ValueError("step 必须是非负整数")
+    if not type(run_context.get("step")) is int or run_context.get("step") < 0:
+        raise ValueError("run_context 中的 'step' 字段必须是非负整数")
+    if step < 1 or step > MAX_STEPS:
+        raise ValueError("step 必须大于等于 1 且不超过最大步骤限制")
+    if run_context.get("step") < 1 or run_context.get("step") > MAX_STEPS:
+        raise ValueError("run_context 中的 'step' 必须大于等于 1 且不超过最大步骤限制")
+    if step != run_context.get("step"):
+        raise ValueError("step 与当前 run_context 中的 'step' 不一致")
+    if event_type not in ("model_call", "tool_call"):
+        raise ValueError("event_type 必须是 'model_call' 或 'tool_call'")
+    if event_type == "model_call":
+        if not (
+            isinstance(model, str)
+            and model.strip() != ""
+            and tool_name is None
+        ):
+            raise ValueError(
+                "model_call 的 model 必须为非空字符串，tool_name 必须为 None"
+            )
+    elif event_type == "tool_call":
+        if not (
+            isinstance(tool_name, str)
+            and tool_name.strip() != ""
+            and model is None
+        ):
+            raise ValueError(
+                "tool_call 的 tool_name 必须为非空字符串，model 必须为 None"
+            )
+    if not type(duration_ms) is int or duration_ms < 0:
+        raise ValueError("duration_ms 必须是非负整数")
+    if not (error is None or isinstance(error, str)):
+        raise ValueError("error 必须是字符串类型或 None")
+    if error is not None and error.strip() == "":
+        raise ValueError("error 字段不能为空字符串")
+    if run_context.get("request_id") is None:
+        raise ValueError("run_context 缺失 'request_id' 字段")
+    if not isinstance(run_context.get("request_id"), str):
+        raise ValueError("run_context 中的 'request_id' 字段必须是字符串类型")
+    if run_context.get("request_id").strip() == "":
+        raise ValueError("run_context 中的 'request_id' 字段不能为空")
+    log_entry = {
+        "request_id": run_context.get("request_id"),
+        "step": step,
+        "event_type": event_type,
+        "model": model,
+        "tool_name": tool_name,
+        "duration_ms": duration_ms,
+        "error": error,
+    }
+    run_context["logs"].append(log_entry)
+    return log_entry
 
 
 # 构造结果对象的工具函数
@@ -383,6 +520,8 @@ def execute_tool_call(
     tool_name: object,
     raw_arguments: object,
     normalized_request: dict[str, str],
+    *,
+    run_context: dict[str, object],
 ) -> dict[str, object]:
     """校验一个模型工具请求，执行匹配的白名单工具并返回真实工具结果。"""
     if not isinstance(tool_name, str):
@@ -447,8 +586,53 @@ def execute_tool_call(
     else:
         return {"ok": False, "error": f"未知的工具: {tool_name}", "retryable": False}
 
-    # 校验通过，调用工具函数
-    return tool_function(**arguments)
+    # C4a-1f-R1：只有上述客户端校验全部通过后，才占用一次真实工具 step。
+    step = reserve_call_step(run_context)
+    perf_counter_start = perf_counter()
+
+    try:
+        result = tool_function(**arguments)
+    except Exception as exc:
+        perf_counter_end = perf_counter()
+        duration_ms = max(
+            0,
+            int((perf_counter_end - perf_counter_start) * 1000),
+        )
+        append_call_log(
+            run_context,
+            step=step,
+            event_type="tool_call",
+            model=None,
+            tool_name=tool_name,
+            duration_ms=duration_ms,
+            error=type(exc).__name__,
+        )
+        raise
+    else:
+        perf_counter_end = perf_counter()
+        duration_ms = max(
+            0,
+            int((perf_counter_end - perf_counter_start) * 1000),
+        )
+
+        if result.get("ok") is True:
+            log_error = None
+        elif result.get("retryable") is True:
+            log_error = "retryable_tool_failure"
+        else:
+            log_error = "tool_failure"
+
+        append_call_log(
+            run_context,
+            step=step,
+            event_type="tool_call",
+            model=None,
+            tool_name=tool_name,
+            duration_ms=duration_ms,
+            error=log_error,
+        )
+
+        return result
 
 
 def create_deepseek_client() -> OpenAI:
@@ -463,6 +647,8 @@ def create_deepseek_client() -> OpenAI:
 def generate_candidate_summary(
     normalized_request: dict[str, str],
     client: OpenAI | None = None,
+    *,
+    run_context: dict[str, object],
 ) -> dict[str, object]:
     """运行一次两轮正常链，返回候选摘要与本轮真实工具证据。
 
@@ -486,16 +672,56 @@ def generate_candidate_summary(
     tool_schemas = build_tool_schemas()
     if client is None:
         client = create_deepseek_client()
+    call_step = reserve_call_step(run_context)
+    perf_counter_start = perf_counter()
     # 第一次调用模型，获取工具调用
-    response1 = client.chat.completions.create(
-        model=DEEPSEEK_MODEL,
-        messages=messages,
-        tools=tool_schemas,
-        stream=False,
-        extra_body={"thinking": {"type": "disabled"}},
-    )
+    try:
+        response1 = client.chat.completions.create(
+            model=DEEPSEEK_MODEL,
+            messages=messages,
+            tools=tool_schemas,
+            stream=False,
+            extra_body={"thinking": {"type": "disabled"}},
+        )
+    except Exception as e:
+        perf_counter_end = perf_counter()
+        append_call_log(
+            run_context,
+            error=type(e).__name__,  # 记录异常类型而不是异常对象本身
+            duration_ms=max(
+                0,
+                int((perf_counter_end - perf_counter_start) * 1000),
+            ),
+            step=call_step,
+            event_type="model_call",
+            model=DEEPSEEK_MODEL,
+            tool_name=None,
+        )
+        raise
+    else:
+        perf_counter_end = perf_counter()
+        duration_ms = max(
+            0,
+            int((perf_counter_end - perf_counter_start) * 1000),
+        )
+        append_call_log(
+            run_context,
+            step=call_step,
+            event_type="model_call",
+            model=DEEPSEEK_MODEL,
+            tool_name=None,
+            duration_ms=duration_ms,
+            error=None,
+        )
     if response1.choices is None or len(response1.choices) == 0:
         raise RuntimeError("模型未返回任何选择")
+    # 第一次模型必须明确以工具调用结束，才允许读取并执行 tool_calls。
+    if not hasattr(response1.choices[0], "finish_reason"):
+        raise RuntimeError("首次模型调用缺少 finish_reason 字段")
+
+    if response1.choices[0].finish_reason != "tool_calls":
+        raise RuntimeError("首次模型调用未以工具调用结束")
+
     assistant_message = response1.choices[0].message
     if assistant_message is None:
         raise RuntimeError("第一次模型调用未返回任何消息")
@@ -513,7 +739,12 @@ def generate_candidate_summary(
     raw_arguments = tool_call.function.arguments
     if not isinstance(tool_call_id, str) or tool_call_id.strip() == "":
         raise RuntimeError("工具调用 ID 必须是非空字符串")
-    tool_result = execute_tool_call(tool_name, raw_arguments, normalized_request)
+    tool_result = execute_tool_call(
+        tool_name,
+        raw_arguments,
+        normalized_request,
+        run_context=run_context,
+    )
     if tool_result.get("ok") is not True:
         raise RuntimeError(f"工具调用失败: {tool_result.get('error', '无法生成正常候选摘要')}")
     # 回填工具结果到消息中
@@ -525,17 +756,57 @@ def generate_candidate_summary(
     messages.append(assistant_message)  # 添加模型的完整 assistant 消息
     messages.append(tool_result_message)  # 添加工具结果消息
     # 第二次调用模型，获取候选摘要
-    response2 = client.chat.completions.create(
-        model=DEEPSEEK_MODEL,
-        messages=messages,
-        tools=tool_schemas,
-        stream=False,
-        extra_body={"thinking": {"type": "disabled"}},
-        tool_choice="none",
-    )
+    call_step = reserve_call_step(run_context)
+    perf_counter_start = perf_counter()
+    try:
+        response2 = client.chat.completions.create(
+            model=DEEPSEEK_MODEL,
+            messages=messages,
+            tools=tool_schemas,
+            stream=False,
+            extra_body={"thinking": {"type": "disabled"}},
+            tool_choice="none",
+        )
+    except Exception as e:
+        perf_counter_end = perf_counter()
+        append_call_log(
+            run_context,
+            error=type(e).__name__,  # 记录异常类型而不是异常对象本身
+            duration_ms=max(
+                0,
+                int((perf_counter_end - perf_counter_start) * 1000),
+            ),
+            step=call_step,
+            event_type="model_call",
+            model=DEEPSEEK_MODEL,
+            tool_name=None,
+        )
+        raise
+    else:
+        perf_counter_end = perf_counter()
+        append_call_log(
+            run_context,
+            error=None,
+            duration_ms=max(
+                0,
+                int((perf_counter_end - perf_counter_start) * 1000),
+            ),
+            step=call_step,
+            event_type="model_call",
+            model=DEEPSEEK_MODEL,
+            tool_name=None,
+        )
+
     if response2.choices is None or len(response2.choices) == 0:
         raise RuntimeError("第二次模型调用未返回任何选择")
-    assistant_message2 = response2.choices[0].message
+
+    choice2 = response2.choices[0]
+    if hasattr(choice2, "finish_reason") is False:
+        raise RuntimeError("第二次模型调用的选择缺少 finish_reason 字段")
+    finish_reason = choice2.finish_reason
+    if finish_reason != "stop":
+        raise RuntimeError(f"第二次模型调用未正常结束，finish_reason: {finish_reason}")
+    assistant_message2 = choice2.message
     if assistant_message2 is None or assistant_message2.content is None:
         raise RuntimeError("模型未返回候选摘要")
     if assistant_message2.tool_calls is not None and len(assistant_message2.tool_calls) > 0:
@@ -731,6 +1002,8 @@ def validate_success_result(
 def request_reflection_feedback(
     reflection_prompt: str,
     client: OpenAI | None = None,
+    *,
+    run_context: dict[str, object],
 ) -> str:
     """调用一次 Reflection，并返回经过外壳检查的非空反馈文本。
 
@@ -741,17 +1014,51 @@ def request_reflection_feedback(
         raise ValueError("reflection_prompt 必须是非空字符串")
     if client is None:
         client = create_deepseek_client()
-    response = client.chat.completions.create(
-        model=DEEPSEEK_MODEL,
-        messages=[
-            {
-                "role": "user",
-                "content": reflection_prompt
-            }
-        ],
-        stream=False,
-        extra_body={"thinking": {"type": "disabled"}},
-    )
+    step = reserve_call_step(run_context)
+    perf_counter_start = perf_counter()
+    try:
+        response = client.chat.completions.create(
+            model=DEEPSEEK_MODEL,
+            messages=[
+                {
+                    "role": "user",
+                    "content": reflection_prompt,
+                }
+            ],
+            stream=False,
+            extra_body={"thinking": {"type": "disabled"}},
+        )
+    except Exception as e:
+        perf_counter_end = perf_counter()
+        duration_ms = max(
+            0,
+            int((perf_counter_end - perf_counter_start) * 1000),
+        )
+        append_call_log(
+            run_context,
+            error=type(e).__name__,  # 记录异常类型而不是异常对象本身
+            duration_ms=duration_ms,
+            step=step,
+            event_type="model_call",
+            model=DEEPSEEK_MODEL,
+            tool_name=None,
+        )
+        raise
+    else:
+        perf_counter_end = perf_counter()
+        duration_ms = max(
+            0,
+            int((perf_counter_end - perf_counter_start) * 1000),
+        )
+        append_call_log(
+            run_context,
+            error=None,
+            duration_ms=duration_ms,
+            step=step,
+            event_type="model_call",
+            model=DEEPSEEK_MODEL,
+            tool_name=None,
+        )
 
     if response is None:
         raise RuntimeError("Reflection 响应为空")
@@ -786,6 +1093,8 @@ def request_reflection_feedback(
 def request_refinement_candidate(
     refinement_prompt: str,
     client: OpenAI | None = None,
+    *,
+    run_context: dict[str, object],
 ) -> object:
     """调用一次 Refinement JSON Output，并返回解析后的不可信候选对象。
 
@@ -796,19 +1105,53 @@ def request_refinement_candidate(
         raise ValueError("refinement_prompt 必须是非空字符串")
     if client is None:
         client = create_deepseek_client()
-    response = client.chat.completions.create(
-        model=DEEPSEEK_MODEL,
-        messages=[
-            {
-                "role": "user",
-                "content": refinement_prompt
-            }
-        ],
-        stream=False,
-        extra_body={"thinking": {"type": "disabled"}},
-        response_format={"type": "json_object"},
-        max_tokens=1600,
-    )
+    step_start = reserve_call_step(run_context)
+    perf_counter_start = perf_counter()
+    try:
+        response = client.chat.completions.create(
+            model=DEEPSEEK_MODEL,
+            messages=[
+                {
+                    "role": "user",
+                    "content": refinement_prompt,
+                }
+            ],
+            stream=False,
+            extra_body={"thinking": {"type": "disabled"}},
+            response_format={"type": "json_object"},
+            max_tokens=1600,
+        )
+    except Exception as e:
+        perf_counter_end = perf_counter()
+        duration_ms = max(
+            0,
+            int((perf_counter_end - perf_counter_start) * 1000),
+        )
+        append_call_log(
+            run_context,
+            error=type(e).__name__,
+            duration_ms=duration_ms,
+            step=step_start,
+            event_type="model_call",
+            model=DEEPSEEK_MODEL,
+            tool_name=None,
+        )
+        raise
+    else:
+        perf_counter_end = perf_counter()
+        duration_ms = max(
+            0,
+            int((perf_counter_end - perf_counter_start) * 1000),
+        )
+        append_call_log(
+            run_context,
+            error=None,
+            duration_ms=duration_ms,
+            step=step_start,
+            event_type="model_call",
+            model=DEEPSEEK_MODEL,
+            tool_name=None,
+        )
 
     if response is None:
         raise RuntimeError("Refinement 响应为空")
@@ -848,11 +1191,13 @@ def reflect_refine_and_validate(
     tool_name: str,
     tool_result: dict[str, object],
     client: OpenAI | None = None,
+    *,
+    run_context: dict[str, object],
 ) -> dict[str, object]:
     """编排一次 Reflection、一次 Refinement，并返回硬校验结果。
 
-    当前检查点只连接已经通过的 C3d 组件；不重新调用工具，不负责
-    C3c 候选生成，也不加入日志、重试或最终 Agent 控制器。
+    本层不重新调用工具，也不负责 C3c 候选生成；两次模型事件写入
+    传入的内部 ``run_context``，但仍不实现重试或最终 Agent 控制器。
     """
     allowed_sources = derive_allowed_sources(
         normalized_request,
@@ -868,7 +1213,11 @@ def reflect_refine_and_validate(
     )
     if client is None:
         client = create_deepseek_client()
-    feedback = request_reflection_feedback(reflection_prompt, client)
+    feedback = request_reflection_feedback(
+        reflection_prompt,
+        client,
+        run_context=run_context,
+    )
     refinement_prompt = build_refinement_prompt(
         normalized_request,
         candidate_summary,
@@ -877,7 +1226,11 @@ def reflect_refine_and_validate(
         allowed_sources,
         feedback,
     )
-    candidate = request_refinement_candidate(refinement_prompt, client)
+    candidate = request_refinement_candidate(
+        refinement_prompt,
+        client,
+        run_context=run_context,
+    )
     return validate_success_result(candidate, allowed_sources)
 
 
@@ -888,15 +1241,21 @@ def run_research_summary_once(
 ) -> dict[str, object]:
     """从原始请求运行一次正常链，并返回最终可信三字段结果。
 
-    当前检查点只连接已经通过的 C1、C3c 与 C3d；不加入日志、重试、
-    HITL 或失败状态映射，已有工具 / 模型 / 校验异常继续向上抛出。
+    单次请求的调用日志只保存在内部 ``run_context``，不会加入最终
+    三字段结果；当前仍不实现重试、HITL 或失败状态映射，已有工具、
+    模型与校验异常继续向上抛出。
     """
     normalized_request, invalid_result = prepare_request(request)
     if normalized_request is None:
         return invalid_result
     if client is None:
         client = create_deepseek_client()
-    gen_res = generate_candidate_summary(normalized_request, client)
+    run_context = create_run_context()
+    gen_res = generate_candidate_summary(
+        normalized_request,
+        client,
+        run_context=run_context,
+    )
     candidate_summary = gen_res["candidate_summary"]
     tool_name = gen_res["tool_name"]
     tool_result = gen_res["tool_result"]
@@ -906,4 +1265,5 @@ def run_research_summary_once(
         tool_name,
         tool_result,
         client,
+        run_context=run_context,
     )
