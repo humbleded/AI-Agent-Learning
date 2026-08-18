@@ -37,7 +37,9 @@
 当前已完成 C4a-1i：Refinement 模型调用的占步、计时与成功 / 异常日志。
 当前已完成 C4a-1j：首次模型 ``finish_reason == "tool_calls"`` 守门。
 当前已完成 C4a-1k：无重试五步轨迹、请求隔离与第 7 次调用硬门整体验收。
-后续 C4a-2 重试 / 失败状态映射、安全确认和 eval 尚未完成；当前无活动 TODO。
+当前已完成 C4a-2a：首次可重试工具失败后，同名同原始参数只重试一次并恢复成功。
+当前已完成 C4a-2b1：把二次可重试失败 / 重试前无剩余 step 映射为 ``needs_manual``。
+后续失败状态映射、安全确认和 eval 尚未完成。
 """
 
 import html
@@ -72,6 +74,7 @@ MAX_SEARCH_RESULTS = 3  # 最大搜索结果条数
 DEEPSEEK_BASE_URL = "https://api.deepseek.com"
 DEEPSEEK_MODEL = "deepseek-v4-pro"
 MAX_STEPS = 6
+MAX_TOOL_RETRIES = 1
 CALL_LOG_FIELDS = (
     "request_id",
     "step",
@@ -81,6 +84,26 @@ CALL_LOG_FIELDS = (
     "duration_ms",
     "error",
 )
+
+# 自定义异常类，用于表示自动恢复机会耗尽的情况
+class AutoRecoveryExhaustedError(RuntimeError):
+    """只表示当前请求的自动恢复机会已经耗尽的内部专用信号。"""
+
+    def __init__(
+        self,
+        reason: str,
+        attempts: int,
+        last_error: str,
+    ) -> None:
+        # 只保存公开入口构造人工接管说明所需的内部事实。
+        self.reason = reason
+        self.attempts = attempts
+        self.last_error = last_error
+        super().__init__(
+            "Auto recovery exhausted: "
+            f"reason={reason}, attempts={attempts}, last_error={last_error}"
+        )
+
 
 # 初始化单次请求共享的运行上下文的工具函数
 def create_run_context(
@@ -310,7 +333,7 @@ def prepare_request(
     }
     return normalized_request, None
 
-
+#  读取沙箱内资料的工具函数
 def read_material(relative_path: str) -> dict[str, object]:
     """读取沙箱内资料并转换成 Problem Contract 规定的工具结果。"""
     relative_path, error = normalize_required_string(relative_path, "relative_path")
@@ -468,7 +491,7 @@ TOOL_REGISTRY: dict[str, object] = {
     "search_web": search_web,
 }
 
-
+#  构建模型工具的 Schema 列表
 def build_tool_schemas() -> list[dict[str, object]]:
     """构造提供给模型的两个只读函数工具 Schema。"""
     read_material_schema = {
@@ -745,6 +768,36 @@ def generate_candidate_summary(
         normalized_request,
         run_context=run_context,
     )
+    if (
+        tool_result.get("ok") is False
+        and tool_result.get("retryable") is True
+    ):
+        # C4a-2a：最多一次同名、同原始参数重试；每次真实尝试仍通过
+        # execute_tool_call 独立占步、计时和写日志。
+        if MAX_TOOL_RETRIES > 0:
+            if run_context["step"] == MAX_STEPS:
+                # 第二次真实工具调用前没有剩余 step，发出专用内部信号。
+                raise AutoRecoveryExhaustedError(
+                    reason="max_steps",
+                    attempts=1,
+                    last_error=tool_result.get("error"),
+                )
+            # 额外真实尝试发生后，只对仍可重试的失败发出耗尽信号。
+            tool_result = execute_tool_call(
+                tool_name,
+                raw_arguments,
+                normalized_request,
+                run_context=run_context,
+            )
+            if (
+                tool_result.get("ok") is False
+                and tool_result.get("retryable") is True
+            ):
+                raise AutoRecoveryExhaustedError(
+                    reason="max_tool_retries",
+                    attempts=2,
+                    last_error=tool_result.get("error"),
+                )
     if tool_result.get("ok") is not True:
         raise RuntimeError(f"工具调用失败: {tool_result.get('error', '无法生成正常候选摘要')}")
     # 回填工具结果到消息中
@@ -1242,8 +1295,9 @@ def run_research_summary_once(
     """从原始请求运行一次正常链，并返回最终可信三字段结果。
 
     单次请求的调用日志只保存在内部 ``run_context``，不会加入最终
-    三字段结果；当前仍不实现重试、HITL 或失败状态映射，已有工具、
-    模型与校验异常继续向上抛出。
+    三字段结果；当前已支持一次可重试工具首败后的同参数重试，并把
+    二次可重试失败或重试前无剩余 step 映射为 ``needs_manual``。HITL
+    和其他未映射的工具、模型与校验异常继续向上抛出。
     """
     normalized_request, invalid_result = prepare_request(request)
     if normalized_request is None:
@@ -1251,14 +1305,29 @@ def run_research_summary_once(
     if client is None:
         client = create_deepseek_client()
     run_context = create_run_context()
-    gen_res = generate_candidate_summary(
-        normalized_request,
-        client,
-        run_context=run_context,
-    )
+    # 只把自动恢复耗尽信号窄映射为固定三字段 needs_manual。
+    try:
+        gen_res = generate_candidate_summary(
+            normalized_request,
+            client,
+            run_context=run_context,
+        )
+    except AutoRecoveryExhaustedError as exc:
+        if exc.reason == "max_steps":
+            threshold_text = f"总步骤上限 {MAX_STEPS}"
+        else:
+            threshold_text = f"工具重试上限 {MAX_TOOL_RETRIES}"
+        summary_text = (
+            f"自动恢复已停止：已达到{threshold_text}；"
+            f"工具实际尝试 {exc.attempts} 次；"
+            f"最后错误：{exc.last_error}。"
+            "当前尚未取得足够的可信证据，已停止自治并交由人工决定下一步。"
+        )
+        return make_result("needs_manual", summary_text, [])
     candidate_summary = gen_res["candidate_summary"]
     tool_name = gen_res["tool_name"]
     tool_result = gen_res["tool_result"]
+
     return reflect_refine_and_validate(
         normalized_request,
         candidate_summary,
