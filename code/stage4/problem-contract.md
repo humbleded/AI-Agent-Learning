@@ -142,7 +142,9 @@
 
 ### 数值护栏
 
-- `max_steps = 6`：每次模型调用或工具调用都令累计步数加一；客户端输入校验、参数校验和最终输出校验不计步。达到第 6 步后仍未形成可通过校验的结果时，不得发起第 7 次模型或工具调用。
+- `max_steps = 6`：每次模型调用或工具调用都令累计步数加一；客户端输入校验、参数校验和最终输出校验不计步。它是整次请求“绝不能超过”的全局硬上限，不是失败后必须尽量耗尽的目标；达到第 6 步后仍未形成可通过校验的结果时，不得发起第 7 次模型或工具调用。
+- `max_action_corrections = 1`：首次 Action 未通过工具执行前校验时，V1 最多允许额外调用模型纠正一次；局部纠错额度与全局 `max_steps` 同时生效。
+- `min_steps_after_valid_action = 4`：取得合法 Action 后，仍须为“真实工具 → 候选摘要 → Reflection → Refinement”保留 4 次调用。请求一次 Action correction 前，必须同时满足 `corrections_used < max_action_corrections` 与 `remaining_steps >= 1 + min_steps_after_valid_action`；执行合法 Action 前，必须满足 `remaining_steps >= min_steps_after_valid_action`。已知无法形成完整可信结果时，必须在真实工具执行前提前停止，不能为耗尽全局上限继续调用。
 - `tool_timeout_seconds = 5`：每次工具调用最多等待 5 秒；超时调用仍计为一次工具调用和一次失败尝试。
 - `max_tool_retries = 1`：只有工具返回 `ok: False, retryable: True` 时，首次失败后才允许额外重试一次，因此同一轮工具最多尝试两次；`retryable: False` 的失败不得消耗一次无意义的同参数重试。每次实际尝试都受 5 秒 timeout 和总步数限制。
 - 达到任一上限且仍未成功时，Agent 必须停止自治并返回 `needs_manual`，`summary` 说明触发的具体阈值、最后错误和证据缺口，`sources` 只保留已经实际取得的来源。
@@ -170,7 +172,7 @@
 ### 失败、恢复与停止分支
 
 - 请求违反第 3 节输入契约时，客户端在进入 Agent 循环前返回 `invalid_input`，不调用工具。
-- Agent 选择未注册工具或生成不符合 schema 的参数时，客户端不得执行工具；若尚有剩余步数，则把参数校验错误交回 Agent 修正。达到 `max_steps` 仍不能生成合法动作时，停止并返回 `needs_manual`。
+- Agent 选择未注册工具，或生成坏 JSON、不符合 schema / 请求绑定约束的参数时，客户端不得执行真实工具，也不得新增工具 step 或工具日志；该非法 Action 所属的模型调用仍正常占 step 并写模型日志。只有同时保有一次局部 Action correction 额度，且全局剩余预算足以容纳“纠错模型调用 + 合法 Action 后 4 次调用”时，才把具体但已脱敏的校验错误作为与原 `tool_call_id` 对应的 Tool Observation 交回模型。纠错后的 Action 再次非法、局部额度耗尽，或剩余预算已不足以形成完整可信结果时，立即停止并返回 `needs_manual`；`sources` 为 `[]`，`summary` 说明纠错 / 预算阈值、最后一条安全校验错误、尚未取得真实证据及人工接管，不得泄露原始参数、prompt 或内部日志。
 - 工具返回 `ok: False, retryable: False` 时，不进行同参数重试，立即返回 `tool_failure`。例如相对路径已通过输入与安全校验，但 `read_material` 确认文件不存在；这不是输入格式错误，也不是工具成功后的证据不足。
 - 工具首次返回 `ok: False, retryable: True` 时，只在重试次数和总步数均未达到上限时重试一次；重试成功则回到正常成功路径。再次失败或没有剩余步数时，停止并返回 `needs_manual`，同时说明尝试次数、最后错误和当前证据缺口。
 - `search_web` 返回 `ok: True` 但 `results` 为空时，说明工具调用已经成功、但没有取得可用于摘要的真实资料，返回 `insufficient_evidence`；`summary` 说明证据缺口，`sources` 为 `[]`，不得凭模型常识补写摘要或编造 URL。

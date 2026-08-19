@@ -39,7 +39,20 @@
 当前已完成 C4a-1k：无重试五步轨迹、请求隔离与第 7 次调用硬门整体验收。
 当前已完成 C4a-2a：首次可重试工具失败后，同名同原始参数只重试一次并恢复成功。
 当前已完成 C4a-2b1：把二次可重试失败 / 重试前无剩余 step 映射为 ``needs_manual``。
-后续失败状态映射、安全确认和 eval 尚未完成。
+当前已完成 C4a-2b2-I1：映射真实不可重试工具失败与搜索成功零证据。
+当前已完成 C4b-1-I1a：Action correction 的局部额度与完整链预算门。
+当前已完成 C4b-1-I1b：构造不代表真实工具执行的安全校验错误 Observation。
+当前已完成 C4b-1-I1c：一次 Action correction 模型调用及其 step / 日志记账。
+当前已完成 C4b-1-I1d：可复用的单 Action 响应外壳解析器。
+当前已完成 C4b-1-I1e：组合一次 Action correction，并停在修正 Action 执行前。
+当前已完成 C4b-1-I1f：识别真实工具执行前的 Action validation rejection。
+当前已完成 C4b-1-I1g：执行并分类一次未信任 Tool Action。
+当前已完成 C4b-1-I1h：编排首次 Action、至多一次 correction 与修正 Action。
+当前已完成 C4b-1-I2a：把 I1h 接入 ``generate_candidate_summary()`` 的 Action 主链。
+当前已完成 C4b-1-I2b：判断工具 retry 后是否仍有完成可信下游链的全局预算。
+当前已完成 C4b-1-I2c：在第二次真实工具调用前消费完整链预算门。
+当前已完成 C4b-1-I2d：把预算窄异常准确映射为公开 needs_manual 结果。
+后续 candidate / Reflection / 最终 validator 失败恢复、安全确认和 eval 尚未完成。
 """
 
 import html
@@ -73,8 +86,11 @@ SEARCH_TIMEOUT_SECONDS = 5
 MAX_SEARCH_RESULTS = 3  # 最大搜索结果条数
 DEEPSEEK_BASE_URL = "https://api.deepseek.com"
 DEEPSEEK_MODEL = "deepseek-v4-pro"
-MAX_STEPS = 6
-MAX_TOOL_RETRIES = 1
+MAX_STEPS = 6  # 每次请求允许的最大调用步数
+MAX_TOOL_RETRIES = 1  # 工具可重试的最大次数
+MAX_ACTION_CORRECTIONS = 1  # 局部 Action correction 的最大允许次数
+MIN_STEPS_AFTER_VALID_ACTION = 4  # 取得合法 Action 后，仍须保留的最少调用步数
+MAX_ACTION_VALIDATION_ERROR_CHARS = 300  # 回填给模型的校验错误最大字符数
 CALL_LOG_FIELDS = (
     "request_id",
     "step",
@@ -84,6 +100,7 @@ CALL_LOG_FIELDS = (
     "duration_ms",
     "error",
 )
+
 
 # 自定义异常类，用于表示自动恢复机会耗尽的情况
 class AutoRecoveryExhaustedError(RuntimeError):
@@ -103,6 +120,78 @@ class AutoRecoveryExhaustedError(RuntimeError):
             "Auto recovery exhausted: "
             f"reason={reason}, attempts={attempts}, last_error={last_error}"
         )
+
+
+# 自定义异常类，用于表示工具调用达到了终点的情况
+class TerminalToolOutcomeError(RuntimeError):
+    """只表示 C4a-2b2 已识别的两个工具终点的内部专用信号。"""
+
+    def __init__(self, status: str, detail: str) -> None:
+        # 保存公开入口构造失败结果所需的最小内部事实，并初始化父类。
+        # 本类不构造最终三字段结果，也不接受本切片之外的状态。
+        if type(status) is not str:
+            raise ValueError("TerminalToolOutcomeError 的 status 必须是字符串类型")
+        if status != "tool_failure" and status != "insufficient_evidence":
+            raise ValueError(
+                "TerminalToolOutcomeError 只接受 "
+                "'tool_failure' 或 'insufficient_evidence' 状态"
+            )
+        if type(detail) is not str:
+            raise ValueError("TerminalToolOutcomeError 的 detail 必须是字符串类型")
+        detail = detail.strip()
+        if not detail:
+            raise ValueError("TerminalToolOutcomeError 的 detail 不能为空字符串")
+        self.status = status
+        self.detail = detail
+        super().__init__("Terminal tool outcome: " f"status={status}, detail={detail}")
+
+
+class ToolActionProtocolError(RuntimeError):
+    """表示模型响应无法提供一个可继续接力的单一 Tool Action 外壳。"""
+
+
+class ActionCorrectionBudgetError(RuntimeError):
+    """表示 I1a 已拒绝继续发起 Action correction 的内部窄信号。"""
+
+    def __init__(
+        self,
+        *,
+        reason: str,
+        current_step: int,
+        corrections_used: int,
+        last_error: str,
+    ) -> None:
+        if reason not in (
+            "max_action_corrections",
+            "insufficient_completion_steps",
+        ):
+            raise ValueError("未知的 Action correction 预算停止原因")
+        self.reason = reason
+        self.current_step = current_step
+        self.corrections_used = corrections_used
+        self.last_error = last_error
+        super().__init__(
+            "Action correction budget unavailable: "
+            f"reason={reason}, current_step={current_step}, "
+            f"corrections_used={corrections_used}, last_error={last_error}"
+        )
+
+
+class ToolRetryCompletionBudgetError(RuntimeError):
+    """表示第二次真实工具调用前发现完整可信链预算不足的内部窄信号。"""
+
+    def __init__(
+        self,
+        *,
+        current_step: int,
+        attempts: int,
+        last_error: str,
+    ) -> None:
+        # 类型本身唯一表示“完整链预算不足”；固定异常文本不回显工具错误。
+        self.current_step = current_step
+        self.attempts = attempts
+        self.last_error = last_error
+        super().__init__("Tool retry completion budget is insufficient")
 
 
 # 初始化单次请求共享的运行上下文的工具函数
@@ -128,6 +217,98 @@ def create_run_context(
         "logs": [],
     }
 
+
+# 判断是否还有 Action correction 预算的工具函数
+def has_action_correction_budget(
+    current_step: int,
+    corrections_used: int,
+) -> bool:
+    """判断是否还允许发起一次 Action correction 模型调用。
+
+    这是一个无副作用的纯预算门：不得修改 ``run_context``、占用 step、
+    写日志或调用模型 / 工具。输入只接受内建整数；``current_step`` 必须
+    位于 1 到全局上限之间，``corrections_used`` 必须位于 0 到局部上限之间。
+    """
+    if not type(current_step) is int or current_step < 1 or current_step > MAX_STEPS:
+        raise ValueError("current_step 必须是位于 1 到全局上限之间的整数")
+    if (
+        not type(corrections_used) is int
+        or corrections_used < 0
+        or corrections_used > MAX_ACTION_CORRECTIONS
+    ):
+        raise ValueError("corrections_used 必须是位于 0 到局部上限之间的整数")
+
+    remaining_steps = MAX_STEPS - current_step
+    if (
+        corrections_used >= MAX_ACTION_CORRECTIONS
+        or remaining_steps < 1 + MIN_STEPS_AFTER_VALID_ACTION
+    ):
+        return False
+    return True
+
+
+# 判断一次工具 retry 后是否仍能完成可信结果链的纯预算门。
+def has_tool_retry_completion_budget(
+    current_step: int,
+) -> bool:
+    """判断全局剩余调用步数能否容纳工具 retry 及其完整下游链。
+
+    ``current_step`` 表示第一次真实工具尝试已完成并记账后的累计 step，
+    只接受全局计数器合法域内的内建整数。本函数只判断全局完成性预算；
+    本地 retry 次数额度仍由既有 retry 分支负责，二者不得混为同一原因。
+
+    合法输入返回内建 ``bool``；不得接收或修改 ``run_context``，不得占步、
+    写日志、调用模型 / 工具、执行 retry、构造停止异常或公开结果。
+    """
+    if not type(current_step) is int or not (1 <= current_step <= MAX_STEPS):
+        raise ValueError("current_step 必须是位于 1 到全局上限之间的整数")
+
+    remaining_steps = MAX_STEPS - current_step
+    return remaining_steps >= MIN_STEPS_AFTER_VALID_ACTION
+
+
+# 构造用于请求 Action correction 的协议级 Tool Observation 的工具函数
+def build_action_validation_observation(
+    tool_call_id: str,
+    validation_error: str,
+) -> dict[str, str]:
+    """构造用于请求 Action correction 的协议级 Tool Observation。
+
+    这条消息表示客户端在真实工具执行前拒绝了 Action，不代表工具后端
+    已运行。返回值外层必须严格只有 ``role``、``tool_call_id``、``content``；
+    ``content`` 必须是 JSON 字符串，并严格包含 ``ok``、``error_type``、
+    ``message``、``instruction`` 四个字段。函数不得占 step、写调用日志、
+    调用模型 / 工具，也不得接收或拼入原始参数、prompt、资料或内部日志。
+    """
+    # 校验 tool_call_id 和 validation_error，构造 content 并返回协议消息
+    if not type(tool_call_id) is str or not tool_call_id.strip():
+        raise ValueError("tool_call_id 必须是非空字符串")
+
+    if not type(validation_error) is str or not validation_error.strip():
+        raise ValueError("validation_error 必须是非空字符串")
+    validation_error = validation_error.strip()
+    if len(validation_error) > MAX_ACTION_VALIDATION_ERROR_CHARS:
+        raise ValueError(
+            f"validation_error 长度不得超过 {MAX_ACTION_VALIDATION_ERROR_CHARS}"
+        )
+
+    content = json.dumps(
+        {
+            "ok": False,
+            "error_type": "action_validation_error",
+            "message": validation_error,
+            "instruction": "请只返回一个符合 Schema 与规范化请求的修正工具调用",
+        },
+        ensure_ascii=False,
+    )
+
+    return {
+        "role": "tool",
+        "tool_call_id": tool_call_id,
+        "content": content,
+    }
+
+
 # 占用调用步骤的工具函数, 在真实模型或工具调用前使用, 返回当前调用的 step。判断是否超过最大步骤限制。
 def reserve_call_step(
     run_context: dict[str, object],
@@ -146,6 +327,7 @@ def reserve_call_step(
         raise ValueError("run_context 中的 'step' 超过最大步骤限制")
     run_context["step"] = step + 1
     return run_context["step"]
+
 
 # 追加调用日志的工具函数
 def append_call_log(
@@ -178,19 +360,13 @@ def append_call_log(
     if event_type not in ("model_call", "tool_call"):
         raise ValueError("event_type 必须是 'model_call' 或 'tool_call'")
     if event_type == "model_call":
-        if not (
-            isinstance(model, str)
-            and model.strip() != ""
-            and tool_name is None
-        ):
+        if not (isinstance(model, str) and model.strip() != "" and tool_name is None):
             raise ValueError(
                 "model_call 的 model 必须为非空字符串，tool_name 必须为 None"
             )
     elif event_type == "tool_call":
         if not (
-            isinstance(tool_name, str)
-            and tool_name.strip() != ""
-            and model is None
+            isinstance(tool_name, str) and tool_name.strip() != "" and model is None
         ):
             raise ValueError(
                 "tool_call 的 tool_name 必须为非空字符串，model 必须为 None"
@@ -293,6 +469,7 @@ def validate_relative_path_value(normalized_value: str) -> str | None:
         return f"相对路径 '{normalized_value}' 不在沙箱目录下"
     return None
 
+
 # 校验并规范化请求的工具函数
 def prepare_request(
     request: object,
@@ -332,6 +509,7 @@ def prepare_request(
         "value": normalized_value,
     }
     return normalized_request, None
+
 
 #  读取沙箱内资料的工具函数
 def read_material(relative_path: str) -> dict[str, object]:
@@ -456,9 +634,19 @@ def search_web(query: str) -> dict[str, object]:
     if "error" in data:
         return {"ok": False, "error": f"API 错误: {data['error']}", "retryable": False}
     if "query" not in data or not isinstance(data.get("query"), dict):
-        return {"ok": False, "error": "API 返回的搜索结果结构不正确", "retryable": False}
-    if "search" not in data["query"] or not isinstance(data["query"].get("search"), list):
-        return {"ok": False, "error": "API 返回的搜索结果列表不正确", "retryable": False}
+        return {
+            "ok": False,
+            "error": "API 返回的搜索结果结构不正确",
+            "retryable": False,
+        }
+    if "search" not in data["query"] or not isinstance(
+        data["query"].get("search"), list
+    ):
+        return {
+            "ok": False,
+            "error": "API 返回的搜索结果列表不正确",
+            "retryable": False,
+        }
     # 如果没有错误，继续处理搜索结果。取出 data 中的 query.search 列表，最多取 MAX_SEARCH_RESULTS 条结果。
     search_results = data.get("query", {}).get("search", [])
     results = []
@@ -473,7 +661,11 @@ def search_web(query: str) -> dict[str, object]:
             or not (type(pageid) is int and pageid > 0)
             or not isinstance(snippet, str)
         ):
-            return {"ok": False, "error": "搜索结果条目缺少必要字段", "retryable": False}
+            return {
+                "ok": False,
+                "error": "搜索结果条目缺少必要字段",
+                "retryable": False,
+            }
         url = WIKIPEDIA_PAGE_URL_TEMPLATE.format(page_id=pageid)  # 使用 pageid 构造 URL
         snippet = re.sub(r"<.*?>", "", snippet)  # 去除 HTML 标签，保留纯文本内容
         snippet = html.unescape(
@@ -490,6 +682,7 @@ TOOL_REGISTRY: dict[str, object] = {
     "read_material": read_material,
     "search_web": search_web,
 }
+
 
 #  构建模型工具的 Schema 列表
 def build_tool_schemas() -> list[dict[str, object]]:
@@ -538,6 +731,7 @@ def build_tool_schemas() -> list[dict[str, object]]:
     }
     return [read_material_schema, search_web_schema]
 
+
 # 执行模型工具调用的统一入口，负责参数校验、白名单检查以及实际调用工具函数。
 def execute_tool_call(
     tool_name: object,
@@ -554,26 +748,44 @@ def execute_tool_call(
         return {"ok": False, "error": f"未注册的工具: {tool_name}", "retryable": False}
     try:
         if not isinstance(raw_arguments, str):
-            return {"ok": False, "error": "工具参数必须是 JSON 字符串", "retryable": False}
+            return {
+                "ok": False,
+                "error": "工具参数必须是 JSON 字符串",
+                "retryable": False,
+            }
         if not raw_arguments.strip():
             return {"ok": False, "error": "工具参数不能为空", "retryable": False}
         arguments = json.loads(raw_arguments)
         if not isinstance(arguments, dict):
-            return {"ok": False, "error": "工具参数必须是 JSON 对象", "retryable": False}
+            return {
+                "ok": False,
+                "error": "工具参数必须是 JSON 对象",
+                "retryable": False,
+            }
     except json.JSONDecodeError as e:
         return {"ok": False, "error": f"解析工具参数失败: {e}", "retryable": False}
 
     # 校验参数是否符合工具的 Schema
-    tool_schemas = {schema["function"]["name"]: schema for schema in build_tool_schemas()}
+    tool_schemas = {
+        schema["function"]["name"]: schema for schema in build_tool_schemas()
+    }
     schema = tool_schemas.get(tool_name)
     if schema is None:
-        return {"ok": False, "error": f"未找到工具的 Schema: {tool_name}", "retryable": False}
+        return {
+            "ok": False,
+            "error": f"未找到工具的 Schema: {tool_name}",
+            "retryable": False,
+        }
     required_fields = (
         schema.get("function", {}).get("parameters", {}).get("required", [])
     )
     for field in required_fields:
         if field not in arguments:
-            return {"ok": False, "error": f"缺少必要的工具参数: {field}", "retryable": False}
+            return {
+                "ok": False,
+                "error": f"缺少必要的工具参数: {field}",
+                "retryable": False,
+            }
     additional_properties = (
         schema.get("function", {})
         .get("parameters", {})
@@ -582,30 +794,62 @@ def execute_tool_call(
     if not additional_properties:
         for field in arguments:
             if field not in required_fields:
-                return {"ok": False, "error": f"存在多余的工具参数: {field}", "retryable": False}
+                return {
+                    "ok": False,
+                    "error": f"存在多余的工具参数: {field}",
+                    "retryable": False,
+                }
     # 校验参数类型是否符合要求
     properties = schema.get("function", {}).get("parameters", {}).get("properties", {})
     for field, field_schema in properties.items():
         if field in arguments:
             expected_type = field_schema.get("type")
             if expected_type == "string" and not isinstance(arguments[field], str):
-                return {"ok": False, "error": f"工具参数 {field} 类型不正确，期望为字符串", "retryable": False}
+                return {
+                    "ok": False,
+                    "error": f"工具参数 {field} 类型不正确，期望为字符串",
+                    "retryable": False,
+                }
 
     # 校验工具调用的参数是否与 normalized_request 完全一致。
     if tool_name == "read_material":
         if "relative_path" not in arguments:
-            return {"ok": False, "error": "缺少必要的工具参数: relative_path", "retryable": False}
+            return {
+                "ok": False,
+                "error": "缺少必要的工具参数: relative_path",
+                "retryable": False,
+            }
         if normalized_request.get("input_type") != "relative_path":
-            return {"ok": False, "error": "工具调用的 input_type 与 normalized_request 不一致", "retryable": False}
+            return {
+                "ok": False,
+                "error": "工具调用的 input_type 与 normalized_request 不一致",
+                "retryable": False,
+            }
         if arguments["relative_path"] != normalized_request.get("value"):
-            return {"ok": False, "error": "工具调用的 relative_path 与 normalized_request 不一致", "retryable": False}
+            return {
+                "ok": False,
+                "error": "工具调用的 relative_path 与 normalized_request 不一致",
+                "retryable": False,
+            }
     elif tool_name == "search_web":
         if "query" not in arguments:
-            return {"ok": False, "error": "缺少必要的工具参数: query", "retryable": False}
+            return {
+                "ok": False,
+                "error": "缺少必要的工具参数: query",
+                "retryable": False,
+            }
         if normalized_request.get("input_type") != "topic":
-            return {"ok": False, "error": "工具调用的 input_type 与 normalized_request 不一致", "retryable": False}
+            return {
+                "ok": False,
+                "error": "工具调用的 input_type 与 normalized_request 不一致",
+                "retryable": False,
+            }
         if arguments["query"] != normalized_request.get("value"):
-            return {"ok": False, "error": "工具调用的 query 与 normalized_request 不一致", "retryable": False}
+            return {
+                "ok": False,
+                "error": "工具调用的 query 与 normalized_request 不一致",
+                "retryable": False,
+            }
     else:
         return {"ok": False, "error": f"未知的工具: {tool_name}", "retryable": False}
 
@@ -658,6 +902,182 @@ def execute_tool_call(
         return result
 
 
+# 提取执行前的动作校验错误
+def extract_preexecution_action_validation_error(
+    tool_result: object,
+    *,
+    run_context: dict[str, object],
+    step_before: int,
+    logs_length_before: int,
+) -> str | None:
+    """只识别没有触发真实工具 step / 日志的 Action 校验拒绝。
+
+    返回经过首尾空白清理的安全校验错误，表示后续可以考虑进入 Action
+    correction；任何真实工具已执行、结果形状不明确或账本来源不一致的情况
+    都返回 ``None``。本函数只观察输入，不修改上下文，也不调用模型或工具。
+    """
+    if type(step_before) is not int or step_before < 0:
+        return None
+    if type(logs_length_before) is not int or logs_length_before < 0:
+        return None
+
+    if type(run_context) is not dict:
+        return None
+    if "step" not in run_context or "logs" not in run_context:
+        return None
+    step = run_context.get("step")
+    logs = run_context.get("logs")
+    if type(step) is not int or step < 0:
+        return None
+    if type(logs) is not list:
+        return None
+
+    if type(tool_result) is not dict:
+        return None
+
+    if set(tool_result) != {"ok", "error", "retryable"}:
+        return None
+
+    if (
+        tool_result.get("ok") is not False
+        or tool_result.get("retryable") is not False
+        or type(tool_result.get("error")) is not str
+        or not tool_result.get("error").strip()
+    ):
+        return None
+
+    if step != step_before or len(logs) != logs_length_before:
+        return None
+
+    return tool_result.get("error").strip()
+
+
+# 执行工具动作并分类结果来源
+def execute_and_classify_tool_action(
+    tool_name: object,
+    raw_arguments: object,
+    normalized_request: dict[str, str],
+    *,
+    run_context: dict[str, object],
+) -> dict[str, object]:
+    """执行恰好一次未信任 Tool Action，并按同一次执行快照分类结果来源。
+
+    返回严格两键 ``tool_result`` 与 ``validation_error``；前者保留
+    ``execute_tool_call()`` 的原始结果对象，后者只允许是 I1f 识别出的
+    执行前校验错误或 ``None``。本函数不请求 correction、不重试工具，
+    也不进入 candidate、Reflection、Refinement 或公开结果映射。
+    """
+    if (
+        type(run_context) is not dict
+        or "step" not in run_context
+        or "logs" not in run_context
+    ):
+        raise ValueError("Invalid run_context")
+    step = run_context.get("step")
+    if not type(step) is int or not (0 <= step <= MAX_STEPS):
+        raise ValueError("Invalid run_context")
+    if not type(run_context.get("logs")) is list:
+        raise ValueError("Invalid run_context")
+    step_before = run_context.get("step")
+    logs_length_before = len(run_context.get("logs"))
+    tool_result = execute_tool_call(
+        tool_name,
+        raw_arguments,
+        normalized_request,
+        run_context=run_context,
+    )
+    validation_error = extract_preexecution_action_validation_error(
+        tool_result=tool_result,
+        run_context=run_context,
+        step_before=step_before,
+        logs_length_before=logs_length_before,
+    )
+    return {"tool_result": tool_result, "validation_error": validation_error}
+
+
+def raise_for_terminal_tool_outcome(
+    tool_name: str,
+    tool_result: dict[str, object],
+    *,
+    run_context: dict[str, object],
+    step_before: int,
+    logs_length_before: int,
+) -> None:
+    """识别 C4a-2b2 的两个精确工具终点；其他结果正常返回。"""
+    if not isinstance(tool_result, dict):
+        return None
+    if not isinstance(run_context, dict):
+        return None
+    if type(step_before) is not int or step_before < 0:
+        return None
+    if type(tool_name) is not str or not tool_name.strip():
+        return None
+    if type(logs_length_before) is not int or logs_length_before < 0:
+        return None
+    step = run_context.get("step", 0)
+    if type(step) is not int or step < 0:
+        return None
+    logs = run_context.get("logs")
+    if not isinstance(logs, list):
+        return None
+    request_id = run_context.get("request_id")
+    if type(request_id) is not str or not request_id.strip():
+        return None
+
+    # 真实工具执行必须让 step 与七字段日志各精确增加 1。
+    if step != step_before + 1:
+        return
+    if len(logs) != logs_length_before + 1:
+        return
+
+    new_log = logs[logs_length_before]
+    if not isinstance(new_log, dict):
+        return None
+    if set(new_log.keys()) != set(CALL_LOG_FIELDS):
+        return None
+    if (
+        type(new_log.get("event_type")) is not str
+        or new_log.get("event_type") != "tool_call"
+    ):
+        return None
+    if (
+        type(new_log.get("tool_name")) is not str
+        or new_log.get("tool_name") != tool_name
+    ):
+        return None
+    if (
+        type(new_log.get("request_id")) is not str
+        or new_log.get("request_id") != request_id
+    ):
+        return None
+    if type(new_log.get("step")) is not int or new_log.get("step") != step:
+        return None
+
+    error = tool_result.get("error")
+    if (
+        tool_result.get("ok") is False
+        and tool_result.get("retryable") is False
+        and type(error) is str
+        and error.strip()
+    ):
+        raise TerminalToolOutcomeError(
+            status="tool_failure",
+            detail=error.strip(),
+        )
+    results = tool_result.get("results")
+    if (
+        tool_name == "search_web"
+        and tool_result.get("ok") is True
+        and isinstance(results, list)
+        and len(results) == 0
+    ):
+        raise TerminalToolOutcomeError(
+            status="insufficient_evidence",
+            detail="搜索工具已成功执行，但没有取得可用于生成摘要的真实证据。",
+        )
+    return None
+
+
 def create_deepseek_client() -> OpenAI:
     """复用已 PASS 配置，创建真实 DeepSeek 客户端但不发起模型调用。"""
     load_dotenv()
@@ -665,6 +1085,268 @@ def create_deepseek_client() -> OpenAI:
     if not api_key:
         raise RuntimeError("DeepSeek API key is missing.")
     return OpenAI(api_key=api_key, base_url=DEEPSEEK_BASE_URL)
+
+
+# 发起一次 Action correction 的模型调用
+def request_action_correction(
+    correction_messages: list[object],
+    client: OpenAI | None = None,
+    *,
+    run_context: dict[str, object],
+) -> object:
+    """发起恰好一次 Action correction 模型调用并原样返回响应。
+
+    ``correction_messages`` 由后续编排层按原顺序准备：system、user、
+    原始完整 invalid assistant message、与其 ``tool_call_id`` 精确配对的
+    I1b Tool Observation。本函数只负责一次真实模型调用及其共享 step / 日志，
+    不修改消息列表，也不解析或执行返回的修正 Action。调用方必须先通过
+    I1a 策略预算门；本函数内部的 ``reserve_call_step`` 只保留全局硬门。
+    """
+    if not type(correction_messages) is list or not correction_messages:
+        raise ValueError("correction_messages must be a non-empty list")
+    if client is None:
+        client = create_deepseek_client()
+    call_step = reserve_call_step(run_context)
+    perf_counter_start = perf_counter()
+    try:
+        response = client.chat.completions.create(
+            model=DEEPSEEK_MODEL,
+            messages=correction_messages,
+            tools=build_tool_schemas(),
+            stream=False,
+            extra_body={"thinking": {"type": "disabled"}},
+        )
+    except Exception as e:
+        perf_counter_end = perf_counter()
+        append_call_log(
+            run_context,
+            error=type(e).__name__,
+            duration_ms=max(0, int((perf_counter_end - perf_counter_start) * 1000)),
+            step=call_step,
+            event_type="model_call",
+            model=DEEPSEEK_MODEL,
+            tool_name=None,
+        )
+        raise
+    else:
+        perf_counter_end = perf_counter()
+        append_call_log(
+            run_context,
+            error=None,
+            duration_ms=max(0, int((perf_counter_end - perf_counter_start) * 1000)),
+            step=call_step,
+            event_type="model_call",
+            model=DEEPSEEK_MODEL,
+            tool_name=None,
+        )
+        return response
+
+
+# 解析单个工具调用响应的函数
+def parse_single_tool_action_response(
+    response: object,
+) -> dict[str, object]:
+    """从模型响应中提取一个结构明确、内容仍未信任的 Tool Action。
+
+    本函数只守住 SDK 响应外壳、恰好一个 choice / tool call 和可关联的原始
+    ``tool_call_id``；返回原始 assistant message、工具名与原始参数，不解析
+    JSON、不查工具注册表，也不执行 Action。所有结构错误统一显式抛
+    ``ToolActionProtocolError``（它是 ``RuntimeError`` 的窄子类）。
+    """
+    if response is None:
+        raise ToolActionProtocolError("Response must not be empty.")
+
+    if not hasattr(response, "choices"):
+        raise ToolActionProtocolError("Response must have 'choices' key.")
+    choices = response.choices
+    if not type(choices) is list or len(choices) != 1:
+        raise ToolActionProtocolError("Response must have exactly one choice.")
+    choice = choices[0]
+    if not hasattr(choice, "finish_reason"):
+        raise ToolActionProtocolError("Choice must have 'finish_reason' key.")
+    finish_reason = choice.finish_reason
+    if type(finish_reason) is not str or finish_reason != "tool_calls":
+        raise ToolActionProtocolError("Finish reason must be 'tool_calls'.")
+    if not hasattr(choice, "message"):
+        raise ToolActionProtocolError("Choice must have 'message' key.")
+    message = choice.message
+    if not hasattr(message, "tool_calls"):
+        raise ToolActionProtocolError("Message must have 'tool_calls' key.")
+    tool_calls = message.tool_calls
+    if not type(tool_calls) is list or len(tool_calls) != 1:
+        raise ToolActionProtocolError("Message must have exactly one tool call.")
+    tool_call = tool_calls[0]
+    if not hasattr(tool_call, "id"):
+        raise ToolActionProtocolError("Tool call must have 'id' key.")
+    tool_call_id = tool_call.id
+    if not type(tool_call_id) is str or not tool_call_id.strip():
+        raise ToolActionProtocolError("Tool call ID must be a non-empty string.")
+    if not hasattr(tool_call, "function"):
+        raise ToolActionProtocolError("Tool call must have 'function' key.")
+    if not hasattr(tool_call.function, "name"):
+        raise ToolActionProtocolError("Function must have 'name' key.")
+    if not hasattr(tool_call.function, "arguments"):
+        raise ToolActionProtocolError("Function must have 'arguments' key.")
+    tool_name = tool_call.function.name
+    if tool_name is None:
+        raise ToolActionProtocolError("Function name must not be None.")
+    raw_arguments = tool_call.function.arguments
+
+    return {
+        "assistant_message": message,
+        "tool_call_id": tool_call_id,
+        "tool_name": tool_name,
+        "raw_arguments": raw_arguments,
+    }
+
+
+# 请求并解析一次 Action correction 的最小编排
+def request_and_parse_action_correction(
+    base_messages: list[object],
+    invalid_action: dict[str, object],
+    validation_error: str,
+    corrections_used: int,
+    client: OpenAI | None = None,
+    *,
+    run_context: dict[str, object],
+) -> dict[str, object]:
+    """请求并解析一次 Action correction，不执行修正后的 Action。
+
+    ``invalid_action`` 是 I1d 对首次非法响应给出的严格四键结果；成功时返回
+    新的纠错消息历史、仍未信任的修正 Action，以及递增后的局部纠错次数。
+    """
+    if type(base_messages) is not list or not base_messages:
+        raise ValueError("base_messages must be a non-empty built-in list.")
+    expected_action_keys = {
+        "assistant_message",
+        "tool_call_id",
+        "tool_name",
+        "raw_arguments",
+    }
+
+    if type(invalid_action) is not dict or set(invalid_action) != expected_action_keys:
+        raise ValueError("invalid_action must be the exact I1d four-key result.")
+
+    if not run_context or not isinstance(run_context, dict):
+        raise ToolActionProtocolError("run_context must be a non-empty dict.")
+    observation = build_action_validation_observation(
+        invalid_action["tool_call_id"],
+        validation_error,
+    )
+
+    budget = has_action_correction_budget(
+        run_context["step"],
+        corrections_used,
+    )
+
+    if not budget:
+        if corrections_used >= MAX_ACTION_CORRECTIONS:
+            reason = "max_action_corrections"
+        else:
+            reason = "insufficient_completion_steps"
+
+        raise ActionCorrectionBudgetError(
+            reason=reason,
+            current_step=run_context["step"],
+            corrections_used=corrections_used,
+            last_error=validation_error.strip(),
+        )
+    correction_messages = list(base_messages)
+
+    correction_messages.extend(
+        [
+            invalid_action["assistant_message"],
+            observation,
+        ]
+    )
+
+    next_corrections_used = corrections_used + 1
+    raw_response = request_action_correction(
+        correction_messages,
+        client=client,
+        run_context=run_context,
+    )
+    corrected_action = parse_single_tool_action_response(raw_response)
+    return {
+        "correction_messages": correction_messages,
+        "corrected_action": corrected_action,
+        "corrections_used": next_corrections_used,
+    }
+
+
+def run_tool_action_phase_with_one_correction(
+    base_messages: list[object],
+    initial_action: dict[str, object],
+    normalized_request: dict[str, str],
+    client: OpenAI | None = None,
+    *,
+    run_context: dict[str, object],
+) -> dict[str, object]:
+    """运行首次 Action，并在可信执行前拒绝时至多请求一次修正 Action。
+
+    成功时返回严格四键 ``messages``、``action``、``tool_result`` 与
+    ``corrections_used``，停在工具 retry、candidate、Reflection、Refinement
+    和公开结果映射之前。预算或下层调用的窄异常按原对象继续传播。
+    """
+    if type(base_messages) is not list or not base_messages:
+        raise ValueError("base_messages must be a non-empty list")
+    expected_action_keys = {
+        "assistant_message",
+        "tool_call_id",
+        "tool_name",
+        "raw_arguments",
+    }
+    if type(initial_action) is not dict or set(initial_action) != expected_action_keys:
+        raise ValueError(
+            "initial_action must be a dict with keys: "
+            + ", ".join(expected_action_keys)
+        )
+    corrections_used = 0
+    initial_execution = execute_and_classify_tool_action(
+        initial_action["tool_name"],
+        initial_action["raw_arguments"],
+        normalized_request,
+        run_context=run_context,
+    )
+    if initial_execution["validation_error"] is None:
+        return {
+            "messages": base_messages,
+            "action": initial_action,
+            "tool_result": initial_execution["tool_result"],
+            "corrections_used": corrections_used,
+        }
+    correction = request_and_parse_action_correction(
+        base_messages=base_messages,
+        invalid_action=initial_action,
+        validation_error=initial_execution["validation_error"],
+        corrections_used=0,
+        client=client,
+        run_context=run_context,
+    )
+    corrected_action = correction["corrected_action"]
+    corrected_execution = execute_and_classify_tool_action(
+        corrected_action["tool_name"],
+        corrected_action["raw_arguments"],
+        normalized_request,
+        run_context=run_context,
+    )
+    if corrected_execution["validation_error"] is None:
+        return {
+            "messages": correction["correction_messages"],
+            "action": correction["corrected_action"],
+            "tool_result": corrected_execution["tool_result"],
+            "corrections_used": correction["corrections_used"],
+        }
+
+    request_and_parse_action_correction(
+        base_messages=correction["correction_messages"],
+        invalid_action=correction["corrected_action"],
+        validation_error=corrected_execution["validation_error"],
+        corrections_used=correction["corrections_used"],
+        client=client,
+        run_context=run_context,
+    )
+
 
 # 生成候选摘要的工具函数
 def generate_candidate_summary(
@@ -736,42 +1418,28 @@ def generate_candidate_summary(
             duration_ms=duration_ms,
             error=None,
         )
-    if response1.choices is None or len(response1.choices) == 0:
-        raise RuntimeError("模型未返回任何选择")
-    # 第一次模型必须明确以工具调用结束，才允许读取并执行 tool_calls。
-    if not hasattr(response1.choices[0], "finish_reason"):
-        raise RuntimeError("首次模型调用缺少 finish_reason 字段")
-
-    if response1.choices[0].finish_reason != "tool_calls":
-        raise RuntimeError("首次模型调用未以工具调用结束")
-
-    assistant_message = response1.choices[0].message
-    if assistant_message is None:
-        raise RuntimeError("第一次模型调用未返回任何消息")
-    tool_calls = assistant_message.tool_calls
-    if tool_calls is None or len(tool_calls) == 0:
-        raise RuntimeError("模型未返回任何工具调用")
-    if len(tool_calls) != 1:
-        raise RuntimeError(f"模型返回了 {len(tool_calls)} 个工具调用，期望恰好 1 个")
-    if tool_calls[0].function is None or tool_calls[0].function.name is None:
-        raise RuntimeError("模型返回的工具调用缺少函数名")
-
-    tool_call = tool_calls[0]
-    tool_call_id = tool_call.id
-    tool_name = tool_call.function.name
-    raw_arguments = tool_call.function.arguments
-    if not isinstance(tool_call_id, str) or tool_call_id.strip() == "":
-        raise RuntimeError("工具调用 ID 必须是非空字符串")
-    tool_result = execute_tool_call(
-        tool_name,
-        raw_arguments,
-        normalized_request,
+    initial_action = parse_single_tool_action_response(response1)
+    action_phase_step_before = run_context["step"]
+    action_phase_logs_length_before = len(run_context["logs"])
+    action_phase = run_tool_action_phase_with_one_correction(
+        base_messages=messages,
+        initial_action=initial_action,
+        normalized_request=normalized_request,
+        client=client,
         run_context=run_context,
     )
-    if (
-        tool_result.get("ok") is False
-        and tool_result.get("retryable") is True
-    ):
+    messages = action_phase["messages"]
+    final_action = action_phase["action"]
+    tool_result = action_phase["tool_result"]
+    corrections_used = action_phase["corrections_used"]
+
+    assistant_message = final_action["assistant_message"]
+    tool_call_id = final_action["tool_call_id"]
+    tool_name = final_action["tool_name"]
+    raw_arguments = final_action["raw_arguments"]
+    tool_step_before = action_phase_step_before + corrections_used
+    tool_logs_length_before = action_phase_logs_length_before + corrections_used
+    if tool_result.get("ok") is False and tool_result.get("retryable") is True:
         # C4a-2a：最多一次同名、同原始参数重试；每次真实尝试仍通过
         # execute_tool_call 独立占步、计时和写日志。
         if MAX_TOOL_RETRIES > 0:
@@ -782,24 +1450,41 @@ def generate_candidate_summary(
                     attempts=1,
                     last_error=tool_result.get("error"),
                 )
+            retry_completion_budget = has_tool_retry_completion_budget(
+                run_context["step"]
+            )
+            if not retry_completion_budget:
+                raise ToolRetryCompletionBudgetError(
+                    current_step=run_context["step"],
+                    attempts=1,
+                    last_error=tool_result.get("error"),
+                )
             # 额外真实尝试发生后，只对仍可重试的失败发出耗尽信号。
+            tool_step_before = run_context["step"]
+            tool_logs_length_before = len(run_context["logs"])
             tool_result = execute_tool_call(
                 tool_name,
                 raw_arguments,
                 normalized_request,
                 run_context=run_context,
             )
-            if (
-                tool_result.get("ok") is False
-                and tool_result.get("retryable") is True
-            ):
+            if tool_result.get("ok") is False and tool_result.get("retryable") is True:
                 raise AutoRecoveryExhaustedError(
                     reason="max_tool_retries",
                     attempts=2,
                     last_error=tool_result.get("error"),
                 )
+    raise_for_terminal_tool_outcome(
+        tool_name,
+        tool_result,
+        run_context=run_context,
+        step_before=tool_step_before,
+        logs_length_before=tool_logs_length_before,
+    )
     if tool_result.get("ok") is not True:
-        raise RuntimeError(f"工具调用失败: {tool_result.get('error', '无法生成正常候选摘要')}")
+        raise RuntimeError(
+            f"工具调用失败: {tool_result.get('error', '无法生成正常候选摘要')}"
+        )
     # 回填工具结果到消息中
     tool_result_message = {
         "role": "tool",
@@ -862,9 +1547,15 @@ def generate_candidate_summary(
     assistant_message2 = choice2.message
     if assistant_message2 is None or assistant_message2.content is None:
         raise RuntimeError("模型未返回候选摘要")
-    if assistant_message2.tool_calls is not None and len(assistant_message2.tool_calls) > 0:
+    if (
+        assistant_message2.tool_calls is not None
+        and len(assistant_message2.tool_calls) > 0
+    ):
         raise RuntimeError("模型在第二次调用中不应返回工具调用")
-    if not isinstance(assistant_message2.content, str) or assistant_message2.content.strip() == "":
+    if (
+        not isinstance(assistant_message2.content, str)
+        or assistant_message2.content.strip() == ""
+    ):
         raise RuntimeError("模型返回的候选摘要不是非空字符串类型")
 
     candidate_summary = assistant_message2.content
@@ -873,6 +1564,7 @@ def generate_candidate_summary(
         "tool_name": tool_name,
         "tool_result": tool_result,
     }
+
 
 # 判断候选摘要的合法来源，构造来源白名单。
 def derive_allowed_sources(
@@ -913,6 +1605,7 @@ def derive_allowed_sources(
     else:
         raise ValueError(f"未知的工具: {tool_name}")
 
+
 # 构造 Reflection prompt
 def build_reflection_prompt(
     normalized_request: dict[str, str],
@@ -948,7 +1641,7 @@ def build_reflection_prompt(
         "不得使用模型常识补充工具没有取得的事实。"
         "allowed_sources 只能证明来源来自本轮 Observation，不能替代正文证据。"
         "成功候选的具体合同："
-        "status 必须是字符串 \"success\"；"
+        'status 必须是字符串 "success"；'
         "summary 必须是非空字符串；"
         "sources 必须是非空字符串列表；"
         "sources 必须是 allowed_sources 的子集。"
@@ -965,6 +1658,7 @@ def build_reflection_prompt(
     }
     prompt["review_instructions"] = review_instructions
     return json.dumps(prompt, ensure_ascii=False)
+
 
 # 构造 Refinement prompt
 def build_refinement_prompt(
@@ -988,8 +1682,8 @@ def build_refinement_prompt(
         "不得使用 Markdown 代码围栏（```）包装 JSON。"
         "sources 必须从 allowed_sources 中选择，不能扩大白名单。"
         "JSON 对象的键必须恰好是 status、summary、sources；不得增加其他键。"
-        "示例：{\"status\": \"success\", \"summary\": \"...\", \"sources\": [\"...\"]}。"
-        "成功候选必须满足：status == \"success\"，summary 为非空字符串，"
+        '示例：{"status": "success", "summary": "...", "sources": ["..."]}。'
+        '成功候选必须满足：status == "success"，summary 为非空字符串，'
         "sources 为非空字符串列表且是 allowed_sources 的子集。"
         "如果反馈为“无需改进”，保留候选事实含义；"
         "其他反馈只依据本轮证据修订。"
@@ -1005,6 +1699,7 @@ def build_refinement_prompt(
     }
     prompt["refinement_instructions"] = refinement_instructions
     return json.dumps(prompt, ensure_ascii=False)
+
 
 # 硬校验候选摘要并返回固定三字段的 success 结果
 def validate_success_result(
@@ -1041,8 +1736,7 @@ def validate_success_result(
         not isinstance(sources, list)
         or not sources
         or not all(
-            isinstance(source, str) and source.strip() != ""
-            for source in sources
+            isinstance(source, str) and source.strip() != "" for source in sources
         )
     ):
         raise ValueError("sources 必须是非空字符串列表")
@@ -1237,6 +1931,7 @@ def request_refinement_candidate(
     except json.JSONDecodeError as e:
         raise RuntimeError(f"Refinement 响应的 content 不是合法 JSON: {e}")
 
+
 # 编排 Reflection、Refinement 和最终硬校验的流程。
 def reflect_refine_and_validate(
     normalized_request: dict[str, str],
@@ -1296,8 +1991,10 @@ def run_research_summary_once(
 
     单次请求的调用日志只保存在内部 ``run_context``，不会加入最终
     三字段结果；当前已支持一次可重试工具首败后的同参数重试，并把
-    二次可重试失败或重试前无剩余 step 映射为 ``needs_manual``。HITL
-    和其他未映射的工具、模型与校验异常继续向上抛出。
+    二次可重试失败或重试前无剩余 step 映射为 ``needs_manual``，把
+    真实不可重试工具失败映射为 ``tool_failure``，把搜索成功但零证据
+    映射为 ``insufficient_evidence``。HITL 和其他未映射的工具、模型
+    与校验异常继续向上抛出。
     """
     normalized_request, invalid_result = prepare_request(request)
     if normalized_request is None:
@@ -1305,7 +2002,7 @@ def run_research_summary_once(
     if client is None:
         client = create_deepseek_client()
     run_context = create_run_context()
-    # 只把自动恢复耗尽信号窄映射为固定三字段 needs_manual。
+    # 把已识别的停止信号窄映射为对应的固定三字段结果。
     try:
         gen_res = generate_candidate_summary(
             normalized_request,
@@ -1324,6 +2021,59 @@ def run_research_summary_once(
             "当前尚未取得足够的可信证据，已停止自治并交由人工决定下一步。"
         )
         return make_result("needs_manual", summary_text, [])
+    except (ActionCorrectionBudgetError, ToolRetryCompletionBudgetError) as exc:
+        if type(exc) is ActionCorrectionBudgetError:
+            if exc.reason == "max_action_corrections":
+                summary_text = (
+                    "Action 修正已停止：已达到局部 Action 修正上限 "
+                    f"{MAX_ACTION_CORRECTIONS} 次；已使用修正 {exc.corrections_used} 次，"
+                    f"当前累计 step 为 {exc.current_step}；"
+                    f"最后一条安全校验错误：{exc.last_error}。"
+                    "尚未执行真实工具，因此没有可用于生成可信摘要的真实证据；"
+                    "已停止自治并交由人工决定下一步。"
+                )
+            elif exc.reason == "insufficient_completion_steps":
+                summary_text = (
+                    "Action 修正已停止：当前累计 step 为 "
+                    f"{exc.current_step}，全局上限为 {MAX_STEPS}；"
+                    "继续还需 1 次 Action correction，并在取得合法 Action 后"
+                    f"至少保留 {MIN_STEPS_AFTER_VALID_ACTION} 个调用 step，"
+                    "剩余全局预算无法容纳这条完整可信链；"
+                    f"已使用 Action 修正 {exc.corrections_used} 次；"
+                    f"最后一条安全校验错误：{exc.last_error}。"
+                    "本次未继续纠错，也尚未执行真实工具，"
+                    "因此没有可用于生成可信摘要的真实证据；"
+                    "已停止自治并交由人工决定下一步。"
+                )
+            else:
+                raise
+        elif type(exc) is ToolRetryCompletionBudgetError:
+            summary_text = (
+                "工具完整链重试已停止：第一次真实工具尝试返回可重试失败；"
+                f"当前累计 step 为 {exc.current_step}，全局上限为 {MAX_STEPS}，"
+                "而工具 retry、candidate、Reflection 与 Refinement "
+                f"的完整可信链至少需要 {MIN_STEPS_AFTER_VALID_ACTION} 个调用 step，"
+                "剩余全局预算不足；"
+                f"工具实际尝试 {exc.attempts} 次；"
+                f"最后一条安全工具错误：{exc.last_error}。"
+                "第二次工具调用尚未执行，当前仍缺少可用于生成可信摘要的成功工具证据；"
+                "已停止自治并交由人工决定下一步。"
+            )
+        else:
+            raise
+        return make_result("needs_manual", summary_text, [])
+    except TerminalToolOutcomeError as exc:
+        error_status = exc.status
+        if error_status == "tool_failure":
+            summary_text = (
+                "工具已真实执行，但返回不可重试失败："
+                f"{exc.detail}。已停止后续摘要生成。"
+            )
+        elif error_status == "insufficient_evidence":
+            summary_text = (
+                f"{exc.detail} " "已停止后续摘要生成，不会凭模型常识补写摘要或来源。"
+            )
+        return make_result(exc.status, summary_text, [])
     candidate_summary = gen_res["candidate_summary"]
     tool_name = gen_res["tool_name"]
     tool_result = gen_res["tool_result"]
