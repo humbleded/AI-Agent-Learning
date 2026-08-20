@@ -52,7 +52,17 @@
 当前已完成 C4b-1-I2b：判断工具 retry 后是否仍有完成可信下游链的全局预算。
 当前已完成 C4b-1-I2c：在第二次真实工具调用前消费完整链预算门。
 当前已完成 C4b-1-I2d：把预算窄异常准确映射为公开 needs_manual 结果。
-后续 candidate / Reflection / 最终 validator 失败恢复、安全确认和 eval 尚未完成。
+当前已完成 C4b-2a-I1a：候选恢复完整下游链预算门。
+当前已完成 C4b-2a-I1b：候选响应的 valid / recoverable / terminal 纯分类。
+当前已完成 C4b-2a-I1c：构造只复用真实 Tool Observation 的安全恢复消息。
+当前已完成 C4b-2a-I1d：单次 Candidate recovery 调用及其 step / 日志记账。
+当前已完成 C4b-2a-I1e：编排至多一次 Candidate recovery，并停在第二次内部分类。
+当前已完成 C4b-2a-I1f：把首次分类、至多一次恢复与候选阶段窄停止组合成 stage resolver。
+当前已完成 C4b-2a-I1g：把候选阶段 resolver 接入 ``generate_candidate_summary()``。
+当前已完成 C4b-2a-I1h：把候选阶段窄停止安全映射为公开 ``needs_manual``。
+当前已完成 C4b-2a-I2：候选恢复端到端故障注入与既有控制流回归。
+当前已完成 C4b-2a-U1：用户已审核最终调用轨迹、停止结果与来源语义。
+后续 Candidate Provider/API 异常、Reflection / 最终 validator 失败恢复、安全确认和 eval 尚未完成。
 """
 
 import html
@@ -87,6 +97,15 @@ MAX_SEARCH_RESULTS = 3  # 最大搜索结果条数
 DEEPSEEK_BASE_URL = "https://api.deepseek.com"
 DEEPSEEK_MODEL = "deepseek-v4-pro"
 MAX_STEPS = 6  # 每次请求允许的最大调用步数
+MIN_STEPS_FOR_CANDIDATE_RECOVERY_CHAIN = 3  # 候选恢复链所需的最少调用步数
+RECOVERABLE_CANDIDATE_RESPONSE_REASONS = frozenset(
+    {
+        "invalid_response_shape",
+        "invalid_candidate_content",
+        "length",
+        "unexpected_tool_calls",
+    }
+)
 MAX_TOOL_RETRIES = 1  # 工具可重试的最大次数
 MAX_ACTION_CORRECTIONS = 1  # 局部 Action correction 的最大允许次数
 MIN_STEPS_AFTER_VALID_ACTION = 4  # 取得合法 Action 后，仍须保留的最少调用步数
@@ -194,6 +213,87 @@ class ToolRetryCompletionBudgetError(RuntimeError):
         super().__init__("Tool retry completion budget is insufficient")
 
 
+class CandidateRecoveryCompletionBudgetError(RuntimeError):
+    """表示候选恢复前发现完整可信下游链预算不足的内部窄信号。"""
+
+    def __init__(
+        self,
+        *,
+        current_step: int,
+        recoverable_reason: str,
+    ) -> None:
+        if type(current_step) is not int or not (1 <= current_step <= MAX_STEPS):
+            raise ValueError("current_step 必须位于全局 step 合法域内")
+        if recoverable_reason not in RECOVERABLE_CANDIDATE_RESPONSE_REASONS:
+            raise ValueError("recoverable_reason 必须属于候选恢复白名单")
+        self.current_step = current_step
+        self.recoverable_reason = recoverable_reason
+        super().__init__("Candidate recovery completion budget is insufficient")
+
+
+class CandidateSummaryStageStopError(RuntimeError):
+    """表示 Candidate 阶段已安全停止、等待公开入口映射的内部窄信号。"""
+
+    def __init__(
+        self,
+        *,
+        stop_kind: str,
+        candidate_reason: str,
+        recovery_attempts: int,
+        current_step: int,
+        allowed_sources: list[str],
+    ) -> None:
+        terminal_reasons = {
+            "content_filter",
+            "insufficient_system_resource",
+            "missing_finish_reason",
+            "unknown_finish_reason",
+        }
+        if type(stop_kind) is not str or stop_kind not in {
+            "terminal_response",
+            "recovery_exhausted",
+            "insufficient_completion_steps",
+        }:
+            raise ValueError("stop_kind 必须属于候选阶段冻结的三种停止类型")
+        if type(candidate_reason) is not str:
+            raise ValueError("candidate_reason 必须是冻结的安全原因字符串")
+        if type(recovery_attempts) is not int or recovery_attempts not in {0, 1}:
+            raise ValueError("recovery_attempts 必须是内建整数 0 或 1")
+        if type(current_step) is not int or not (1 <= current_step <= MAX_STEPS):
+            raise ValueError("current_step 必须位于全局 step 合法域内")
+        if (
+            type(allowed_sources) is not list
+            or not allowed_sources
+            or not all(
+                type(source) is str and bool(source.strip())
+                for source in allowed_sources
+            )
+        ):
+            raise ValueError("allowed_sources 必须是非空的真实来源字符串列表")
+
+        if stop_kind == "terminal_response":
+            if candidate_reason not in terminal_reasons:
+                raise ValueError("terminal_response 必须携带 terminal candidate reason")
+        elif stop_kind == "recovery_exhausted":
+            if (
+                candidate_reason not in RECOVERABLE_CANDIDATE_RESPONSE_REASONS
+                or recovery_attempts != 1
+            ):
+                raise ValueError("recovery_exhausted 必须表示一次恢复后的可恢复失败")
+        elif (
+            candidate_reason not in RECOVERABLE_CANDIDATE_RESPONSE_REASONS
+            or recovery_attempts != 0
+        ):
+            raise ValueError("预算停止必须发生在候选恢复调用之前")
+
+        self.stop_kind = stop_kind
+        self.candidate_reason = candidate_reason
+        self.recovery_attempts = recovery_attempts
+        self.current_step = current_step
+        self.allowed_sources = list(allowed_sources)
+        super().__init__("Candidate summary stage stopped")
+
+
 # 初始化单次请求共享的运行上下文的工具函数
 def create_run_context(
     request_id: str | None = None,
@@ -265,6 +365,382 @@ def has_tool_retry_completion_budget(
 
     remaining_steps = MAX_STEPS - current_step
     return remaining_steps >= MIN_STEPS_AFTER_VALID_ACTION
+
+
+# 判断候选响应失败后是否仍能完成受控恢复链的纯预算门。
+def has_candidate_recovery_completion_budget(
+    current_step: int,
+) -> bool:
+    """判断剩余调用步数能否容纳候选恢复及其完整下游链。
+
+    ``current_step`` 表示不可用的候选模型响应已经返回并记账后的累计 step；
+    恢复成功还必须依次完成 Candidate recovery、Reflection 与 Refinement。
+    输入只接受全局计数器合法域内的内建整数，合法输入返回内建 ``bool``。
+
+    这是无副作用的纯预算门：不得修改请求上下文、占用 step、写日志、
+    调用模型 / 工具、执行恢复或构造公开结果。
+    """
+    if not type(current_step) is int or not (1 <= current_step <= MAX_STEPS):
+        raise ValueError("current_step 必须是位于 1 到全局上限之间的整数")
+
+    remaining_steps = MAX_STEPS - current_step
+    return remaining_steps >= MIN_STEPS_FOR_CANDIDATE_RECOVERY_CHAIN
+
+
+# 把不可信的候选模型响应转换为固定内部分类结果。
+def classify_candidate_summary_response(
+    response: object,
+) -> dict[str, object]:
+    """纯分类候选模型响应，不执行恢复或构造公开结果。
+
+    返回字典必须严格只有 ``classification``、``reason``、
+    ``candidate_summary`` 三个键：合法候选使用 ``valid / None / 原始非空正文``；
+    白名单内失败使用 ``recoverable / 固定安全原因 / None``；必须停止的失败
+    使用 ``terminal / 固定安全原因 / None``。
+
+    安全过滤、资源不足、缺失或未知 ``finish_reason`` 的终止优先级高于
+    message / content 的结构问题。函数不得泄漏坏外壳产生的原生属性 / 类型
+    异常，不得修改响应、占 step、写日志、调用模型 / 工具或检查恢复预算。
+    """
+    def make_classification(
+        classification: str,
+        reason: str | None,
+        candidate_summary: str | None,
+    ) -> dict[str, object]:
+        return {
+            "classification": classification,
+            "reason": reason,
+            "candidate_summary": candidate_summary,
+        }
+
+    def read_attribute(value: object, name: str) -> tuple[bool, object]:
+        try:
+            return True, getattr(value, name)
+        except Exception:
+            return False, None
+
+    has_choices, choices = read_attribute(response, "choices")
+    if not has_choices or type(choices) is not list or not choices:
+        return make_classification(
+            "recoverable",
+            "invalid_response_shape",
+            None,
+        )
+
+    choice = choices[0]
+    has_finish_reason, finish_reason = read_attribute(choice, "finish_reason")
+    if not has_finish_reason or finish_reason is None:
+        return make_classification(
+            "terminal",
+            "missing_finish_reason",
+            None,
+        )
+    if type(finish_reason) is not str:
+        return make_classification(
+            "terminal",
+            "unknown_finish_reason",
+            None,
+        )
+    if finish_reason == "content_filter":
+        return make_classification(
+            "terminal",
+            "content_filter",
+            None,
+        )
+    if finish_reason == "insufficient_system_resource":
+        return make_classification(
+            "terminal",
+            "insufficient_system_resource",
+            None,
+        )
+    if finish_reason == "length":
+        return make_classification(
+            "recoverable",
+            "length",
+            None,
+        )
+    if finish_reason == "tool_calls":
+        return make_classification(
+            "recoverable",
+            "unexpected_tool_calls",
+            None,
+        )
+    if finish_reason != "stop":
+        return make_classification(
+            "terminal",
+            "unknown_finish_reason",
+            None,
+        )
+
+    has_message, message = read_attribute(choice, "message")
+    if not has_message or message is None:
+        return make_classification(
+            "recoverable",
+            "invalid_response_shape",
+            None,
+        )
+
+    has_tool_calls, tool_calls = read_attribute(message, "tool_calls")
+    if not has_tool_calls or (
+        tool_calls is not None and type(tool_calls) is not list
+    ):
+        return make_classification(
+            "recoverable",
+            "invalid_response_shape",
+            None,
+        )
+    if tool_calls:
+        return make_classification(
+            "recoverable",
+            "unexpected_tool_calls",
+            None,
+        )
+
+    has_content, content = read_attribute(message, "content")
+    if not has_content:
+        return make_classification(
+            "recoverable",
+            "invalid_response_shape",
+            None,
+        )
+
+    if type(content) is not str or not content.strip():
+        return make_classification(
+            "recoverable",
+            "invalid_candidate_content",
+            None,
+        )
+
+    return make_classification("valid", None, content)
+
+
+# 只依据既有真实 Tool Observation 构造一次候选修订消息。
+def build_candidate_recovery_messages(
+    base_messages: list[object],
+    recoverable_reason: str,
+) -> list[object]:
+    """返回追加一条安全修订指令的新消息列表。
+
+    ``base_messages`` 必须是以既有 Tool message 结尾的非空内建列表；
+    ``recoverable_reason`` 只接受 G2 冻结的四个可恢复原因。返回值必须是
+    新的内建列表，原消息前缀的顺序与对象 identity 不变，末尾只追加一条
+    严格含 ``role / content`` 的 user message。
+
+    修订不得接收或回填失败的原始 Candidate 响应，不得修改输入消息、
+    重建 Tool Observation、调用模型 / 工具、占 step、写日志或检查预算。
+    """
+    # 按 recoverable reason 构造一次证据受限修订消息。
+    if type(base_messages) is not list or not base_messages:
+        raise ValueError("base_messages 必须是非空内建列表")
+
+    last_message = base_messages[-1]
+    expected_tool_message_keys = {"role", "tool_call_id", "content"}
+    if (
+        type(last_message) is not dict
+        or set(last_message) != expected_tool_message_keys
+        or last_message["role"] != "tool"
+    ):
+        raise ValueError("base_messages 必须以既有 Tool message 结尾")
+
+    if (
+        type(recoverable_reason) is not str
+        or recoverable_reason not in RECOVERABLE_CANDIDATE_RESPONSE_REASONS
+    ):
+        raise ValueError("recoverable_reason 必须是 G2 冻结的可恢复原因")
+
+    reason_instruction = {
+        "invalid_response_shape": "上一候选响应的结构不可用。",
+        "invalid_candidate_content": "上一候选响应没有提供可用的非空摘要正文。",
+        "length": "从头重写，不要续写上一次被截断的文本。上一候选响应因长度上限被截断，请生成更短但完整的摘要。",
+        "unexpected_tool_calls": "上一候选响应错误地尝试了 Tool Action。",
+    }[recoverable_reason]
+    recovery_instruction = (
+        f"{reason_instruction}请只依据消息历史中既有的真实 Tool Observation "
+        "请从头生成一个非空的候选摘要纯文本；"
+        "不要输出 JSON，也不要输出最终 status、summary、sources 字段结构。"
+        "不要调用任何工具，不要补充 Observation 未提供的事实，"
+        "只输出候选摘要正文。"
+    )
+
+    recovery_messages = list(base_messages)
+    recovery_messages.append(
+        {
+            "role": "user",
+            "content": recovery_instruction,
+        }
+    )
+    tool_call_id = last_message["tool_call_id"]
+    content = last_message["content"]
+
+    if (
+        type(tool_call_id) is not str
+        or not tool_call_id.strip()
+        or type(content) is not str
+        or not content.strip()
+    ):
+        raise ValueError("Tool message 的 tool_call_id 和 content 必须是非空字符串")
+
+    return recovery_messages
+
+
+# 发起一次 Candidate recovery 的模型调用。
+def request_candidate_recovery_response(
+    recovery_messages: list[object],
+    client: OpenAI | None = None,
+    *,
+    run_context: dict[str, object],
+) -> object:
+    """发起恰好一次候选恢复模型调用，并原样返回不可信响应。
+
+    ``recovery_messages`` 必须是 I1c 构造的非空内建列表。本函数只负责
+    输入门、一次真实模型调用及其共享 step / 七字段日志；调用方必须提前
+    通过完整链预算门。API 正常返回的任何对象（包括 ``None`` 或坏外壳）
+    都原样交给 I1b 分类器，不在这里解析、重试或映射公开结果。
+
+    不得修改消息、重新执行工具、构造修订消息、调用 Reflection / Refinement，
+    也不得在 Provider / SDK 异常后发起第二次请求或泄漏异常正文。
+    """
+    if type(recovery_messages) is not list or len(recovery_messages) < 2:
+        raise ValueError("recovery_messages 必须是 I1c 构造的非空内建列表")
+
+    tool_message = recovery_messages[-2]
+    recovery_message = recovery_messages[-1]
+    if (
+        type(tool_message) is not dict
+        or set(tool_message) != {"role", "tool_call_id", "content"}
+        or tool_message["role"] != "tool"
+        or type(tool_message["tool_call_id"]) is not str
+        or not tool_message["tool_call_id"].strip()
+        or type(tool_message["content"]) is not str
+        or not tool_message["content"].strip()
+    ):
+        raise ValueError("recovery_messages 缺少 I1c 保留的有效 Tool message")
+    if (
+        type(recovery_message) is not dict
+        or set(recovery_message) != {"role", "content"}
+        or recovery_message["role"] != "user"
+        or type(recovery_message["content"]) is not str
+        or not recovery_message["content"].strip()
+    ):
+        raise ValueError("recovery_messages 缺少 I1c 追加的安全修订指令")
+
+    tool_schemas = build_tool_schemas()
+    if client is None:
+        client = create_deepseek_client()
+    call_step = reserve_call_step(run_context)
+    perf_counter_start = perf_counter()
+    try:
+        response = client.chat.completions.create(
+            model=DEEPSEEK_MODEL,
+            messages=recovery_messages,
+            tools=tool_schemas,
+            stream=False,
+            extra_body={"thinking": {"type": "disabled"}},
+            tool_choice="none",
+        )
+    except Exception as exc:
+        perf_counter_end = perf_counter()
+        append_call_log(
+            run_context,
+            error=type(exc).__name__,
+            duration_ms=max(
+                0,
+                int((perf_counter_end - perf_counter_start) * 1000),
+            ),
+            step=call_step,
+            event_type="model_call",
+            model=DEEPSEEK_MODEL,
+            tool_name=None,
+        )
+        raise
+    else:
+        perf_counter_end = perf_counter()
+        append_call_log(
+            run_context,
+            error=None,
+            duration_ms=max(
+                0,
+                int((perf_counter_end - perf_counter_start) * 1000),
+            ),
+            step=call_step,
+            event_type="model_call",
+            model=DEEPSEEK_MODEL,
+            tool_name=None,
+        )
+        return response
+
+
+# 在完整链预算允许时，编排至多一次 Candidate recovery。
+def attempt_candidate_recovery_once(
+    base_messages: list[object],
+    initial_classification: dict[str, object],
+    client: OpenAI | None = None,
+    *,
+    run_context: dict[str, object],
+) -> dict[str, object]:
+    """把首次可恢复分类推进到唯一一次恢复后的内部分类结果。
+
+    ``initial_classification`` 必须是 I1b 的 exact 三键 recoverable 结果；
+    ``base_messages`` 是失败 Candidate 调用前、以真实 Tool Observation 结尾的
+    原消息历史。函数按顺序执行完整链预算门、I1c builder、I1d 单次调用和
+    I1b 再分类，并原样返回第二次分类对象。
+
+    第二次结果无论是 valid、terminal 还是 recoverable 都必须直接返回；
+    不得循环、递归、再次恢复、修改共享 context schema、调用工具 / Reflection，
+    或构造公开结果。预算不足时抛专用窄异常，且不得构造消息或调用模型。
+    """
+    # 实现 exact 输入门与一次恢复编排。
+    expected_classification_keys = {
+        "classification",
+        "reason",
+        "candidate_summary",
+    }
+    if (
+        type(initial_classification) is not dict
+        or set(initial_classification) != expected_classification_keys
+        or type(initial_classification["classification"]) is not str
+        or initial_classification["classification"] != "recoverable"
+        or type(initial_classification["reason"]) is not str
+        or initial_classification["reason"]
+        not in RECOVERABLE_CANDIDATE_RESPONSE_REASONS
+        or initial_classification["candidate_summary"] is not None
+    ):
+        raise ValueError("initial_classification 必须是 I1b 的 exact recoverable 结果")
+
+    if type(base_messages) is not list or not base_messages:
+        raise ValueError("base_messages 必须是以 Tool message 结尾的非空内建列表")
+    last_message = base_messages[-1]
+    if (
+        type(last_message) is not dict
+        or set(last_message) != {"role", "tool_call_id", "content"}
+        or last_message["role"] != "tool"
+        or type(last_message["tool_call_id"]) is not str
+        or not last_message["tool_call_id"].strip()
+        or type(last_message["content"]) is not str
+        or not last_message["content"].strip()
+    ):
+        raise ValueError("base_messages 必须以有效的真实 Tool Observation 结尾")
+
+    if type(run_context) is not dict or "step" not in run_context:
+        raise ValueError("run_context 必须包含共享 step")
+    current_step = run_context["step"]
+    recoverable_reason = initial_classification["reason"]
+    if not has_candidate_recovery_completion_budget(current_step):
+        raise CandidateRecoveryCompletionBudgetError(
+            current_step=current_step,
+            recoverable_reason=recoverable_reason,
+        )
+
+    recovery_messages = build_candidate_recovery_messages(
+        base_messages,
+        recoverable_reason,
+    )
+    recovery_response = request_candidate_recovery_response(
+        recovery_messages,
+        client=client,
+        run_context=run_context,
+    )
+    return classify_candidate_summary_response(recovery_response)
 
 
 # 构造用于请求 Action correction 的协议级 Tool Observation 的工具函数
@@ -1535,30 +2011,15 @@ def generate_candidate_summary(
             tool_name=None,
         )
 
-    if response2.choices is None or len(response2.choices) == 0:
-        raise RuntimeError("第二次模型调用未返回任何选择")
-
-    choice2 = response2.choices[0]
-    if hasattr(choice2, "finish_reason") is False:
-        raise RuntimeError("第二次模型调用的选择缺少 finish_reason 字段")
-    finish_reason = choice2.finish_reason
-    if finish_reason != "stop":
-        raise RuntimeError(f"第二次模型调用未正常结束，finish_reason: {finish_reason}")
-    assistant_message2 = choice2.message
-    if assistant_message2 is None or assistant_message2.content is None:
-        raise RuntimeError("模型未返回候选摘要")
-    if (
-        assistant_message2.tool_calls is not None
-        and len(assistant_message2.tool_calls) > 0
-    ):
-        raise RuntimeError("模型在第二次调用中不应返回工具调用")
-    if (
-        not isinstance(assistant_message2.content, str)
-        or assistant_message2.content.strip() == ""
-    ):
-        raise RuntimeError("模型返回的候选摘要不是非空字符串类型")
-
-    candidate_summary = assistant_message2.content
+    candidate_summary = resolve_candidate_summary_stage(
+        response2,
+        messages,
+        normalized_request,
+        tool_name,
+        tool_result,
+        client=client,
+        run_context=run_context,
+    )
     return {
         "candidate_summary": candidate_summary,
         "tool_name": tool_name,
@@ -1604,6 +2065,89 @@ def derive_allowed_sources(
         return sources
     else:
         raise ValueError(f"未知的工具: {tool_name}")
+
+
+# 把首次 Candidate 响应、至多一次恢复与候选阶段停止组合成一个内部解析器。
+def resolve_candidate_summary_stage(
+    initial_response: object,
+    base_messages: list[object],
+    normalized_request: dict[str, str],
+    tool_name: str,
+    tool_result: dict[str, object],
+    client: OpenAI | None = None,
+    *,
+    run_context: dict[str, object],
+) -> str:
+    """返回合法 Candidate 原文，或发出带真实人工接管证据的窄停止信号。
+
+    首次响应先由 I1b 分类：valid 直接返回，terminal 不恢复，recoverable
+    只允许进入 I1e 一次。恢复后的 valid 返回；terminal 或 recoverable 均停止，
+    不得递归或再次恢复。只有确定停止时才从真实工具结果派生来源白名单。
+
+    本函数不得把失败 Candidate 加入消息历史，不得重新执行工具、调用 Reflection /
+    Refinement、构造公开三字段结果或吞掉 Provider / SDK 等非预算异常。
+    """
+    initial_classification = classify_candidate_summary_response(initial_response)
+    initial_kind = initial_classification["classification"]
+
+    if initial_kind == "valid":
+        return initial_classification["candidate_summary"]
+
+    if initial_kind == "terminal":
+        allowed_sources = derive_allowed_sources(
+            normalized_request,
+            tool_name,
+            tool_result,
+        )
+        raise CandidateSummaryStageStopError(
+            stop_kind="terminal_response",
+            candidate_reason=initial_classification["reason"],
+            recovery_attempts=0,
+            current_step=run_context["step"],
+            allowed_sources=allowed_sources,
+        )
+
+    try:
+        recovered_classification = attempt_candidate_recovery_once(
+            base_messages,
+            initial_classification,
+            client=client,
+            run_context=run_context,
+        )
+    except CandidateRecoveryCompletionBudgetError as exc:
+        allowed_sources = derive_allowed_sources(
+            normalized_request,
+            tool_name,
+            tool_result,
+        )
+        raise CandidateSummaryStageStopError(
+            stop_kind="insufficient_completion_steps",
+            candidate_reason=exc.recoverable_reason,
+            recovery_attempts=0,
+            current_step=exc.current_step,
+            allowed_sources=allowed_sources,
+        ) from exc
+
+    recovered_kind = recovered_classification["classification"]
+    if recovered_kind == "valid":
+        return recovered_classification["candidate_summary"]
+
+    allowed_sources = derive_allowed_sources(
+        normalized_request,
+        tool_name,
+        tool_result,
+    )
+    raise CandidateSummaryStageStopError(
+        stop_kind=(
+            "terminal_response"
+            if recovered_kind == "terminal"
+            else "recovery_exhausted"
+        ),
+        candidate_reason=recovered_classification["reason"],
+        recovery_attempts=1,
+        current_step=run_context["step"],
+        allowed_sources=allowed_sources,
+    )
 
 
 # 构造 Reflection prompt
@@ -2008,6 +2552,109 @@ def run_research_summary_once(
             normalized_request,
             client,
             run_context=run_context,
+        )
+    except CandidateSummaryStageStopError as exc:
+        if type(exc) is not CandidateSummaryStageStopError:
+            raise
+
+        stop_kind = getattr(exc, "stop_kind", None)
+        candidate_reason = getattr(exc, "candidate_reason", None)
+        recovery_attempts = getattr(exc, "recovery_attempts", None)
+        current_step = getattr(exc, "current_step", None)
+        allowed_sources = getattr(exc, "allowed_sources", None)
+        if (
+            type(stop_kind) is not str
+            or type(candidate_reason) is not str
+            or type(recovery_attempts) is not int
+            or type(current_step) is not int
+            or not (1 <= current_step <= MAX_STEPS)
+            or type(allowed_sources) is not list
+            or not allowed_sources
+            or not all(
+                type(source) is str and bool(source.strip())
+                for source in allowed_sources
+            )
+        ):
+            raise
+
+        terminal_reason_texts = {
+            "content_filter": "模型服务的安全过滤终止了 Candidate 响应。",
+            "insufficient_system_resource": (
+                "模型服务因系统资源不足终止了 Candidate 响应。"
+            ),
+            "missing_finish_reason": (
+                "Candidate 响应缺少 finish_reason，或该字段值为 None，"
+                "无法确认模型正常结束。"
+            ),
+            "unknown_finish_reason": (
+                "Candidate 响应的 finish_reason 不在允许范围内，"
+                "无法确认模型正常结束。"
+            ),
+        }
+        recoverable_reason_texts = {
+            "invalid_response_shape": "Candidate 响应外壳结构不符合协议。",
+            "invalid_candidate_content": (
+                "Candidate 响应含有 content 字段，但其值不能作为非空候选正文。"
+            ),
+            "length": "Candidate 响应因长度限制未能完整结束。",
+            "unexpected_tool_calls": (
+                "Candidate 响应意外包含工具调用，而该阶段只允许返回候选正文。"
+            ),
+        }
+
+        if stop_kind == "terminal_response":
+            reason_text = terminal_reason_texts.get(candidate_reason)
+            if reason_text is None or recovery_attempts not in {0, 1}:
+                raise
+            if recovery_attempts == 0:
+                summary_text = (
+                    "候选摘要阶段已停止：首次 Candidate 响应触发不可恢复的"
+                    "终止条件，未发起 Candidate recovery；"
+                    f"{reason_text}"
+                )
+            else:
+                summary_text = (
+                    "候选摘要阶段已停止：首次 Candidate 失败后已执行唯一一次"
+                    "证据受限 Candidate recovery，但恢复响应触发不可恢复的"
+                    "终止条件；"
+                    f"{reason_text}"
+                )
+        elif stop_kind == "recovery_exhausted":
+            reason_text = recoverable_reason_texts.get(candidate_reason)
+            if reason_text is None or recovery_attempts != 1:
+                raise
+            summary_text = (
+                "候选摘要阶段已停止：首次 Candidate 响应不合法，已执行唯一一次"
+                "仅依据既有真实 Tool Observation 的证据受限 Candidate recovery；"
+                "恢复响应仍未得到合法 Candidate；"
+                f"{reason_text}"
+            )
+        elif stop_kind == "insufficient_completion_steps":
+            reason_text = recoverable_reason_texts.get(candidate_reason)
+            if reason_text is None or recovery_attempts != 0:
+                raise
+            summary_text = (
+                "候选摘要阶段已停止：首次 Candidate 响应不合法但属于可恢复分类；"
+                f"{reason_text}"
+                f"当前累计 step 为 {current_step}，全局上限为 {MAX_STEPS}；"
+                "Candidate recovery、Reflection 与 Refinement 的完整可信链"
+                f"仍需 {MIN_STEPS_FOR_CANDIDATE_RECOVERY_CHAIN} 个调用 step"
+                "（各 1 次），剩余预算不足；"
+                "本次 Candidate recovery 模型调用没有发生。"
+            )
+        else:
+            raise
+
+        summary_text += (
+            "没有任何 Candidate / 摘要通过校验；"
+            "结果中的 sources 仅是本轮真实工具取得、供人工复核的证据池，"
+            "不代表已验证摘要引用；"
+            "Agent 已停止自治并交还人工。"
+        )
+        return make_result(
+            "needs_manual",
+            summary_text,
+            list(exc.allowed_sources),
         )
     except AutoRecoveryExhaustedError as exc:
         if exc.reason == "max_steps":
