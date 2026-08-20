@@ -177,7 +177,8 @@
 - 工具首次返回 `ok: False, retryable: True` 时，只在重试次数和总步数均未达到上限时重试一次；重试成功则回到正常成功路径。再次失败或没有剩余步数时，停止并返回 `needs_manual`，同时说明尝试次数、最后错误和当前证据缺口。
 - `search_web` 返回 `ok: True` 但 `results` 为空时，说明工具调用已经成功、但没有取得可用于摘要的真实资料，返回 `insufficient_evidence`；`summary` 说明证据缺口，`sources` 为 `[]`，不得凭模型常识补写摘要或编造 URL。
 - `results` 是工具实际返回的候选资料记录；最终 `sources` 才是从本轮实际采用结果的 `url` 字段中提取的 `list[str]`，二者不能混为一谈。
-- 摘要初稿响应属于已冻结的可恢复协议 / 内容失败时，只能在完整链预算允许时依据同一份真实 Tool Observation 恢复一次；响应属于 terminal、完整链预算不足，或唯一恢复仍未得到合法 Candidate 时，立即停止并返回 `needs_manual`。不得返回任何未通过校验的 Candidate；`summary` 必须明确说明没有摘要通过校验，`sources` 原样保留本轮实际取得且通过白名单校验的来源作为人工接管证据池。Reflection 候选结果未通过第 4 节合同或来源真实性校验时，同样只能依据本轮真实证据修订；达到 `max_steps` 仍不能形成合法结果时停止，具体恢复策略由后续独立切片冻结。
+- 摘要初稿响应属于已冻结的可恢复协议 / 内容失败时，只能在完整链预算允许时依据同一份真实 Tool Observation 恢复一次；响应属于 terminal、完整链预算不足，或唯一恢复仍未得到合法 Candidate 时，立即停止并返回 `needs_manual`。不得返回任何未通过校验的 Candidate；`summary` 必须明确说明没有摘要通过校验，`sources` 原样保留本轮实际取得且通过白名单校验的来源作为人工接管证据池。
+- Reflection 模型 API 已返回、但反馈响应属于已冻结的可恢复协议 / 内容失败时，只有剩余全局预算能同时容纳“1 次 Reflection recovery + 1 次 Refinement”才允许恢复一次；恢复只沿用首次调用前的可信 Reflection prompt、本轮真实 Tool Observation、合法 Candidate 与来源白名单，不回填失败响应，不重新执行工具。首次或恢复后的响应属于 terminal、完整链预算不足，或唯一恢复仍未得到合法反馈时，立即停止并返回 `needs_manual`，不得再恢复或进入 Refinement；`summary` 必须明确已有合法 Candidate、但尚无最终摘要完成 Reflection、Refinement 与客户端校验，`sources` 原样保留本轮真实来源作为人工接管证据池，不代表已验证摘要引用。Provider / HTTP / SDK 异常，以及 Refinement 响应和最终 validator 失败不属于本条恢复规则，继续按后续独立切片处理。
 
 ## 7. 验收条件
 

@@ -62,7 +62,14 @@
 当前已完成 C4b-2a-I1h：把候选阶段窄停止安全映射为公开 ``needs_manual``。
 当前已完成 C4b-2a-I2：候选恢复端到端故障注入与既有控制流回归。
 当前已完成 C4b-2a-U1：用户已审核最终调用轨迹、停止结果与来源语义。
-后续 Candidate Provider/API 异常、Reflection / 最终 validator 失败恢复、安全确认和 eval 尚未完成。
+当前已完成 C4b-2b-1-I1a：Reflection recovery 的完整下游链纯预算门。
+当前已完成 C4b-2b-1-I1b：把既有文本响应分类迁移为 Reflection 反馈语义。
+当前已完成 C4b-2b-1-I1c：构造不回填失败响应的 Reflection recovery prompt。
+当前已完成 C4b-2b-1-I1d：在完整链预算允许时编排唯一一次 Reflection recovery。
+当前已完成 C4b-2b-1-I1e/I1f：Reflection 阶段分流、停止信号、生产接线与公开映射。
+当前已完成 C4b-2b-1-I2：Reflection 恢复端到端故障注入与既有控制流回归。
+当前已完成 C4b-2b-1-U1：用户已审核最终调用轨迹、停止结果与来源语义。
+后续 Candidate / Reflection Provider/API 异常、Refinement / 最终 validator 失败恢复、安全确认和 eval 尚未完成。
 """
 
 import html
@@ -98,10 +105,19 @@ DEEPSEEK_BASE_URL = "https://api.deepseek.com"
 DEEPSEEK_MODEL = "deepseek-v4-pro"
 MAX_STEPS = 6  # 每次请求允许的最大调用步数
 MIN_STEPS_FOR_CANDIDATE_RECOVERY_CHAIN = 3  # 候选恢复链所需的最少调用步数
+MIN_STEPS_FOR_REFLECTION_RECOVERY_CHAIN = 2  # Reflection 恢复与后续 Refinement 所需的调用步数
 RECOVERABLE_CANDIDATE_RESPONSE_REASONS = frozenset(
     {
         "invalid_response_shape",
         "invalid_candidate_content",
+        "length",
+        "unexpected_tool_calls",
+    }
+)
+RECOVERABLE_REFLECTION_RESPONSE_REASONS = frozenset(
+    {
+        "invalid_response_shape",
+        "invalid_feedback_content",
         "length",
         "unexpected_tool_calls",
     }
@@ -231,6 +247,27 @@ class CandidateRecoveryCompletionBudgetError(RuntimeError):
         super().__init__("Candidate recovery completion budget is insufficient")
 
 
+class ReflectionRecoveryCompletionBudgetError(RuntimeError):
+    """表示 Reflection recovery 前发现完整下游链预算不足的内部窄信号。"""
+
+    def __init__(
+        self,
+        *,
+        current_step: int,
+        recoverable_reason: str,
+    ) -> None:
+        if type(current_step) is not int or not (1 <= current_step <= MAX_STEPS):
+            raise ValueError("current_step 必须位于全局 step 合法域内")
+        if (
+            type(recoverable_reason) is not str
+            or recoverable_reason not in RECOVERABLE_REFLECTION_RESPONSE_REASONS
+        ):
+            raise ValueError("recoverable_reason 必须属于 Reflection 恢复白名单")
+        self.current_step = current_step
+        self.recoverable_reason = recoverable_reason
+        super().__init__("Reflection recovery completion budget is insufficient")
+
+
 class CandidateSummaryStageStopError(RuntimeError):
     """表示 Candidate 阶段已安全停止、等待公开入口映射的内部窄信号。"""
 
@@ -292,6 +329,70 @@ class CandidateSummaryStageStopError(RuntimeError):
         self.current_step = current_step
         self.allowed_sources = list(allowed_sources)
         super().__init__("Candidate summary stage stopped")
+
+
+class ReflectionFeedbackStageStopError(RuntimeError):
+    """表示 Reflection 反馈阶段已安全停止、等待公开入口映射的内部窄信号。"""
+
+    def __init__(
+        self,
+        *,
+        stop_kind: str,
+        reflection_reason: str,
+        recovery_attempts: int,
+        current_step: int,
+        allowed_sources: list[str],
+    ) -> None:
+        terminal_reasons = {
+            "content_filter",
+            "insufficient_system_resource",
+            "missing_finish_reason",
+            "unknown_finish_reason",
+        }
+        if type(stop_kind) is not str or stop_kind not in {
+            "terminal_response",
+            "recovery_exhausted",
+            "insufficient_completion_steps",
+        }:
+            raise ValueError("stop_kind 必须属于 Reflection 阶段冻结的三种停止类型")
+        if type(reflection_reason) is not str:
+            raise ValueError("reflection_reason 必须是冻结的安全原因字符串")
+        if type(recovery_attempts) is not int or recovery_attempts not in {0, 1}:
+            raise ValueError("recovery_attempts 必须是内建整数 0 或 1")
+        if type(current_step) is not int or not (1 <= current_step <= MAX_STEPS):
+            raise ValueError("current_step 必须位于全局 step 合法域内")
+        if (
+            type(allowed_sources) is not list
+            or not allowed_sources
+            or not all(
+                type(source) is str and bool(source.strip())
+                for source in allowed_sources
+            )
+        ):
+            raise ValueError("allowed_sources 必须是非空的真实来源字符串列表")
+
+        if stop_kind == "terminal_response":
+            if reflection_reason not in terminal_reasons:
+                raise ValueError("terminal_response 必须携带 terminal Reflection reason")
+        elif stop_kind == "recovery_exhausted":
+            if (
+                reflection_reason not in RECOVERABLE_REFLECTION_RESPONSE_REASONS
+                or recovery_attempts != 1
+            ):
+                raise ValueError("recovery_exhausted 必须表示一次恢复后的可恢复失败")
+        elif (
+            reflection_reason not in RECOVERABLE_REFLECTION_RESPONSE_REASONS
+            or recovery_attempts != 0
+            or has_reflection_recovery_completion_budget(current_step)
+        ):
+            raise ValueError("预算停止必须发生在 Reflection recovery 调用之前")
+
+        self.stop_kind = stop_kind
+        self.reflection_reason = reflection_reason
+        self.recovery_attempts = recovery_attempts
+        self.current_step = current_step
+        self.allowed_sources = list(allowed_sources)
+        super().__init__("Reflection feedback stage stopped")
 
 
 # 初始化单次请求共享的运行上下文的工具函数
@@ -385,6 +486,27 @@ def has_candidate_recovery_completion_budget(
 
     remaining_steps = MAX_STEPS - current_step
     return remaining_steps >= MIN_STEPS_FOR_CANDIDATE_RECOVERY_CHAIN
+
+
+# 判断 Reflection 响应失败后是否仍能完成受控恢复链的纯预算门。
+def has_reflection_recovery_completion_budget(
+    current_step: int,
+) -> bool:
+    """判断剩余调用步数能否容纳 Reflection recovery 与 Refinement。
+
+    ``current_step`` 表示不可用的首次 Reflection 响应已经返回并记账后的
+    累计 step。输入只接受全局计数器合法域内的内建整数，合法输入返回
+    内建 ``bool``。
+
+    本函数必须保持纯函数：不得修改请求上下文、占用 step、写日志、调用
+    模型 / 工具、执行恢复、抛出停止信号或构造公开三字段结果。
+    """
+    # (A4-Gate-C4b-2b-1-I1a): 实现严格输入门与完整链预算判断。
+    if type(current_step) is not int or not (1 <= current_step <= MAX_STEPS):
+        raise ValueError("current_step 必须是位于 1 到全局上限之间的整数")
+
+    remaining_steps = MAX_STEPS - current_step
+    return remaining_steps >= MIN_STEPS_FOR_REFLECTION_RECOVERY_CHAIN
 
 
 # 把不可信的候选模型响应转换为固定内部分类结果。
@@ -512,6 +634,94 @@ def classify_candidate_summary_response(
         )
 
     return make_classification("valid", None, content)
+
+
+# 把既有非工具文本响应分类迁移为 Reflection 反馈阶段的内部分类。
+def classify_reflection_feedback_response(
+    response: object,
+) -> dict[str, object]:
+    """返回严格的 ``classification / reason / feedback`` 三键结果。
+
+    本函数必须复用 ``classify_candidate_summary_response`` 已通过的 SDK
+    层级与 ``finish_reason / tool_calls / content`` 守门，不得复制第二套
+    响应遍历。合法文本改名为 ``feedback``；候选阶段的
+    ``invalid_candidate_content`` 改写为 Reflection 阶段的
+    ``invalid_feedback_content``；其余 recoverable / terminal 原因保持不变。
+
+    本函数不得修改响应、占 step、写日志、调用模型 / 工具、检查预算、
+    执行恢复、发出停止信号或构造公开三字段结果。
+    """
+    # (A4-Gate-C4b-2b-1-I1b): 复用既有分类器并转换阶段字段与原因。
+    candidate_classification = classify_candidate_summary_response(response)
+    reason = candidate_classification["reason"]
+    if reason == "invalid_candidate_content":
+        reason = "invalid_feedback_content"
+
+    return {
+        "classification": candidate_classification["classification"],
+        "reason": reason,
+        "feedback": candidate_classification["candidate_summary"],
+    }
+
+
+# 构造一次不回填失败响应的 Reflection recovery prompt。
+def build_reflection_recovery_prompt(
+    reflection_prompt: str,
+    recoverable_reason: str,
+) -> str:
+    """返回保留原评审合同并追加安全恢复指令的新 prompt。
+
+    ``reflection_prompt`` 必须是 ``build_reflection_prompt`` 已构造的非空
+    内建字符串；返回值必须完整保留该原文，再按四种可恢复原因追加固定的
+    阶段指令。恢复仍只完成同一 Reflection：沿用原 prompt 中的真实工具
+    结果、Candidate、来源白名单与 ``review_instructions``，只输出非空纯文本
+    反馈；不得要求 JSON 或最终 ``status / summary / sources`` 对象。
+
+    函数签名故意不接收失败响应或失败正文，因而不得把不可信输出拼回 prompt。
+    本函数不得修改输入、检查预算、占 step、写日志、调用模型 / 工具、执行
+    恢复、构造公开结果或发出停止信号。
+    """
+    # (A4-Gate-C4b-2b-1-I1c): 校验输入并追加 reason 专属的安全恢复指令。
+    if type(reflection_prompt) is not str or not reflection_prompt.strip():
+        raise ValueError("reflection_prompt 必须是非空内建字符串")
+    if (
+        type(recoverable_reason) is not str
+        or not recoverable_reason.strip()
+        or recoverable_reason not in RECOVERABLE_REFLECTION_RESPONSE_REASONS
+    ):
+        raise ValueError("recoverable_reason 必须是冻结的 Reflection 可恢复原因")
+
+    reason_instruction = {
+        "invalid_response_shape": (
+            "上一轮 Reflection 响应外壳结构不可用。"
+            "请从头重新完成同一 Reflection 评审。"
+        ),
+        "invalid_feedback_content": (
+            "上一轮 Reflection 响应没有提供可用的非空反馈。"
+            "请重新提供可用的非空反馈正文。"
+        ),
+        "length": (
+            "上一轮 Reflection 反馈因长度限制被截断。"
+            "请从头重写，不得续写截断文本，并提供更短但完整的评审反馈。"
+        ),
+        "unexpected_tool_calls": (
+            "上一轮 Reflection 响应意外尝试了 Tool Action。"
+            "本阶段禁止 Tool Action 或任何工具调用，只能返回评审反馈文本。"
+        ),
+    }[recoverable_reason]
+    recovery_instruction = (
+        "\n\n[Reflection recovery]\n"
+        f"{reason_instruction}"
+        "只重新完成原 prompt 定义的同一 Reflection，"
+        "并严格遵守其中既有的 review_instructions。"
+        "只能沿用原 prompt 中的真实工具结果、Candidate 与 allowed_sources "
+        "来源白名单，不得调用工具，不得使用模型常识补充事实。"
+        "只输出非空纯文本反馈；不要输出 JSON，也不要输出或伪造最终 "
+        "status / summary / sources 对象。"
+        "全部通过时只输出精确短语“无需改进”；"
+        "否则逐项给出“问题、证据、修改建议”。"
+    )
+    return reflection_prompt + recovery_instruction
 
 
 # 只依据既有真实 Tool Observation 构造一次候选修订消息。
@@ -2289,17 +2499,20 @@ def validate_success_result(
     return make_result("success", summary.strip(), sources)
 
 
-# 调用 Reflection 并获取反馈文本
-def request_reflection_feedback(
+# 发起一次 Reflection 模型调用并原样返回不可信响应。
+def request_reflection_response(
     reflection_prompt: str,
     client: OpenAI | None = None,
     *,
     run_context: dict[str, object],
-) -> str:
-    """调用一次 Reflection，并返回经过外壳检查的非空反馈文本。
+) -> object:
+    """调用一次 Reflection，并原样返回 API 正常返回的对象。
 
-    当前检查点只负责一次模型请求和响应外壳，不构造 Refinement prompt，
-    不解析 JSON，也不构造最终三字段结果。
+    本函数是对 2026-08-13 已通过的模型调用、共享 step 与七字段日志的
+    机械拆分。API 正常返回的任何对象（包括 ``None`` 或坏外壳）都交给
+    I1b 分类器；本层不解析响应、不恢复、不构造 Refinement 或公开结果。
+
+    Provider / SDK 异常只记录异常类型并原样上抛，不在这里二次请求。
     """
     if not isinstance(reflection_prompt, str) or reflection_prompt.strip() == "":
         raise ValueError("reflection_prompt 必须是非空字符串")
@@ -2350,7 +2563,27 @@ def request_reflection_feedback(
             model=DEEPSEEK_MODEL,
             tool_name=None,
         )
+        return response
 
+
+# 保留旧正常路径的“请求后取得已校验反馈”接口。
+def request_reflection_feedback(
+    reflection_prompt: str,
+    client: OpenAI | None = None,
+    *,
+    run_context: dict[str, object],
+) -> str:
+    """调用原始请求层并保留已通过的反馈外壳检查与返回行为。
+
+    本接口保留给既有直接调用与回归；生产主链已经改用原始响应层和
+    ``resolve_reflection_feedback_stage``。它不创建 client、不重复占
+    step / 写日志，也不发起第二次请求。
+    """
+    response = request_reflection_response(
+        reflection_prompt,
+        client,
+        run_context=run_context,
+    )
     if response is None:
         raise RuntimeError("Reflection 响应为空")
     if hasattr(response, "choices") is False:
@@ -2378,6 +2611,161 @@ def request_reflection_feedback(
     if not isinstance(content, str) or content.strip() == "":
         raise RuntimeError("Reflection 响应中的 content 字段非法")
     return content.strip()
+
+
+# 在完整链预算允许时，编排至多一次 Reflection recovery。
+def attempt_reflection_recovery_once(
+    reflection_prompt: str,
+    initial_classification: dict[str, object],
+    client: OpenAI | None = None,
+    *,
+    run_context: dict[str, object],
+) -> dict[str, object]:
+    """把首次可恢复 Reflection 分类推进到唯一恢复后的内部分类结果。
+
+    ``initial_classification`` 必须是 I1b 的 exact 三键 recoverable 结果；
+    ``reflection_prompt`` 是首次调用前由可信 builder 生成的原评审 prompt。
+    函数依次执行完整链预算门、I1c prompt builder、一次原始 Reflection 请求
+    与 I1b 再分类，并原样返回第二次分类对象。
+
+    第二次结果无论 valid、terminal 或 recoverable 都直接返回；不得循环、
+    递归、再次恢复、调用 Refinement / 工具或构造公开结果。预算不足必须在
+    构造 recovery prompt 和调用模型之前抛出专用窄异常。
+    """
+    # (A4-Gate-C4b-2b-1-I1d): 实现 exact 输入门与一次恢复编排。
+    if type(reflection_prompt) is not str or not reflection_prompt.strip():
+        raise ValueError("reflection_prompt 必须是非空内建字符串")
+
+    expected_classification_keys = {
+        "classification",
+        "reason",
+        "feedback",
+    }
+    if (
+        type(initial_classification) is not dict
+        or set(initial_classification) != expected_classification_keys
+        or type(initial_classification["classification"]) is not str
+        or initial_classification["classification"] != "recoverable"
+        or type(initial_classification["reason"]) is not str
+        or initial_classification["reason"]
+        not in RECOVERABLE_REFLECTION_RESPONSE_REASONS
+        or initial_classification["feedback"] is not None
+    ):
+        raise ValueError("initial_classification 必须是 I1b 的 exact recoverable 结果")
+
+    if type(run_context) is not dict or "step" not in run_context:
+        raise ValueError("run_context 必须包含共享 step")
+    current_step = run_context["step"]
+    recoverable_reason = initial_classification["reason"]
+    if not has_reflection_recovery_completion_budget(current_step):
+        raise ReflectionRecoveryCompletionBudgetError(
+            current_step=current_step,
+            recoverable_reason=recoverable_reason,
+        )
+
+    recovery_prompt = build_reflection_recovery_prompt(
+        reflection_prompt,
+        recoverable_reason,
+    )
+    recovery_response = request_reflection_response(
+        recovery_prompt,
+        client,
+        run_context=run_context,
+    )
+    return classify_reflection_feedback_response(recovery_response)
+
+
+# 把首次 Reflection 响应、至多一次恢复与反馈阶段停止组合成内部解析器。
+def resolve_reflection_feedback_stage(
+    initial_response: object,
+    reflection_prompt: str,
+    allowed_sources: list[str],
+    client: OpenAI | None = None,
+    *,
+    run_context: dict[str, object],
+) -> str:
+    """返回规范化合法反馈，或发出只携带安全事实的阶段停止信号。
+
+    首次响应先由 I1b 分类：valid 保持旧正常路径的 ``strip()`` 返回；terminal
+    不恢复；recoverable 只进入 I1d 一次。恢复后的 valid 返回；terminal 或
+    recoverable 均停止。失败响应正文永不进入异常、恢复 prompt 或公开结果。
+
+    本函数只捕获 I1d 的完整链预算窄异常；Provider / SDK 异常、Refinement
+    与最终 validator 失败均不属于当前切片，继续原样向上抛出。
+    """
+    if type(reflection_prompt) is not str or not reflection_prompt.strip():
+        raise ValueError("reflection_prompt 必须是非空内建字符串")
+    if (
+        type(allowed_sources) is not list
+        or not allowed_sources
+        or not all(
+            type(source) is str and bool(source.strip())
+            for source in allowed_sources
+        )
+    ):
+        raise ValueError("allowed_sources 必须是非空的真实来源字符串列表")
+    if type(run_context) is not dict or "step" not in run_context:
+        raise ValueError("run_context 必须包含共享 step")
+    current_step = run_context["step"]
+    if type(current_step) is not int or not (1 <= current_step <= MAX_STEPS):
+        raise ValueError("共享 step 必须位于全局合法域内")
+
+    initial_classification = classify_reflection_feedback_response(initial_response)
+    initial_kind = initial_classification["classification"]
+
+    if initial_kind == "valid":
+        feedback = initial_classification["feedback"]
+        if type(feedback) is not str or not feedback.strip():
+            raise RuntimeError("Reflection valid classification invariant failed")
+        return feedback.strip()
+
+    if initial_kind == "terminal":
+        raise ReflectionFeedbackStageStopError(
+            stop_kind="terminal_response",
+            reflection_reason=initial_classification["reason"],
+            recovery_attempts=0,
+            current_step=current_step,
+            allowed_sources=allowed_sources,
+        )
+    if initial_kind != "recoverable":
+        raise RuntimeError("Unknown Reflection classification")
+
+    try:
+        recovered_classification = attempt_reflection_recovery_once(
+            reflection_prompt,
+            initial_classification,
+            client=client,
+            run_context=run_context,
+        )
+    except ReflectionRecoveryCompletionBudgetError as exc:
+        raise ReflectionFeedbackStageStopError(
+            stop_kind="insufficient_completion_steps",
+            reflection_reason=exc.recoverable_reason,
+            recovery_attempts=0,
+            current_step=exc.current_step,
+            allowed_sources=allowed_sources,
+        ) from exc
+
+    recovered_kind = recovered_classification["classification"]
+    if recovered_kind == "valid":
+        feedback = recovered_classification["feedback"]
+        if type(feedback) is not str or not feedback.strip():
+            raise RuntimeError("Reflection valid classification invariant failed")
+        return feedback.strip()
+    if recovered_kind not in {"terminal", "recoverable"}:
+        raise RuntimeError("Unknown recovered Reflection classification")
+
+    raise ReflectionFeedbackStageStopError(
+        stop_kind=(
+            "terminal_response"
+            if recovered_kind == "terminal"
+            else "recovery_exhausted"
+        ),
+        reflection_reason=recovered_classification["reason"],
+        recovery_attempts=1,
+        current_step=run_context["step"],
+        allowed_sources=allowed_sources,
+    )
 
 
 # 调用 Refinement 并获取候选摘要对象
@@ -2486,10 +2874,10 @@ def reflect_refine_and_validate(
     *,
     run_context: dict[str, object],
 ) -> dict[str, object]:
-    """编排一次 Reflection、一次 Refinement，并返回硬校验结果。
+    """编排 Reflection 的受控恢复、一次 Refinement 与最终硬校验。
 
-    本层不重新调用工具，也不负责 C3c 候选生成；两次模型事件写入
-    传入的内部 ``run_context``，但仍不实现重试或最终 Agent 控制器。
+    本层不重新调用工具，也不负责 Candidate 生成。Reflection 首次响应先
+    进入阶段解析器；只有合法反馈才进入一次 Refinement 与最终 validator。
     """
     allowed_sources = derive_allowed_sources(
         normalized_request,
@@ -2505,8 +2893,15 @@ def reflect_refine_and_validate(
     )
     if client is None:
         client = create_deepseek_client()
-    feedback = request_reflection_feedback(
+    initial_reflection_response = request_reflection_response(
         reflection_prompt,
+        client,
+        run_context=run_context,
+    )
+    feedback = resolve_reflection_feedback_stage(
+        initial_reflection_response,
+        reflection_prompt,
+        allowed_sources,
         client,
         run_context=run_context,
     )
@@ -2537,8 +2932,10 @@ def run_research_summary_once(
     三字段结果；当前已支持一次可重试工具首败后的同参数重试，并把
     二次可重试失败或重试前无剩余 step 映射为 ``needs_manual``，把
     真实不可重试工具失败映射为 ``tool_failure``，把搜索成功但零证据
-    映射为 ``insufficient_evidence``。HITL 和其他未映射的工具、模型
-    与校验异常继续向上抛出。
+    映射为 ``insufficient_evidence``；Reflection API 已返回后的协议 /
+    内容失败按完整链预算至多恢复一次，并把冻结的安全停止映射为
+    ``needs_manual``。HITL、Provider / SDK、Refinement / 最终 validator
+    及其他未映射异常继续向上抛出。
     """
     normalized_request, invalid_result = prepare_request(request)
     if normalized_request is None:
@@ -2724,12 +3121,138 @@ def run_research_summary_once(
     candidate_summary = gen_res["candidate_summary"]
     tool_name = gen_res["tool_name"]
     tool_result = gen_res["tool_result"]
+    reflection_start_step = run_context["step"]
+    if (
+        type(reflection_start_step) is not int
+        or not (0 <= reflection_start_step <= MAX_STEPS)
+    ):
+        raise RuntimeError("Reflection start step invariant failed")
 
-    return reflect_refine_and_validate(
-        normalized_request,
-        candidate_summary,
-        tool_name,
-        tool_result,
-        client,
-        run_context=run_context,
-    )
+    try:
+        return reflect_refine_and_validate(
+            normalized_request,
+            candidate_summary,
+            tool_name,
+            tool_result,
+            client,
+            run_context=run_context,
+        )
+    except ReflectionFeedbackStageStopError as exc:
+        if type(exc) is not ReflectionFeedbackStageStopError:
+            raise
+
+        stop_kind = getattr(exc, "stop_kind", None)
+        reflection_reason = getattr(exc, "reflection_reason", None)
+        recovery_attempts = getattr(exc, "recovery_attempts", None)
+        current_step = getattr(exc, "current_step", None)
+        allowed_sources = getattr(exc, "allowed_sources", None)
+        if (
+            type(stop_kind) is not str
+            or type(reflection_reason) is not str
+            or type(recovery_attempts) is not int
+            or type(current_step) is not int
+            or not (1 <= current_step <= MAX_STEPS)
+            or current_step != run_context.get("step")
+            or current_step
+            != reflection_start_step + 1 + recovery_attempts
+            or type(allowed_sources) is not list
+            or not allowed_sources
+            or not all(
+                type(source) is str and bool(source.strip())
+                for source in allowed_sources
+            )
+        ):
+            raise
+
+        expected_allowed_sources = derive_allowed_sources(
+            normalized_request,
+            tool_name,
+            tool_result,
+        )
+        if allowed_sources != expected_allowed_sources:
+            raise
+
+        terminal_reason_texts = {
+            "content_filter": "模型服务的安全过滤终止了 Reflection 响应。",
+            "insufficient_system_resource": (
+                "模型服务因系统资源不足终止了 Reflection 响应。"
+            ),
+            "missing_finish_reason": (
+                "Reflection 响应缺少 finish_reason，或该字段值为 None，"
+                "无法确认模型正常结束。"
+            ),
+            "unknown_finish_reason": (
+                "Reflection 响应的 finish_reason 不在允许范围内，"
+                "无法确认模型正常结束。"
+            ),
+        }
+        recoverable_reason_texts = {
+            "invalid_response_shape": "Reflection 响应外壳结构不符合协议。",
+            "invalid_feedback_content": (
+                "Reflection 响应含有 content 字段，但其值不能作为非空反馈正文。"
+            ),
+            "length": "Reflection 响应因长度限制未能完整结束。",
+            "unexpected_tool_calls": (
+                "Reflection 响应意外包含工具调用，而该阶段只允许返回反馈正文。"
+            ),
+        }
+
+        if stop_kind == "terminal_response":
+            reason_text = terminal_reason_texts.get(reflection_reason)
+            if reason_text is None or recovery_attempts not in {0, 1}:
+                raise
+            if recovery_attempts == 0:
+                summary_text = (
+                    "Reflection 阶段已停止：首次 Reflection 响应触发不可恢复的"
+                    "终止条件，未发起 Reflection recovery；"
+                    f"{reason_text}"
+                )
+            else:
+                summary_text = (
+                    "Reflection 阶段已停止：首次 Reflection 失败后已执行唯一一次"
+                    "证据受限 Reflection recovery，但恢复响应触发不可恢复的"
+                    "终止条件；"
+                    f"{reason_text}"
+                )
+        elif stop_kind == "recovery_exhausted":
+            reason_text = recoverable_reason_texts.get(reflection_reason)
+            if reason_text is None or recovery_attempts != 1:
+                raise
+            summary_text = (
+                "Reflection 阶段已停止：首次 Reflection 响应不合法，已执行唯一一次"
+                "只依据原评审 prompt 中既有真实证据的 Reflection recovery；"
+                "恢复响应仍未得到合法反馈；"
+                f"{reason_text}"
+            )
+        elif stop_kind == "insufficient_completion_steps":
+            reason_text = recoverable_reason_texts.get(reflection_reason)
+            if (
+                reason_text is None
+                or recovery_attempts != 0
+                or has_reflection_recovery_completion_budget(current_step)
+            ):
+                raise
+            summary_text = (
+                "Reflection 阶段已停止：首次 Reflection 响应不合法但属于可恢复分类；"
+                f"{reason_text}"
+                f"当前累计 step 为 {current_step}，全局上限为 {MAX_STEPS}；"
+                "Reflection recovery 与 Refinement 的完整可信链"
+                f"仍需 {MIN_STEPS_FOR_REFLECTION_RECOVERY_CHAIN} 个调用 step"
+                "（各 1 次），剩余预算不足；"
+                "本次 Reflection recovery 模型调用没有发生。"
+            )
+        else:
+            raise
+
+        summary_text += (
+            "本轮已经取得合法 Candidate 正文，但没有任何最终摘要完成"
+            " Reflection、Refinement 与客户端校验；"
+            "结果中的 sources 仅是本轮真实工具取得、供人工复核的证据池，"
+            "不代表已验证摘要引用；"
+            "Agent 已停止自治并交还人工。"
+        )
+        return make_result(
+            "needs_manual",
+            summary_text,
+            list(expected_allowed_sources),
+        )
