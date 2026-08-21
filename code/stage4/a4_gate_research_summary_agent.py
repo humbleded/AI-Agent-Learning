@@ -73,7 +73,11 @@
 当前已完成 C4b-2b-2a-I1c：post-tool Candidate Provider 生产接线与公开安全停止映射。
 当前已完成 C4b-2b-2a-I2：Candidate Provider 故障注入与既有控制流回归。
 当前已完成 C4b-2b-2a-U1：用户已审核逻辑 / 物理尝试口径、最终轨迹与来源语义。
-后续 Reflection Provider/API、Refinement / 最终 validator 失败恢复、安全确认和 eval 尚未完成。
+当前已完成 C4b-2b-2b-I1：首次 Reflection Provider/API 失败后的唯一受控恢复。
+当前已完成 C4b-2b-2b-I1b/I2：Reflection Provider 生产接线、协议 recovery 的
+Provider/API 安全停止、双计数公开映射，以及故障矩阵与真实正常链验证。
+当前已完成 C4b-2b-2b-U1：用户已审核最终调用轨迹、停止结果与来源语义。
+后续 Refinement / 最终 validator 失败恢复、安全确认和 eval 尚未完成。
 """
 
 import html
@@ -110,6 +114,7 @@ DEEPSEEK_MODEL = "deepseek-v4-pro"
 MODEL_SDK_MAX_RETRIES = 2  # 每次逻辑 SDK 调用内部最多额外尝试两次
 MODEL_REQUEST_TIMEOUT_SECONDS = 60.0  # 单次物理模型请求的显式 timeout
 MAX_CANDIDATE_PROVIDER_RECOVERIES = 1  # Candidate 阶段的 Agent 级 Provider 恢复额度
+MAX_REFLECTION_PROVIDER_RECOVERIES = 1  # Reflection 阶段的 Agent 级 Provider 恢复额度
 MAX_STEPS = 6  # 每次请求允许的最大调用步数
 MIN_STEPS_FOR_CANDIDATE_RECOVERY_CHAIN = 3  # 候选恢复链所需的最少调用步数
 MIN_STEPS_FOR_REFLECTION_RECOVERY_CHAIN = 2  # Reflection 恢复与后续 Refinement 所需的调用步数
@@ -392,6 +397,126 @@ class CandidateProviderStageStopError(RuntimeError):
         super().__init__("Candidate Provider/API stage stopped")
 
 
+class ReflectionProviderStageStopError(RuntimeError):
+    """表示 Reflection Provider/API 阶段已安全停止的内部窄信号。"""
+
+    def __init__(
+        self,
+        *,
+        stop_kind: str,
+        call_role: str,
+        provider_classification: str,
+        provider_reason: str,
+        status_code: int | None,
+        reflection_provider_recovery_attempts: int,
+        reflection_protocol_recovery_attempts: int,
+        current_step: int,
+        allowed_sources: list[str],
+    ) -> None:
+        if type(stop_kind) is not str or stop_kind not in {
+            "terminal_error",
+            "insufficient_completion_steps",
+            "recovery_failed",
+        }:
+            raise ValueError("stop_kind 必须属于 Reflection Provider 停止类型")
+        if type(call_role) is not str or call_role not in {
+            "initial_reflection",
+            "reflection_protocol_recovery",
+        }:
+            raise ValueError("call_role 必须属于 Reflection Provider 调用角色")
+        if (
+            type(provider_classification) is not str
+            or provider_classification not in {"recoverable", "terminal"}
+        ):
+            raise ValueError("provider_classification 必须是安全分类")
+        if type(provider_reason) is not str or provider_reason not in {
+            "timeout",
+            "connection",
+            "transient_http_status",
+            "deterministic_http_status",
+            "unknown_api_error",
+        }:
+            raise ValueError("provider_reason 必须是冻结的安全原因")
+        if status_code is not None and type(status_code) is not int:
+            raise ValueError("status_code 必须是内建整数或 None")
+        if (
+            type(reflection_provider_recovery_attempts) is not int
+            or reflection_provider_recovery_attempts
+            not in {0, MAX_REFLECTION_PROVIDER_RECOVERIES}
+        ):
+            raise ValueError("Reflection Provider 恢复计数必须是 0 或 1")
+        if (
+            type(reflection_protocol_recovery_attempts) is not int
+            or reflection_protocol_recovery_attempts not in {0, 1}
+        ):
+            raise ValueError("Reflection 协议恢复计数必须是 0 或 1")
+        if (
+            reflection_provider_recovery_attempts == 1
+            and reflection_protocol_recovery_attempts == 1
+        ):
+            raise ValueError("当前 V1 不允许两类 Reflection 恢复在同一轨迹各执行一次")
+        if type(current_step) is not int or not (1 <= current_step <= MAX_STEPS):
+            raise ValueError("current_step 必须位于全局 step 合法域内")
+        if (
+            type(allowed_sources) is not list
+            or not allowed_sources
+            or not all(
+                type(source) is str and bool(source.strip())
+                for source in allowed_sources
+            )
+        ):
+            raise ValueError("allowed_sources 必须是非空真实来源列表")
+
+        if call_role == "initial_reflection":
+            if reflection_protocol_recovery_attempts != 0:
+                raise ValueError("首次 Reflection Provider 分支不能伪造协议恢复")
+            if stop_kind == "terminal_error" and not (
+                provider_classification == "terminal"
+                and reflection_provider_recovery_attempts == 0
+            ):
+                raise ValueError("terminal_error 必须是首次 terminal Provider 失败")
+            if stop_kind == "insufficient_completion_steps" and not (
+                provider_classification == "recoverable"
+                and reflection_provider_recovery_attempts == 0
+            ):
+                raise ValueError("预算停止必须发生在首次 recoverable Provider 失败后")
+            if (
+                stop_kind == "recovery_failed"
+                and reflection_provider_recovery_attempts
+                != MAX_REFLECTION_PROVIDER_RECOVERIES
+            ):
+                raise ValueError("recovery_failed 必须发生在唯一 Provider 恢复后")
+        else:
+            if not (
+                reflection_protocol_recovery_attempts == 1
+                and reflection_provider_recovery_attempts == 0
+            ):
+                raise ValueError("协议恢复 Provider 失败的两个恢复计数不合法")
+            if stop_kind == "terminal_error" and provider_classification != "terminal":
+                raise ValueError("协议恢复 terminal_error 必须携带 terminal 分类")
+            if stop_kind == "insufficient_completion_steps" and (
+                provider_classification != "recoverable"
+            ):
+                raise ValueError("协议恢复预算停止必须携带 recoverable 分类")
+            if stop_kind == "recovery_failed":
+                raise ValueError("协议恢复 Provider 失败不得伪造 Provider recovery")
+
+        self.stop_kind = stop_kind
+        self.call_role = call_role
+        self.provider_classification = provider_classification
+        self.provider_reason = provider_reason
+        self.status_code = status_code
+        self.reflection_provider_recovery_attempts = (
+            reflection_provider_recovery_attempts
+        )
+        self.reflection_protocol_recovery_attempts = (
+            reflection_protocol_recovery_attempts
+        )
+        self.current_step = current_step
+        self.allowed_sources = list(allowed_sources)
+        super().__init__("Reflection Provider/API stage stopped")
+
+
 class CandidateSummaryStageStopError(RuntimeError):
     """表示 Candidate 阶段已安全停止、等待公开入口映射的内部窄信号。"""
 
@@ -485,6 +610,7 @@ class ReflectionFeedbackStageStopError(RuntimeError):
         recovery_attempts: int,
         current_step: int,
         allowed_sources: list[str],
+        reflection_provider_recovery_attempts: int = 0,
     ) -> None:
         terminal_reasons = {
             "content_filter",
@@ -502,6 +628,15 @@ class ReflectionFeedbackStageStopError(RuntimeError):
             raise ValueError("reflection_reason 必须是冻结的安全原因字符串")
         if type(recovery_attempts) is not int or recovery_attempts not in {0, 1}:
             raise ValueError("recovery_attempts 必须是内建整数 0 或 1")
+        if (
+            type(reflection_provider_recovery_attempts) is not int
+            or reflection_provider_recovery_attempts not in {0, 1}
+        ):
+            raise ValueError(
+                "reflection_provider_recovery_attempts 必须是内建整数 0 或 1"
+            )
+        if recovery_attempts == 1 and reflection_provider_recovery_attempts == 1:
+            raise ValueError("当前 V1 不允许两类 Reflection 恢复各执行一次")
         if type(current_step) is not int or not (1 <= current_step <= MAX_STEPS):
             raise ValueError("current_step 必须位于全局 step 合法域内")
         if (
@@ -532,7 +667,12 @@ class ReflectionFeedbackStageStopError(RuntimeError):
 
         self.stop_kind = stop_kind
         self.reflection_reason = reflection_reason
+        # 保留 recovery_attempts 兼容既有调用；它只表示协议 / 内容恢复次数。
         self.recovery_attempts = recovery_attempts
+        self.reflection_protocol_recovery_attempts = recovery_attempts
+        self.reflection_provider_recovery_attempts = (
+            reflection_provider_recovery_attempts
+        )
         self.current_step = current_step
         self.allowed_sources = list(allowed_sources)
         super().__init__("Reflection feedback stage stopped")
@@ -2985,6 +3125,123 @@ def request_reflection_response(
         return response
 
 
+# 在完整链预算允许时，为首次 Reflection Provider/API 失败编排至多一次恢复。
+def request_initial_reflection_with_one_provider_recovery(
+    reflection_prompt: str,
+    client: OpenAI | None = None,
+    *,
+    allowed_sources: list[str],
+    run_context: dict[str, object],
+) -> dict[str, object]:
+    """返回首次 Reflection 的原始响应及实际 Provider 恢复次数。
+
+    正常首次调用必须返回严格两键 ``response`` 与
+    ``reflection_provider_recovery_attempts=0``。首次调用抛出 ``APIError``
+    时，只使用共享 Provider 分类器：terminal 立即发出
+    ``ReflectionProviderStageStopError``；recoverable 只有在剩余预算还能
+    同时容纳“Reflection Provider recovery + Refinement”时，才复用完全相同
+    的 prompt、实际 client 与共享 run_context 发起唯一一次逻辑恢复调用。
+
+    唯一恢复正常返回任意对象时，必须原样交给后续 Reflection 响应分类层，
+    并返回 Provider 恢复次数 1；不得在本函数内做协议分类或协议恢复。唯一
+    恢复再抛 ``APIError`` 时发出 ``recovery_failed`` 窄信号，不能循环或发起
+    第三次请求。非 ``APIError`` 异常保持原 identity 上抛。函数不得重新调用
+    工具、调用 Refinement、构造公开结果、修改 prompt / sources，或把异常正文
+    写进消息、日志和停止信号。
+    """
+    # (A4-Gate-C4b-2b-2b-I1):
+    # 1. 校验 prompt / allowed_sources，并保证 client 只创建一次后复用。
+    # 2. 调用 request_reflection_response()；只捕获 APIError，正常返回 attempts=0。
+    # 3. 分类首次 APIError，并按 terminal / 完整链预算不足发出精确窄信号。
+    # 4. 预算允许时用相同输入发起唯一 Provider recovery；正常返回 attempts=1。
+    # 5. 唯一恢复再抛 APIError 时发出 recovery_failed；不得吞掉普通 Python 异常。
+    if type(reflection_prompt) is not str or not reflection_prompt.strip():
+        raise ValueError("reflection_prompt 必须是非空内建字符串")
+    if (
+        type(allowed_sources) is not list
+        or not allowed_sources
+        or not all(
+            type(source) is str and bool(source.strip())
+            for source in allowed_sources
+        )
+    ):
+        raise ValueError("allowed_sources 必须是非空真实来源列表")
+
+    if client is None:
+        client = create_deepseek_client()
+
+    try:
+        response = request_reflection_response(
+            reflection_prompt,
+            client,
+            run_context=run_context,
+        )
+    except APIError as exc:
+        first_error = exc
+    else:
+        return {
+            "response": response,
+            "reflection_provider_recovery_attempts": 0,
+        }
+
+    provider_classification = classify_provider_api_error(first_error)
+    current_step = run_context["step"]
+    if provider_classification["classification"] == "terminal":
+        raise ReflectionProviderStageStopError(
+            stop_kind="terminal_error",
+            call_role="initial_reflection",
+            provider_classification=provider_classification["classification"],
+            provider_reason=provider_classification["reason"],
+            status_code=provider_classification["status_code"],
+            reflection_provider_recovery_attempts=0,
+            reflection_protocol_recovery_attempts=0,
+            current_step=current_step,
+            allowed_sources=allowed_sources,
+        ) from first_error
+
+    if not has_reflection_recovery_completion_budget(current_step):
+        raise ReflectionProviderStageStopError(
+            stop_kind="insufficient_completion_steps",
+            call_role="initial_reflection",
+            provider_classification=provider_classification["classification"],
+            provider_reason=provider_classification["reason"],
+            status_code=provider_classification["status_code"],
+            reflection_provider_recovery_attempts=0,
+            reflection_protocol_recovery_attempts=0,
+            current_step=current_step,
+            allowed_sources=allowed_sources,
+        ) from first_error
+
+    try:
+        response = request_reflection_response(
+            reflection_prompt,
+            client,
+            run_context=run_context,
+        )
+    except APIError as exc:
+        provider_classification = classify_provider_api_error(exc)
+        raise ReflectionProviderStageStopError(
+            stop_kind="recovery_failed",
+            call_role="initial_reflection",
+            provider_classification=provider_classification["classification"],
+            provider_reason=provider_classification["reason"],
+            status_code=provider_classification["status_code"],
+            reflection_provider_recovery_attempts=(
+                MAX_REFLECTION_PROVIDER_RECOVERIES
+            ),
+            reflection_protocol_recovery_attempts=0,
+            current_step=run_context["step"],
+            allowed_sources=allowed_sources,
+        ) from exc
+
+    return {
+        "response": response,
+        "reflection_provider_recovery_attempts": (
+            MAX_REFLECTION_PROVIDER_RECOVERIES
+        ),
+    }
+
+
 # 保留旧正常路径的“请求后取得已校验反馈”接口。
 def request_reflection_feedback(
     reflection_prompt: str,
@@ -3102,6 +3359,7 @@ def resolve_reflection_feedback_stage(
     client: OpenAI | None = None,
     *,
     run_context: dict[str, object],
+    reflection_provider_recovery_attempts: int = 0,
 ) -> str:
     """返回规范化合法反馈，或发出只携带安全事实的阶段停止信号。
 
@@ -3109,8 +3367,10 @@ def resolve_reflection_feedback_stage(
     不恢复；recoverable 只进入 I1d 一次。恢复后的 valid 返回；terminal 或
     recoverable 均停止。失败响应正文永不进入异常、恢复 prompt 或公开结果。
 
-    本函数只捕获 I1d 的完整链预算窄异常；Provider / SDK 异常、Refinement
-    与最终 validator 失败均不属于当前切片，继续原样向上抛出。
+    ``reflection_provider_recovery_attempts`` 与协议 / 内容恢复次数分开记账；
+    Provider recovery 返回坏响应时不得再执行协议 recovery。协议 recovery
+    调用自身遇到 ``APIError`` 时只分类并安全停止，不叠加 Provider recovery。
+    Refinement 与最终 validator 失败仍不属于当前切片，继续原样向上抛出。
     """
     if type(reflection_prompt) is not str or not reflection_prompt.strip():
         raise ValueError("reflection_prompt 必须是非空内建字符串")
@@ -3125,6 +3385,13 @@ def resolve_reflection_feedback_stage(
         raise ValueError("allowed_sources 必须是非空的真实来源字符串列表")
     if type(run_context) is not dict or "step" not in run_context:
         raise ValueError("run_context 必须包含共享 step")
+    if (
+        type(reflection_provider_recovery_attempts) is not int
+        or reflection_provider_recovery_attempts not in {0, 1}
+    ):
+        raise ValueError(
+            "reflection_provider_recovery_attempts 必须是内建整数 0 或 1"
+        )
     current_step = run_context["step"]
     if type(current_step) is not int or not (1 <= current_step <= MAX_STEPS):
         raise ValueError("共享 step 必须位于全局合法域内")
@@ -3145,9 +3412,20 @@ def resolve_reflection_feedback_stage(
             recovery_attempts=0,
             current_step=current_step,
             allowed_sources=allowed_sources,
+            reflection_provider_recovery_attempts=(
+                reflection_provider_recovery_attempts
+            ),
         )
     if initial_kind != "recoverable":
         raise RuntimeError("Unknown Reflection classification")
+    if (
+        reflection_provider_recovery_attempts == 1
+        and has_reflection_recovery_completion_budget(current_step)
+    ):
+        raise RuntimeError(
+            "Reflection Provider recovery 返回坏响应后仍有完整链预算，"
+            "当前 V1 未定义再叠加协议 recovery 的状态"
+        )
 
     try:
         recovered_classification = attempt_reflection_recovery_once(
@@ -3162,6 +3440,40 @@ def resolve_reflection_feedback_stage(
             reflection_reason=exc.recoverable_reason,
             recovery_attempts=0,
             current_step=exc.current_step,
+            allowed_sources=allowed_sources,
+            reflection_provider_recovery_attempts=(
+                reflection_provider_recovery_attempts
+            ),
+        ) from exc
+    except APIError as exc:
+        if reflection_provider_recovery_attempts != 0:
+            raise RuntimeError(
+                "当前 V1 不允许 Reflection Provider recovery 与协议 recovery "
+                "在同一轨迹各执行一次"
+            ) from exc
+        provider_classification = classify_provider_api_error(exc)
+        current_step = run_context["step"]
+        if (
+            provider_classification["classification"] == "recoverable"
+            and has_reflection_recovery_completion_budget(current_step)
+        ):
+            raise RuntimeError(
+                "Reflection 协议 recovery 的 Provider 失败仍有完整链预算，"
+                "当前 V1 未定义该状态"
+            ) from exc
+        raise ReflectionProviderStageStopError(
+            stop_kind=(
+                "terminal_error"
+                if provider_classification["classification"] == "terminal"
+                else "insufficient_completion_steps"
+            ),
+            call_role="reflection_protocol_recovery",
+            provider_classification=provider_classification["classification"],
+            provider_reason=provider_classification["reason"],
+            status_code=provider_classification["status_code"],
+            reflection_provider_recovery_attempts=0,
+            reflection_protocol_recovery_attempts=1,
+            current_step=current_step,
             allowed_sources=allowed_sources,
         ) from exc
 
@@ -3184,6 +3496,9 @@ def resolve_reflection_feedback_stage(
         recovery_attempts=1,
         current_step=run_context["step"],
         allowed_sources=allowed_sources,
+        reflection_provider_recovery_attempts=(
+            reflection_provider_recovery_attempts
+        ),
     )
 
 
@@ -3295,8 +3610,9 @@ def reflect_refine_and_validate(
 ) -> dict[str, object]:
     """编排 Reflection 的受控恢复、一次 Refinement 与最终硬校验。
 
-    本层不重新调用工具，也不负责 Candidate 生成。Reflection 首次响应先
-    进入阶段解析器；只有合法反馈才进入一次 Refinement 与最终 validator。
+    本层不重新调用工具，也不负责 Candidate 生成。首次 Reflection 的
+    Provider/API 失败先按完整链预算至多恢复一次；API 正常返回的响应再进入
+    协议阶段解析器。只有合法反馈才进入一次 Refinement 与最终 validator。
     """
     allowed_sources = derive_allowed_sources(
         normalized_request,
@@ -3312,17 +3628,27 @@ def reflect_refine_and_validate(
     )
     if client is None:
         client = create_deepseek_client()
-    initial_reflection_response = request_reflection_response(
-        reflection_prompt,
-        client,
-        run_context=run_context,
+    initial_reflection_result = (
+        request_initial_reflection_with_one_provider_recovery(
+            reflection_prompt,
+            client,
+            allowed_sources=allowed_sources,
+            run_context=run_context,
+        )
     )
+    initial_reflection_response = initial_reflection_result["response"]
+    reflection_provider_recovery_attempts = initial_reflection_result[
+        "reflection_provider_recovery_attempts"
+    ]
     feedback = resolve_reflection_feedback_stage(
         initial_reflection_response,
         reflection_prompt,
         allowed_sources,
         client,
         run_context=run_context,
+        reflection_provider_recovery_attempts=(
+            reflection_provider_recovery_attempts
+        ),
     )
     refinement_prompt = build_refinement_prompt(
         normalized_request,
@@ -3353,10 +3679,10 @@ def run_research_summary_once(
     真实不可重试工具失败映射为 ``tool_failure``，把搜索成功但零证据
     映射为 ``insufficient_evidence``；Reflection API 已返回后的协议 /
     内容失败按完整链预算至多恢复一次，并把冻结的安全停止映射为
-    ``needs_manual``；取得 Tool Observation 后的 Candidate Provider/API 失败也按
-    独立额度、完整链预算和安全来源语义映射。HITL、首次 Tool Action / Action
-    correction / Reflection / Refinement 的 Provider/API 异常、最终 validator
-    及其他未映射异常继续向上抛出。
+    ``needs_manual``；取得 Tool Observation 后的 Candidate 与 Reflection
+    Provider/API 失败也按各自独立额度、完整链预算、协议恢复计数和安全来源
+    语义映射。HITL、首次 Tool Action / Action correction、Refinement 的
+    Provider/API 异常、最终 validator 及其他未映射异常继续向上抛出。
     """
     normalized_request, invalid_result = prepare_request(request)
     if normalized_request is None:
@@ -3785,6 +4111,195 @@ def run_research_summary_once(
             client,
             run_context=run_context,
         )
+    except ReflectionProviderStageStopError as exc:
+        if type(exc) is not ReflectionProviderStageStopError:
+            raise
+
+        stop_kind = getattr(exc, "stop_kind", None)
+        call_role = getattr(exc, "call_role", None)
+        provider_classification = getattr(
+            exc,
+            "provider_classification",
+            None,
+        )
+        provider_reason = getattr(exc, "provider_reason", None)
+        status_code = getattr(exc, "status_code", None)
+        reflection_provider_recovery_attempts = getattr(
+            exc,
+            "reflection_provider_recovery_attempts",
+            None,
+        )
+        reflection_protocol_recovery_attempts = getattr(
+            exc,
+            "reflection_protocol_recovery_attempts",
+            None,
+        )
+        current_step = getattr(exc, "current_step", None)
+        allowed_sources = getattr(exc, "allowed_sources", None)
+        cause = exc.__cause__
+        if (
+            type(stop_kind) is not str
+            or type(call_role) is not str
+            or provider_classification not in {"recoverable", "terminal"}
+            or type(provider_reason) is not str
+            or (status_code is not None and type(status_code) is not int)
+            or type(reflection_provider_recovery_attempts) is not int
+            or reflection_provider_recovery_attempts not in {0, 1}
+            or type(reflection_protocol_recovery_attempts) is not int
+            or reflection_protocol_recovery_attempts not in {0, 1}
+            or (
+                reflection_provider_recovery_attempts == 1
+                and reflection_protocol_recovery_attempts == 1
+            )
+            or type(current_step) is not int
+            or not (1 <= current_step <= MAX_STEPS)
+            or current_step != run_context.get("step")
+            or current_step
+            != (
+                reflection_start_step
+                + 1
+                + reflection_provider_recovery_attempts
+                + reflection_protocol_recovery_attempts
+            )
+            or type(allowed_sources) is not list
+            or not allowed_sources
+            or not all(
+                type(source) is str and bool(source.strip())
+                for source in allowed_sources
+            )
+            or not isinstance(cause, APIError)
+        ):
+            raise
+
+        cause_classification = classify_provider_api_error(cause)
+        if cause_classification != {
+            "classification": provider_classification,
+            "reason": provider_reason,
+            "status_code": status_code,
+        }:
+            raise
+
+        expected_allowed_sources = derive_allowed_sources(
+            normalized_request,
+            tool_name,
+            tool_result,
+        )
+        if allowed_sources != expected_allowed_sources:
+            raise
+
+        provider_reason_texts = {
+            "timeout": (
+                "模型请求达到显式 "
+                f"{int(MODEL_REQUEST_TIMEOUT_SECONDS)} 秒 timeout 后仍未完成"
+            ),
+            "connection": "模型 SDK 最终报告连接失败",
+            "transient_http_status": "模型服务最终返回可恢复白名单内的 HTTP 状态",
+            "deterministic_http_status": (
+                "模型服务返回不会因原样重发而改变的确定性 HTTP 状态"
+            ),
+            "unknown_api_error": (
+                "模型 SDK 返回未被恢复白名单明确覆盖的 API 错误，已 fail-closed"
+            ),
+        }
+        reason_text = provider_reason_texts.get(provider_reason)
+        if reason_text is None:
+            raise
+        status_text = (
+            "" if status_code is None else f"；安全 HTTP 状态码为 {status_code}"
+        )
+
+        if call_role == "initial_reflection":
+            if reflection_protocol_recovery_attempts != 0:
+                raise
+            if stop_kind == "terminal_error":
+                if (
+                    provider_classification != "terminal"
+                    or reflection_provider_recovery_attempts != 0
+                ):
+                    raise
+                summary_text = (
+                    "Reflection Provider/API 阶段已停止：首次 Reflection 逻辑模型"
+                    "调用最终失败，且分类为 terminal；"
+                    f"{reason_text}{status_text}；"
+                    "未发起 Agent 级 Reflection Provider recovery。"
+                )
+            elif stop_kind == "insufficient_completion_steps":
+                if (
+                    provider_classification != "recoverable"
+                    or reflection_provider_recovery_attempts != 0
+                    or has_reflection_recovery_completion_budget(current_step)
+                ):
+                    raise
+                summary_text = (
+                    "Reflection Provider/API 阶段已停止：首次 Reflection 逻辑模型"
+                    "调用最终失败，但分类为 recoverable；"
+                    f"{reason_text}{status_text}；"
+                    f"当前累计 step 为 {current_step}，全局上限为 {MAX_STEPS}；"
+                    "Reflection Provider recovery 与 Refinement 的完整可信链仍需 "
+                    f"{MIN_STEPS_FOR_REFLECTION_RECOVERY_CHAIN} 个调用 step（各 1 次），"
+                    "剩余预算不足；本次 Agent 级 Reflection Provider recovery "
+                    "没有发生。"
+                )
+            elif stop_kind == "recovery_failed":
+                if reflection_provider_recovery_attempts != 1:
+                    raise
+                summary_text = (
+                    "Reflection Provider/API 阶段已停止：首次 Reflection 逻辑模型"
+                    "调用发生 recoverable Provider/API 失败后，已执行唯一一次 "
+                    "Agent 级 Reflection Provider recovery；恢复调用仍失败，"
+                    f"最终分类为 {provider_classification}；"
+                    f"{reason_text}{status_text}；已达到 Provider recovery 上限 "
+                    f"{MAX_REFLECTION_PROVIDER_RECOVERIES}，未发起第三次 Reflection "
+                    "逻辑模型调用。"
+                )
+            else:
+                raise
+        elif call_role == "reflection_protocol_recovery":
+            if (
+                reflection_provider_recovery_attempts != 0
+                or reflection_protocol_recovery_attempts != 1
+            ):
+                raise
+            if provider_classification == "recoverable":
+                if (
+                    stop_kind != "insufficient_completion_steps"
+                    or has_reflection_recovery_completion_budget(current_step)
+                ):
+                    raise
+                stop_detail = (
+                    f"该失败调用已使累计 step 达到 {current_step}，而另一次 Reflection "
+                    "Provider recovery 与 Refinement 的完整可信链仍需 "
+                    f"{MIN_STEPS_FOR_REFLECTION_RECOVERY_CHAIN} 个调用 step；"
+                    "剩余预算不足，因此没有发起 Agent 级 Provider recovery。"
+                )
+            else:
+                if stop_kind != "terminal_error":
+                    raise
+                stop_detail = (
+                    "该错误分类为 terminal，不具备 Agent 级 Provider recovery "
+                    "资格，因此没有再次请求。"
+                )
+            summary_text = (
+                "Reflection Provider/API 阶段已停止：首次 Reflection 响应属于"
+                "可恢复的协议 / 内容失败，随后发起的唯一 Reflection 协议 "
+                "recovery 逻辑调用发生 "
+                f"{provider_classification} Provider/API 失败；"
+                f"{reason_text}{status_text}；{stop_detail}"
+            )
+        else:
+            raise
+
+        summary_text += (
+            "本轮已经取得合法 Candidate 正文，但没有任何最终摘要完成 "
+            "Reflection、Refinement 与客户端校验；"
+            "结果中的 sources 仅是本轮真实工具取得、供人工复核的证据池，"
+            "不代表已验证摘要引用；Agent 已停止自治并交还人工。"
+        )
+        return make_result(
+            "needs_manual",
+            summary_text,
+            list(expected_allowed_sources),
+        )
     except ReflectionFeedbackStageStopError as exc:
         if type(exc) is not ReflectionFeedbackStageStopError:
             raise
@@ -3792,17 +4307,41 @@ def run_research_summary_once(
         stop_kind = getattr(exc, "stop_kind", None)
         reflection_reason = getattr(exc, "reflection_reason", None)
         recovery_attempts = getattr(exc, "recovery_attempts", None)
+        reflection_protocol_recovery_attempts = getattr(
+            exc,
+            "reflection_protocol_recovery_attempts",
+            None,
+        )
+        reflection_provider_recovery_attempts = getattr(
+            exc,
+            "reflection_provider_recovery_attempts",
+            None,
+        )
         current_step = getattr(exc, "current_step", None)
         allowed_sources = getattr(exc, "allowed_sources", None)
         if (
             type(stop_kind) is not str
             or type(reflection_reason) is not str
             or type(recovery_attempts) is not int
+            or type(reflection_protocol_recovery_attempts) is not int
+            or reflection_protocol_recovery_attempts not in {0, 1}
+            or recovery_attempts != reflection_protocol_recovery_attempts
+            or type(reflection_provider_recovery_attempts) is not int
+            or reflection_provider_recovery_attempts not in {0, 1}
+            or (
+                reflection_provider_recovery_attempts == 1
+                and reflection_protocol_recovery_attempts == 1
+            )
             or type(current_step) is not int
             or not (1 <= current_step <= MAX_STEPS)
             or current_step != run_context.get("step")
             or current_step
-            != reflection_start_step + 1 + recovery_attempts
+            != (
+                reflection_start_step
+                + 1
+                + reflection_provider_recovery_attempts
+                + reflection_protocol_recovery_attempts
+            )
             or type(allowed_sources) is not list
             or not allowed_sources
             or not all(
@@ -3847,9 +4386,19 @@ def run_research_summary_once(
 
         if stop_kind == "terminal_response":
             reason_text = terminal_reason_texts.get(reflection_reason)
-            if reason_text is None or recovery_attempts not in {0, 1}:
+            if reason_text is None:
                 raise
-            if recovery_attempts == 0:
+            if reflection_provider_recovery_attempts == 1:
+                if reflection_protocol_recovery_attempts != 0:
+                    raise
+                summary_text = (
+                    "Reflection 阶段已停止：首次 Reflection Provider/API 调用发生"
+                    "可恢复失败后，已执行唯一一次 Agent 级 Reflection Provider "
+                    "recovery；恢复调用返回了 Reflection 响应，但该响应触发不可"
+                    "恢复的协议 / 内容终止条件；"
+                    f"{reason_text}"
+                )
+            elif reflection_protocol_recovery_attempts == 0:
                 summary_text = (
                     "Reflection 阶段已停止：首次 Reflection 响应触发不可恢复的"
                     "终止条件，未发起 Reflection recovery；"
@@ -3864,7 +4413,11 @@ def run_research_summary_once(
                 )
         elif stop_kind == "recovery_exhausted":
             reason_text = recoverable_reason_texts.get(reflection_reason)
-            if reason_text is None or recovery_attempts != 1:
+            if (
+                reason_text is None
+                or reflection_protocol_recovery_attempts != 1
+                or reflection_provider_recovery_attempts != 0
+            ):
                 raise
             summary_text = (
                 "Reflection 阶段已停止：首次 Reflection 响应不合法，已执行唯一一次"
@@ -3876,19 +4429,34 @@ def run_research_summary_once(
             reason_text = recoverable_reason_texts.get(reflection_reason)
             if (
                 reason_text is None
-                or recovery_attempts != 0
+                or reflection_protocol_recovery_attempts != 0
                 or has_reflection_recovery_completion_budget(current_step)
             ):
                 raise
-            summary_text = (
-                "Reflection 阶段已停止：首次 Reflection 响应不合法但属于可恢复分类；"
-                f"{reason_text}"
-                f"当前累计 step 为 {current_step}，全局上限为 {MAX_STEPS}；"
-                "Reflection recovery 与 Refinement 的完整可信链"
-                f"仍需 {MIN_STEPS_FOR_REFLECTION_RECOVERY_CHAIN} 个调用 step"
-                "（各 1 次），剩余预算不足；"
-                "本次 Reflection recovery 模型调用没有发生。"
-            )
+            if reflection_provider_recovery_attempts == 1:
+                summary_text = (
+                    "Reflection 阶段已停止：首次 Reflection Provider/API 调用发生"
+                    "可恢复失败后，已执行唯一一次 Agent 级 Reflection Provider "
+                    "recovery；恢复调用返回了 Reflection 响应，但该响应仍属于"
+                    "可恢复的协议 / 内容失败；"
+                    f"{reason_text}"
+                    f"当前累计 step 为 {current_step}，全局上限为 {MAX_STEPS}；"
+                    "另一次 Reflection 协议 recovery 与 Refinement 的完整可信链"
+                    f"仍需 {MIN_STEPS_FOR_REFLECTION_RECOVERY_CHAIN} 个调用 step"
+                    "（各 1 次），剩余预算不足；"
+                    "本次 Reflection 协议 recovery 模型调用没有发生。"
+                )
+            else:
+                summary_text = (
+                    "Reflection 阶段已停止：首次 Reflection 响应不合法但属于"
+                    "可恢复分类；"
+                    f"{reason_text}"
+                    f"当前累计 step 为 {current_step}，全局上限为 {MAX_STEPS}；"
+                    "Reflection recovery 与 Refinement 的完整可信链"
+                    f"仍需 {MIN_STEPS_FOR_REFLECTION_RECOVERY_CHAIN} 个调用 step"
+                    "（各 1 次），剩余预算不足；"
+                    "本次 Reflection recovery 模型调用没有发生。"
+                )
         else:
             raise
 
