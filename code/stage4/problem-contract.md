@@ -143,6 +143,10 @@
 ### 数值护栏
 
 - `max_steps = 6`：每次模型调用或工具调用都令累计步数加一；客户端输入校验、参数校验和最终输出校验不计步。它是整次请求“绝不能超过”的全局硬上限，不是失败后必须尽量耗尽的目标；达到第 6 步后仍未形成可通过校验的结果时，不得发起第 7 次模型或工具调用。
+- 模型调用的 step / 日志口径是一次 SDK 逻辑调用；SDK 内部的物理 HTTP 尝试不分别占 Agent step，也不逐次写应用日志，`duration_ms` 聚合整次 SDK 逻辑调用。不能把 `max_steps = 6` 解释成整条链最多只能发出 6 个物理 HTTP 请求。
+- `model_sdk_max_retries = 2`：生产 `create_deepseek_client()` 必须显式冻结 SDK 内部最多 2 次自动重试，因此一个满足 SDK 自动重试条件的逻辑调用最多包含首次请求加 2 次重试，共 3 个物理 HTTP 尝试。Agent 只分类 SDK 最终仍抛出的公开异常；不在应用层重复实现 SDK 已拥有的内部退避，也不能依赖 SDK 升级后的隐式默认值。
+- `model_request_timeout_seconds = 60`：每个物理模型请求使用显式 60 秒 timeout；timeout 本身仍可能触发 SDK 内部自动重试。60 秒是交互式 V1 的快速止损初始值，只能根据代表性正常输入的耗时分布、完整链质量和高峰稳定性，同步修改合同、实现与验证；一次偶发 `APITimeoutError` 不能单独证明需要调大。
+- `max_candidate_provider_recoveries = 1`：取得真实 Tool Observation 后，首次 Candidate SDK 逻辑调用最终发生 recoverable Provider/API 失败时，只有剩余全局预算还能同时容纳“1 次 Candidate Provider recovery + 1 次 Reflection + 1 次 Refinement”才允许原样重发一次；terminal 失败、预算不足或唯一 Provider recovery 再失败都立即停止。首次 Candidate 与唯一 Provider recovery 合计最多触发 2 次 SDK 逻辑调用；在每次均满足 SDK 自动重试条件的极端情况下，底层合计最多 6 个物理 HTTP 尝试，但 Agent 仍只增加 2 个 step、写 2 条聚合日志。
 - `max_action_corrections = 1`：首次 Action 未通过工具执行前校验时，V1 最多允许额外调用模型纠正一次；局部纠错额度与全局 `max_steps` 同时生效。
 - `min_steps_after_valid_action = 4`：取得合法 Action 后，仍须为“真实工具 → 候选摘要 → Reflection → Refinement”保留 4 次调用。请求一次 Action correction 前，必须同时满足 `corrections_used < max_action_corrections` 与 `remaining_steps >= 1 + min_steps_after_valid_action`；执行合法 Action 前，必须满足 `remaining_steps >= min_steps_after_valid_action`。已知无法形成完整可信结果时，必须在真实工具执行前提前停止，不能为耗尽全局上限继续调用。
 - `tool_timeout_seconds = 5`：每次工具调用最多等待 5 秒；超时调用仍计为一次工具调用和一次失败尝试。
@@ -177,8 +181,12 @@
 - 工具首次返回 `ok: False, retryable: True` 时，只在重试次数和总步数均未达到上限时重试一次；重试成功则回到正常成功路径。再次失败或没有剩余步数时，停止并返回 `needs_manual`，同时说明尝试次数、最后错误和当前证据缺口。
 - `search_web` 返回 `ok: True` 但 `results` 为空时，说明工具调用已经成功、但没有取得可用于摘要的真实资料，返回 `insufficient_evidence`；`summary` 说明证据缺口，`sources` 为 `[]`，不得凭模型常识补写摘要或编造 URL。
 - `results` 是工具实际返回的候选资料记录；最终 `sources` 才是从本轮实际采用结果的 `url` 字段中提取的 `list[str]`，二者不能混为一谈。
+- Provider/API 分类只依赖 OpenAI Python SDK 的公开异常类型与 `APIStatusError.status_code`，不得根据异常正文、类名字符串、raw response、body、headers 或 request ID 猜控制流。`APITimeoutError`、`APIConnectionError`、HTTP 408 / 409 / 429 / 500～599 属于 recoverable 白名单；HTTP 400 / 401 / 402 / 403 / 404 / 422、其他非白名单状态、响应校验错误与未知 `APIError` 均 terminal / fail-closed。非 `APIError` 的 Python 异常保持原 identity 上抛，不能伪装成 Provider 故障或公开人工接管结果。
+- Candidate Provider recovery 必须复用同一 `messages`、`tool_schemas`、实际 client 与共享 `run_context`；消息仍以本轮真实 Tool Observation 结尾，不回填 Provider 异常或失败响应，不重新执行工具。Provider 停止统一返回 `needs_manual`，不得返回未校验 Candidate；`sources` 原样保留本轮真实工具来源的防御复制，只表示人工复核证据池，不表示存在已验证摘要引用。
+- `provider_recovery_attempts` 与 `candidate_protocol_recovery_attempts` 是两套独立计数，不能相加成一个含义模糊的 retries。正常 post-tool 轨迹中，Provider recovery 在 step 4 返回合法 Candidate 后才允许进入 Reflection step 5 与 Refinement step 6；若返回 terminal 协议响应则立即停止，若返回 recoverable 协议 / 内容坏响应，则剩余 2 步不足以再容纳“Candidate 协议 recovery + Reflection + Refinement”3 步完整链，因此计数必须是 Provider 1 / 协议 0，并且零协议恢复、零 Reflection、零 Refinement。
 - 摘要初稿响应属于已冻结的可恢复协议 / 内容失败时，只能在完整链预算允许时依据同一份真实 Tool Observation 恢复一次；响应属于 terminal、完整链预算不足，或唯一恢复仍未得到合法 Candidate 时，立即停止并返回 `needs_manual`。不得返回任何未通过校验的 Candidate；`summary` 必须明确说明没有摘要通过校验，`sources` 原样保留本轮实际取得且通过白名单校验的来源作为人工接管证据池。
-- Reflection 模型 API 已返回、但反馈响应属于已冻结的可恢复协议 / 内容失败时，只有剩余全局预算能同时容纳“1 次 Reflection recovery + 1 次 Refinement”才允许恢复一次；恢复只沿用首次调用前的可信 Reflection prompt、本轮真实 Tool Observation、合法 Candidate 与来源白名单，不回填失败响应，不重新执行工具。首次或恢复后的响应属于 terminal、完整链预算不足，或唯一恢复仍未得到合法反馈时，立即停止并返回 `needs_manual`，不得再恢复或进入 Refinement；`summary` 必须明确已有合法 Candidate、但尚无最终摘要完成 Reflection、Refinement 与客户端校验，`sources` 原样保留本轮真实来源作为人工接管证据池，不代表已验证摘要引用。Provider / HTTP / SDK 异常，以及 Refinement 响应和最终 validator 失败不属于本条恢复规则，继续按后续独立切片处理。
+- 首次 Candidate API 已正常返回但响应属于 recoverable 协议 / 内容失败时，其唯一 Candidate 协议 recovery 若在 step 4 遇到 Provider/API 异常，不得再发起 Agent 级 Provider recovery：terminal 分类直接停止；recoverable 分类也因剩余预算不足以同时容纳“Provider recovery + Reflection + Refinement”而停止。此时计数是 Provider 0 / 协议 1，零额外模型 / 工具调用，且不得进入 Reflection。
+- Reflection 模型 API 已返回、但反馈响应属于已冻结的可恢复协议 / 内容失败时，只有剩余全局预算能同时容纳“1 次 Reflection recovery + 1 次 Refinement”才允许恢复一次；恢复只沿用首次调用前的可信 Reflection prompt、本轮真实 Tool Observation、合法 Candidate 与来源白名单，不回填失败响应，不重新执行工具。首次或恢复后的响应属于 terminal、完整链预算不足，或唯一恢复仍未得到合法反馈时，立即停止并返回 `needs_manual`，不得再恢复或进入 Refinement；`summary` 必须明确已有合法 Candidate、但尚无最终摘要完成 Reflection、Refinement 与客户端校验，`sources` 原样保留本轮真实来源作为人工接管证据池，不代表已验证摘要引用。Reflection Provider/API、Refinement 响应 / Provider 异常和最终 validator 失败不属于本条恢复规则，继续按后续独立切片处理。
 
 ## 7. 验收条件
 

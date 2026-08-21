@@ -69,7 +69,11 @@
 当前已完成 C4b-2b-1-I1e/I1f：Reflection 阶段分流、停止信号、生产接线与公开映射。
 当前已完成 C4b-2b-1-I2：Reflection 恢复端到端故障注入与既有控制流回归。
 当前已完成 C4b-2b-1-U1：用户已审核最终调用轨迹、停止结果与来源语义。
-后续 Candidate / Reflection Provider/API 异常、Refinement / 最终 validator 失败恢复、安全确认和 eval 尚未完成。
+当前已完成 C4b-2b-2a-I1a/I1b：共享 Provider/API 分类与一次 Candidate Provider recovery。
+当前已完成 C4b-2b-2a-I1c：post-tool Candidate Provider 生产接线与公开安全停止映射。
+当前已完成 C4b-2b-2a-I2：Candidate Provider 故障注入与既有控制流回归。
+当前已完成 C4b-2b-2a-U1：用户已审核逻辑 / 物理尝试口径、最终轨迹与来源语义。
+后续 Reflection Provider/API、Refinement / 最终 validator 失败恢复、安全确认和 eval 尚未完成。
 """
 
 import html
@@ -81,7 +85,7 @@ from time import perf_counter
 import uuid
 
 from dotenv import load_dotenv
-from openai import OpenAI
+from openai import APIConnectionError, APIError, APIStatusError, APITimeoutError, OpenAI
 import requests
 
 ROOT = Path(__file__).resolve().parents[2]  # 读取项目根目录
@@ -103,6 +107,9 @@ SEARCH_TIMEOUT_SECONDS = 5
 MAX_SEARCH_RESULTS = 3  # 最大搜索结果条数
 DEEPSEEK_BASE_URL = "https://api.deepseek.com"
 DEEPSEEK_MODEL = "deepseek-v4-pro"
+MODEL_SDK_MAX_RETRIES = 2  # 每次逻辑 SDK 调用内部最多额外尝试两次
+MODEL_REQUEST_TIMEOUT_SECONDS = 60.0  # 单次物理模型请求的显式 timeout
+MAX_CANDIDATE_PROVIDER_RECOVERIES = 1  # Candidate 阶段的 Agent 级 Provider 恢复额度
 MAX_STEPS = 6  # 每次请求允许的最大调用步数
 MIN_STEPS_FOR_CANDIDATE_RECOVERY_CHAIN = 3  # 候选恢复链所需的最少调用步数
 MIN_STEPS_FOR_REFLECTION_RECOVERY_CHAIN = 2  # Reflection 恢复与后续 Refinement 所需的调用步数
@@ -268,6 +275,123 @@ class ReflectionRecoveryCompletionBudgetError(RuntimeError):
         super().__init__("Reflection recovery completion budget is insufficient")
 
 
+class CandidateProviderStageStopError(RuntimeError):
+    """表示 Candidate Provider/API 阶段已安全停止的内部窄信号。"""
+
+    def __init__(
+        self,
+        *,
+        stop_kind: str,
+        call_role: str,
+        provider_classification: str,
+        provider_reason: str,
+        status_code: int | None,
+        provider_recovery_attempts: int,
+        candidate_protocol_recovery_attempts: int,
+        current_step: int,
+        allowed_sources: list[str],
+    ) -> None:
+        if type(stop_kind) is not str or stop_kind not in {
+            "terminal_error",
+            "insufficient_completion_steps",
+            "recovery_failed",
+        }:
+            raise ValueError("stop_kind 必须属于 Candidate Provider 停止类型")
+        if type(call_role) is not str or call_role not in {
+            "initial_candidate",
+            "candidate_protocol_recovery",
+        }:
+            raise ValueError("call_role 必须属于 Candidate Provider 调用角色")
+        if (
+            type(provider_classification) is not str
+            or provider_classification not in {"recoverable", "terminal"}
+        ):
+            raise ValueError("provider_classification 必须是安全分类")
+        if type(provider_reason) is not str or provider_reason not in {
+            "timeout",
+            "connection",
+            "transient_http_status",
+            "deterministic_http_status",
+            "unknown_api_error",
+        }:
+            raise ValueError("provider_reason 必须是冻结的安全原因")
+        if status_code is not None and type(status_code) is not int:
+            raise ValueError("status_code 必须是内建整数或 None")
+        if (
+            type(provider_recovery_attempts) is not int
+            or provider_recovery_attempts
+            not in {0, MAX_CANDIDATE_PROVIDER_RECOVERIES}
+        ):
+            raise ValueError("provider_recovery_attempts 必须是内建整数 0 或 1")
+        if (
+            type(candidate_protocol_recovery_attempts) is not int
+            or candidate_protocol_recovery_attempts not in {0, 1}
+        ):
+            raise ValueError(
+                "candidate_protocol_recovery_attempts 必须是内建整数 0 或 1"
+            )
+        if type(current_step) is not int or not (1 <= current_step <= MAX_STEPS):
+            raise ValueError("current_step 必须位于全局 step 合法域内")
+        if (
+            type(allowed_sources) is not list
+            or not allowed_sources
+            or not all(
+                type(source) is str and bool(source.strip())
+                for source in allowed_sources
+            )
+        ):
+            raise ValueError("allowed_sources 必须是非空真实来源列表")
+
+        if call_role == "initial_candidate":
+            if candidate_protocol_recovery_attempts != 0:
+                raise ValueError("首次 Candidate Provider 分支不能伪造协议恢复")
+            if stop_kind == "terminal_error" and not (
+                provider_classification == "terminal"
+                and provider_recovery_attempts == 0
+            ):
+                raise ValueError("terminal_error 必须是首次 terminal Provider 失败")
+            if stop_kind == "insufficient_completion_steps" and not (
+                provider_classification == "recoverable"
+                and provider_recovery_attempts == 0
+            ):
+                raise ValueError(
+                    "预算停止必须发生在首次 recoverable Provider 失败后"
+                )
+            if (
+                stop_kind == "recovery_failed"
+                and provider_recovery_attempts
+                != MAX_CANDIDATE_PROVIDER_RECOVERIES
+            ):
+                raise ValueError("recovery_failed 必须发生在唯一 Provider 恢复后")
+        else:
+            if not (
+                candidate_protocol_recovery_attempts == 1
+                and provider_recovery_attempts == 0
+            ):
+                raise ValueError("协议恢复 Provider 失败的两个恢复计数不合法")
+            if stop_kind == "terminal_error" and provider_classification != "terminal":
+                raise ValueError("协议恢复 terminal_error 必须携带 terminal 分类")
+            if stop_kind == "insufficient_completion_steps" and (
+                provider_classification != "recoverable"
+            ):
+                raise ValueError("协议恢复预算停止必须携带 recoverable 分类")
+            if stop_kind == "recovery_failed":
+                raise ValueError("协议恢复 Provider 失败不得伪造 Provider recovery")
+
+        self.stop_kind = stop_kind
+        self.call_role = call_role
+        self.provider_classification = provider_classification
+        self.provider_reason = provider_reason
+        self.status_code = status_code
+        self.provider_recovery_attempts = provider_recovery_attempts
+        self.candidate_protocol_recovery_attempts = (
+            candidate_protocol_recovery_attempts
+        )
+        self.current_step = current_step
+        self.allowed_sources = list(allowed_sources)
+        super().__init__("Candidate Provider/API stage stopped")
+
+
 class CandidateSummaryStageStopError(RuntimeError):
     """表示 Candidate 阶段已安全停止、等待公开入口映射的内部窄信号。"""
 
@@ -276,9 +400,10 @@ class CandidateSummaryStageStopError(RuntimeError):
         *,
         stop_kind: str,
         candidate_reason: str,
-        recovery_attempts: int,
+        candidate_protocol_recovery_attempts: int,
         current_step: int,
         allowed_sources: list[str],
+        provider_recovery_attempts: int = 0,
     ) -> None:
         terminal_reasons = {
             "content_filter",
@@ -294,8 +419,23 @@ class CandidateSummaryStageStopError(RuntimeError):
             raise ValueError("stop_kind 必须属于候选阶段冻结的三种停止类型")
         if type(candidate_reason) is not str:
             raise ValueError("candidate_reason 必须是冻结的安全原因字符串")
-        if type(recovery_attempts) is not int or recovery_attempts not in {0, 1}:
-            raise ValueError("recovery_attempts 必须是内建整数 0 或 1")
+        if (
+            type(candidate_protocol_recovery_attempts) is not int
+            or candidate_protocol_recovery_attempts not in {0, 1}
+        ):
+            raise ValueError(
+                "candidate_protocol_recovery_attempts 必须是内建整数 0 或 1"
+            )
+        if (
+            type(provider_recovery_attempts) is not int
+            or provider_recovery_attempts not in {0, 1}
+        ):
+            raise ValueError("provider_recovery_attempts 必须是内建整数 0 或 1")
+        if (
+            candidate_protocol_recovery_attempts == 1
+            and provider_recovery_attempts == 1
+        ):
+            raise ValueError("协议恢复与 Provider recovery 不能同时各执行一次")
         if type(current_step) is not int or not (1 <= current_step <= MAX_STEPS):
             raise ValueError("current_step 必须位于全局 step 合法域内")
         if (
@@ -314,18 +454,21 @@ class CandidateSummaryStageStopError(RuntimeError):
         elif stop_kind == "recovery_exhausted":
             if (
                 candidate_reason not in RECOVERABLE_CANDIDATE_RESPONSE_REASONS
-                or recovery_attempts != 1
+                or candidate_protocol_recovery_attempts != 1
             ):
                 raise ValueError("recovery_exhausted 必须表示一次恢复后的可恢复失败")
         elif (
             candidate_reason not in RECOVERABLE_CANDIDATE_RESPONSE_REASONS
-            or recovery_attempts != 0
+            or candidate_protocol_recovery_attempts != 0
         ):
             raise ValueError("预算停止必须发生在候选恢复调用之前")
 
         self.stop_kind = stop_kind
         self.candidate_reason = candidate_reason
-        self.recovery_attempts = recovery_attempts
+        self.candidate_protocol_recovery_attempts = (
+            candidate_protocol_recovery_attempts
+        )
+        self.provider_recovery_attempts = provider_recovery_attempts
         self.current_step = current_step
         self.allowed_sources = list(allowed_sources)
         super().__init__("Candidate summary stage stopped")
@@ -507,6 +650,67 @@ def has_reflection_recovery_completion_budget(
 
     remaining_steps = MAX_STEPS - current_step
     return remaining_steps >= MIN_STEPS_FOR_REFLECTION_RECOVERY_CHAIN
+
+
+# 把 SDK 最终抛出的 Provider/API 异常转换为固定安全分类。
+def classify_provider_api_error(
+    error: APIError,
+) -> dict[str, object]:
+    """纯分类一次逻辑 SDK 调用最终抛出的公开 API 异常。
+
+    返回值必须严格只有 ``classification / reason / status_code`` 三个键。
+    ``classification`` 只能是 ``recoverable`` 或 ``terminal``；``reason``
+    只能使用本检查点冻结的安全枚举；连接、timeout 与没有 HTTP 状态的
+    API 异常使用 ``status_code=None``，HTTP 状态异常保留内建整数状态码。
+
+    recoverable 白名单是 timeout、connection、408、409、429 与 500～599；
+    400、401、402、403、404、422、其他状态和未知 APIError 均 fail-closed
+    为 terminal。非 ``APIError`` 输入必须在读取属性前拒绝。函数不得依据
+    异常正文分类，不得保存 raw response / body / headers / request_id，不得
+    修改异常、占 step、写日志、调用模型 / 工具或执行恢复。
+    """
+    # (A4-Gate-C4b-2b-2a-I1a): 实现公开异常类型与状态码的纯分类。
+    if not isinstance(error, APIError):
+        raise ValueError("error 必须是 OpenAI SDK 的公开 APIError")
+
+    def make_classification(
+        classification: str,
+        reason: str,
+        status_code: int | None,
+    ) -> dict[str, object]:
+        return {
+            "classification": classification,
+            "reason": reason,
+            "status_code": status_code,
+        }
+
+    if isinstance(error, APITimeoutError):
+        return make_classification("recoverable", "timeout", None)
+    if isinstance(error, APIConnectionError):
+        return make_classification("recoverable", "connection", None)
+
+    if isinstance(error, APIStatusError):
+        try:
+            status_code = error.status_code
+        except Exception:
+            return make_classification("terminal", "unknown_api_error", None)
+        if type(status_code) is not int:
+            return make_classification("terminal", "unknown_api_error", None)
+        if status_code in {408, 409, 429} or 500 <= status_code <= 599:
+            return make_classification(
+                "recoverable",
+                "transient_http_status",
+                status_code,
+            )
+        if status_code in {400, 401, 402, 403, 404, 422}:
+            return make_classification(
+                "terminal",
+                "deterministic_http_status",
+                status_code,
+            )
+        return make_classification("terminal", "unknown_api_error", status_code)
+
+    return make_classification("terminal", "unknown_api_error", None)
 
 
 # 把不可信的候选模型响应转换为固定内部分类结果。
@@ -791,6 +995,189 @@ def build_candidate_recovery_messages(
         raise ValueError("Tool message 的 tool_call_id 和 content 必须是非空字符串")
 
     return recovery_messages
+
+
+# 发起一次 Tool Observation 后的 Candidate 摘要模型调用。
+def request_candidate_summary_response(
+    candidate_messages: list[object],
+    tool_schemas: list[dict[str, object]],
+    client: OpenAI | None = None,
+    *,
+    run_context: dict[str, object],
+) -> object:
+    """发起恰好一次逻辑 Candidate SDK 调用并原样返回响应。
+
+    输入消息必须以本轮真实 Tool message 结尾；调用独立占一个 Agent step，
+    写一条聚合 SDK 内部尝试的七字段日志。API 正常返回的任意对象都原样
+    交给后续协议分类器；任何异常只记录安全类型后以同一 identity 上抛。
+
+    本函数不分类 Provider / 协议失败、不执行 Agent recovery、不重新调用工具，
+    也不调用 Reflection / Refinement 或构造公开结果。
+    """
+    if type(candidate_messages) is not list or not candidate_messages:
+        raise ValueError("candidate_messages 必须是非空内建列表")
+    tool_message = candidate_messages[-1]
+    if (
+        type(tool_message) is not dict
+        or set(tool_message) != {"role", "tool_call_id", "content"}
+        or tool_message["role"] != "tool"
+        or type(tool_message["tool_call_id"]) is not str
+        or not tool_message["tool_call_id"].strip()
+        or type(tool_message["content"]) is not str
+        or not tool_message["content"].strip()
+    ):
+        raise ValueError("candidate_messages 必须以有效 Tool message 结尾")
+    if type(tool_schemas) is not list or not tool_schemas:
+        raise ValueError("tool_schemas 必须是非空内建列表")
+
+    if client is None:
+        client = create_deepseek_client()
+    call_step = reserve_call_step(run_context)
+    perf_counter_start = perf_counter()
+    try:
+        response = client.chat.completions.create(
+            model=DEEPSEEK_MODEL,
+            messages=candidate_messages,
+            tools=tool_schemas,
+            stream=False,
+            extra_body={"thinking": {"type": "disabled"}},
+            tool_choice="none",
+        )
+    except Exception as exc:
+        perf_counter_end = perf_counter()
+        append_call_log(
+            run_context,
+            error=type(exc).__name__,
+            duration_ms=max(
+                0,
+                int((perf_counter_end - perf_counter_start) * 1000),
+            ),
+            step=call_step,
+            event_type="model_call",
+            model=DEEPSEEK_MODEL,
+            tool_name=None,
+        )
+        raise
+    else:
+        perf_counter_end = perf_counter()
+        append_call_log(
+            run_context,
+            error=None,
+            duration_ms=max(
+                0,
+                int((perf_counter_end - perf_counter_start) * 1000),
+            ),
+            step=call_step,
+            event_type="model_call",
+            model=DEEPSEEK_MODEL,
+            tool_name=None,
+        )
+        return response
+
+
+def request_candidate_summary_with_one_provider_recovery(
+    candidate_messages: list[object],
+    tool_schemas: list[dict[str, object]],
+    client: OpenAI | None = None,
+    *,
+    allowed_sources: list[str],
+    run_context: dict[str, object],
+) -> dict[str, object]:
+    """返回原始 Candidate 响应及本次 Agent Provider 恢复次数。
+
+    首次调用正常返回时，结果严格为 ``response / provider_recovery_attempts``
+    两键且次数为 0。首次抛 ``APIError`` 时只使用 I1a 分类：terminal 立即
+    发出窄停止信号；recoverable 还必须通过完整链预算门，才使用完全相同的
+    messages、tools、client 与共享 context 发起唯一一次逻辑恢复调用。
+
+    第二次调用正常返回任意对象时原样交给协议层，次数为 1；第二次再抛
+    任意 ``APIError`` 时停止，不循环或第三次请求。非 ``APIError`` 异常必须
+    保持原 identity 上抛。函数不得修改输入、重新执行工具、把异常正文加入
+    messages / 日志 / 停止信号，或调用 Reflection / Refinement / 公开结果。
+    ``allowed_sources`` 只作为已经由 generate 层派生的人工证据池透传；
+    停止信号必须防御复制，正常返回仍严格只有原有两键。
+    """
+    # (A4-Gate-C4b-2b-2a-I1b): 编排一次 Candidate Provider 受控恢复。
+    if (
+        type(allowed_sources) is not list
+        or not allowed_sources
+        or not all(
+            type(source) is str and bool(source.strip())
+            for source in allowed_sources
+        )
+    ):
+        raise ValueError("allowed_sources 必须是非空真实来源列表")
+    if client is None:
+        client = create_deepseek_client()
+    try:
+        response = request_candidate_summary_response(
+            candidate_messages,
+            tool_schemas,
+            client,
+            run_context=run_context,
+        )
+    except APIError as exc:
+        first_error = exc
+    else:
+        return {
+            "response": response,
+            "provider_recovery_attempts": 0,
+        }
+
+    provider_classification = classify_provider_api_error(first_error)
+
+    current_step = run_context["step"]
+    if provider_classification["classification"] == "terminal":
+        raise CandidateProviderStageStopError(
+            stop_kind="terminal_error",
+            call_role="initial_candidate",
+            provider_classification=provider_classification["classification"],
+            provider_reason=provider_classification["reason"],
+            status_code=provider_classification["status_code"],
+            provider_recovery_attempts=0,
+            candidate_protocol_recovery_attempts=0,
+            current_step=current_step,
+            allowed_sources=allowed_sources,
+        ) from first_error
+
+    if not has_candidate_recovery_completion_budget(current_step):
+        raise CandidateProviderStageStopError(
+            stop_kind="insufficient_completion_steps",
+            call_role="initial_candidate",
+            provider_classification=provider_classification["classification"],
+            provider_reason=provider_classification["reason"],
+            status_code=provider_classification["status_code"],
+            provider_recovery_attempts=0,
+            candidate_protocol_recovery_attempts=0,
+            current_step=current_step,
+            allowed_sources=allowed_sources,
+        ) from first_error
+
+    try:
+        response = request_candidate_summary_response(
+            candidate_messages,
+            tool_schemas,
+            client,
+            run_context=run_context,
+        )
+    except APIError as exc:
+        provider_classification = classify_provider_api_error(exc)
+        raise CandidateProviderStageStopError(
+            stop_kind="recovery_failed",
+            call_role="initial_candidate",
+            provider_classification=provider_classification["classification"],
+            provider_reason=provider_classification["reason"],
+            status_code=provider_classification["status_code"],
+            provider_recovery_attempts=MAX_CANDIDATE_PROVIDER_RECOVERIES,
+            candidate_protocol_recovery_attempts=0,
+            current_step=run_context["step"],
+            allowed_sources=allowed_sources,
+        ) from exc
+
+    return {
+        "response": response,
+        "provider_recovery_attempts": MAX_CANDIDATE_PROVIDER_RECOVERIES,
+    }
 
 
 # 发起一次 Candidate recovery 的模型调用。
@@ -1765,12 +2152,17 @@ def raise_for_terminal_tool_outcome(
 
 
 def create_deepseek_client() -> OpenAI:
-    """复用已 PASS 配置，创建真实 DeepSeek 客户端但不发起模型调用。"""
+    """创建显式冻结 SDK 重试次数与模型 timeout 的 DeepSeek 客户端。"""
     load_dotenv()
     api_key = os.environ.get("DEEPSEEK_API_KEY")
     if not api_key:
         raise RuntimeError("DeepSeek API key is missing.")
-    return OpenAI(api_key=api_key, base_url=DEEPSEEK_BASE_URL)
+    return OpenAI(
+        api_key=api_key,
+        base_url=DEEPSEEK_BASE_URL,
+        max_retries=MODEL_SDK_MAX_RETRIES,
+        timeout=MODEL_REQUEST_TIMEOUT_SECONDS,
+    )
 
 
 # 发起一次 Action correction 的模型调用
@@ -2041,9 +2433,12 @@ def generate_candidate_summary(
     *,
     run_context: dict[str, object],
 ) -> dict[str, object]:
-    """运行一次两轮正常链，返回候选摘要与本轮真实工具证据。
+    """运行 Action、真实工具和 post-tool Candidate，返回候选与真实证据。
 
     返回的是 Reflection 前的中间对象，不得在这里标记最终 ``success``。
+    只有取得真实 Tool Observation 后的 Candidate 调用接入一次 Provider
+    recovery；首次 Tool Action 与 Action correction 的 Provider/API 异常仍不在
+    本切片处理。Provider 停止只携带安全分类和真实来源证据池。
     """
     messages = [
         {
@@ -2179,47 +2574,26 @@ def generate_candidate_summary(
     }
     messages.append(assistant_message)  # 添加模型的完整 assistant 消息
     messages.append(tool_result_message)  # 添加工具结果消息
-    # 第二次调用模型，获取候选摘要
-    call_step = reserve_call_step(run_context)
-    perf_counter_start = perf_counter()
-    try:
-        response2 = client.chat.completions.create(
-            model=DEEPSEEK_MODEL,
-            messages=messages,
-            tools=tool_schemas,
-            stream=False,
-            extra_body={"thinking": {"type": "disabled"}},
-            tool_choice="none",
+    allowed_sources = derive_allowed_sources(
+        normalized_request,
+        tool_name,
+        tool_result,
+    )
+    # 第二次逻辑模型调用获取候选摘要；仅本位置允许一次 Provider recovery。
+    candidate_provider_result = (
+        request_candidate_summary_with_one_provider_recovery(
+            messages,
+            tool_schemas,
+            client,
+            allowed_sources=allowed_sources,
+            run_context=run_context,
         )
-    except Exception as e:
-        perf_counter_end = perf_counter()
-        append_call_log(
-            run_context,
-            error=type(e).__name__,  # 记录异常类型而不是异常对象本身
-            duration_ms=max(
-                0,
-                int((perf_counter_end - perf_counter_start) * 1000),
-            ),
-            step=call_step,
-            event_type="model_call",
-            model=DEEPSEEK_MODEL,
-            tool_name=None,
-        )
-        raise
-    else:
-        perf_counter_end = perf_counter()
-        append_call_log(
-            run_context,
-            error=None,
-            duration_ms=max(
-                0,
-                int((perf_counter_end - perf_counter_start) * 1000),
-            ),
-            step=call_step,
-            event_type="model_call",
-            model=DEEPSEEK_MODEL,
-            tool_name=None,
-        )
+    )
+
+    response2 = candidate_provider_result["response"]
+    provider_recovery_attempts = candidate_provider_result[
+        "provider_recovery_attempts"
+    ]
 
     candidate_summary = resolve_candidate_summary_stage(
         response2,
@@ -2228,6 +2602,7 @@ def generate_candidate_summary(
         tool_name,
         tool_result,
         client=client,
+        provider_recovery_attempts=provider_recovery_attempts,
         run_context=run_context,
     )
     return {
@@ -2286,6 +2661,7 @@ def resolve_candidate_summary_stage(
     tool_result: dict[str, object],
     client: OpenAI | None = None,
     *,
+    provider_recovery_attempts: int,
     run_context: dict[str, object],
 ) -> str:
     """返回合法 Candidate 原文，或发出带真实人工接管证据的窄停止信号。
@@ -2294,9 +2670,18 @@ def resolve_candidate_summary_stage(
     只允许进入 I1e 一次。恢复后的 valid 返回；terminal 或 recoverable 均停止，
     不得递归或再次恢复。只有确定停止时才从真实工具结果派生来源白名单。
 
+    ``provider_recovery_attempts`` 与协议 / 内容
+    ``candidate_protocol_recovery_attempts`` 分开记录；Provider recovery 返回
+    坏响应时不得把已经发生的 Provider 调用误报为零。
     本函数不得把失败 Candidate 加入消息历史，不得重新执行工具、调用 Reflection /
-    Refinement、构造公开三字段结果或吞掉 Provider / SDK 等非预算异常。
+    Refinement 或构造公开三字段结果。Candidate 协议 recovery 遇到 APIError 时
+    只做安全分类并停止；非 API 异常仍保持原 identity 上抛。
     """
+    if (
+        type(provider_recovery_attempts) is not int
+        or provider_recovery_attempts not in {0, 1}
+    ):
+        raise ValueError("provider_recovery_attempts 必须是内建整数 0 或 1")
     initial_classification = classify_candidate_summary_response(initial_response)
     initial_kind = initial_classification["classification"]
 
@@ -2312,9 +2697,10 @@ def resolve_candidate_summary_stage(
         raise CandidateSummaryStageStopError(
             stop_kind="terminal_response",
             candidate_reason=initial_classification["reason"],
-            recovery_attempts=0,
+            candidate_protocol_recovery_attempts=0,
             current_step=run_context["step"],
             allowed_sources=allowed_sources,
+            provider_recovery_attempts=provider_recovery_attempts,
         )
 
     try:
@@ -2333,8 +2719,40 @@ def resolve_candidate_summary_stage(
         raise CandidateSummaryStageStopError(
             stop_kind="insufficient_completion_steps",
             candidate_reason=exc.recoverable_reason,
-            recovery_attempts=0,
+            candidate_protocol_recovery_attempts=0,
             current_step=exc.current_step,
+            allowed_sources=allowed_sources,
+            provider_recovery_attempts=provider_recovery_attempts,
+        ) from exc
+    except APIError as exc:
+        provider_classification = classify_provider_api_error(exc)
+        current_step = run_context["step"]
+        if (
+            provider_classification["classification"] == "recoverable"
+            and has_candidate_recovery_completion_budget(current_step)
+        ):
+            raise RuntimeError(
+                "Candidate 协议 recovery 的 Provider 失败仍有完整链预算，"
+                "当前切片未定义该状态"
+            ) from exc
+        allowed_sources = derive_allowed_sources(
+            normalized_request,
+            tool_name,
+            tool_result,
+        )
+        raise CandidateProviderStageStopError(
+            stop_kind=(
+                "terminal_error"
+                if provider_classification["classification"] == "terminal"
+                else "insufficient_completion_steps"
+            ),
+            call_role="candidate_protocol_recovery",
+            provider_classification=provider_classification["classification"],
+            provider_reason=provider_classification["reason"],
+            status_code=provider_classification["status_code"],
+            provider_recovery_attempts=0,
+            candidate_protocol_recovery_attempts=1,
+            current_step=current_step,
             allowed_sources=allowed_sources,
         ) from exc
 
@@ -2354,9 +2772,10 @@ def resolve_candidate_summary_stage(
             else "recovery_exhausted"
         ),
         candidate_reason=recovered_classification["reason"],
-        recovery_attempts=1,
+        candidate_protocol_recovery_attempts=1,
         current_step=run_context["step"],
         allowed_sources=allowed_sources,
+        provider_recovery_attempts=provider_recovery_attempts,
     )
 
 
@@ -2934,7 +3353,9 @@ def run_research_summary_once(
     真实不可重试工具失败映射为 ``tool_failure``，把搜索成功但零证据
     映射为 ``insufficient_evidence``；Reflection API 已返回后的协议 /
     内容失败按完整链预算至多恢复一次，并把冻结的安全停止映射为
-    ``needs_manual``。HITL、Provider / SDK、Refinement / 最终 validator
+    ``needs_manual``；取得 Tool Observation 后的 Candidate Provider/API 失败也按
+    独立额度、完整链预算和安全来源语义映射。HITL、首次 Tool Action / Action
+    correction / Reflection / Refinement 的 Provider/API 异常、最终 validator
     及其他未映射异常继续向上抛出。
     """
     normalized_request, invalid_result = prepare_request(request)
@@ -2950,21 +3371,216 @@ def run_research_summary_once(
             client,
             run_context=run_context,
         )
+    except CandidateProviderStageStopError as exc:
+        if type(exc) is not CandidateProviderStageStopError:
+            raise
+
+        stop_kind = getattr(exc, "stop_kind", None)
+        call_role = getattr(exc, "call_role", None)
+        provider_classification = getattr(
+            exc,
+            "provider_classification",
+            None,
+        )
+        provider_reason = getattr(exc, "provider_reason", None)
+        status_code = getattr(exc, "status_code", None)
+        provider_recovery_attempts = getattr(
+            exc,
+            "provider_recovery_attempts",
+            None,
+        )
+        candidate_protocol_recovery_attempts = getattr(
+            exc,
+            "candidate_protocol_recovery_attempts",
+            None,
+        )
+        current_step = getattr(exc, "current_step", None)
+        allowed_sources = getattr(exc, "allowed_sources", None)
+        cause = exc.__cause__
+        if (
+            type(stop_kind) is not str
+            or type(call_role) is not str
+            or provider_classification not in {"recoverable", "terminal"}
+            or type(provider_reason) is not str
+            or (status_code is not None and type(status_code) is not int)
+            or type(provider_recovery_attempts) is not int
+            or provider_recovery_attempts not in {0, 1}
+            or type(candidate_protocol_recovery_attempts) is not int
+            or candidate_protocol_recovery_attempts not in {0, 1}
+            or (
+                provider_recovery_attempts == 1
+                and candidate_protocol_recovery_attempts == 1
+            )
+            or type(current_step) is not int
+            or not (1 <= current_step <= MAX_STEPS)
+            or current_step != run_context.get("step")
+            or type(allowed_sources) is not list
+            or not allowed_sources
+            or not all(
+                type(source) is str and bool(source.strip())
+                for source in allowed_sources
+            )
+            or not isinstance(cause, APIError)
+        ):
+            raise
+
+        cause_classification = classify_provider_api_error(cause)
+        if cause_classification != {
+            "classification": provider_classification,
+            "reason": provider_reason,
+            "status_code": status_code,
+        }:
+            raise
+
+        provider_reason_texts = {
+            "timeout": (
+                "模型请求达到显式 "
+                f"{int(MODEL_REQUEST_TIMEOUT_SECONDS)} 秒 timeout 后仍未完成"
+            ),
+            "connection": "模型 SDK 最终报告连接失败",
+            "transient_http_status": "模型服务最终返回可恢复白名单内的 HTTP 状态",
+            "deterministic_http_status": (
+                "模型服务返回不会因原样重发而改变的确定性 HTTP 状态"
+            ),
+            "unknown_api_error": (
+                "模型 SDK 返回未被恢复白名单明确覆盖的 API 错误，已 fail-closed"
+            ),
+        }
+        reason_text = provider_reason_texts.get(provider_reason)
+        if reason_text is None:
+            raise
+        status_text = (
+            "" if status_code is None else f"；安全 HTTP 状态码为 {status_code}"
+        )
+
+        if call_role == "initial_candidate":
+            if candidate_protocol_recovery_attempts != 0:
+                raise
+            if stop_kind == "terminal_error":
+                if (
+                    provider_classification != "terminal"
+                    or provider_recovery_attempts != 0
+                ):
+                    raise
+                summary_text = (
+                    "Candidate Provider/API 阶段已停止：首次 Candidate 逻辑模型"
+                    "调用最终失败，且分类为 terminal；"
+                    f"{reason_text}{status_text}；"
+                    "未发起 Agent 级 Candidate Provider recovery。"
+                )
+            elif stop_kind == "insufficient_completion_steps":
+                if (
+                    provider_classification != "recoverable"
+                    or provider_recovery_attempts != 0
+                    or has_candidate_recovery_completion_budget(current_step)
+                ):
+                    raise
+                summary_text = (
+                    "Candidate Provider/API 阶段已停止：首次 Candidate 逻辑模型"
+                    "调用最终失败，但分类为 recoverable；"
+                    f"{reason_text}{status_text}；"
+                    f"当前累计 step 为 {current_step}，全局上限为 {MAX_STEPS}；"
+                    "Candidate Provider recovery、Reflection 与 Refinement 的"
+                    f"完整可信链仍需 {MIN_STEPS_FOR_CANDIDATE_RECOVERY_CHAIN} 个"
+                    "调用 step（各 1 次），剩余预算不足；"
+                    "本次 Agent 级 Candidate Provider recovery 没有发生。"
+                )
+            elif stop_kind == "recovery_failed":
+                if provider_recovery_attempts != 1:
+                    raise
+                summary_text = (
+                    "Candidate Provider/API 阶段已停止：首次 Candidate 逻辑模型"
+                    "调用发生 recoverable Provider/API 失败后，已执行唯一一次"
+                    " Agent 级 Candidate Provider recovery；恢复调用仍失败，"
+                    f"最终分类为 {provider_classification}；"
+                    f"{reason_text}{status_text}；"
+                    f"已达到 Provider recovery 上限 {MAX_CANDIDATE_PROVIDER_RECOVERIES}，"
+                    "未发起第三次 Candidate 逻辑模型调用。"
+                )
+            else:
+                raise
+        elif call_role == "candidate_protocol_recovery":
+            if (
+                provider_recovery_attempts != 0
+                or candidate_protocol_recovery_attempts != 1
+            ):
+                raise
+            if provider_classification == "recoverable":
+                if (
+                    stop_kind != "insufficient_completion_steps"
+                    or has_candidate_recovery_completion_budget(current_step)
+                ):
+                    raise
+                stop_detail = (
+                    f"该失败调用已使累计 step 达到 {current_step}，而另一次 Candidate "
+                    "Provider recovery、Reflection 与 Refinement 的完整可信链仍需 "
+                    f"{MIN_STEPS_FOR_CANDIDATE_RECOVERY_CHAIN} 个调用 step；"
+                    "剩余预算不足，因此没有发起 Agent 级 Provider recovery。"
+                )
+            else:
+                if stop_kind != "terminal_error":
+                    raise
+                stop_detail = (
+                    "该错误分类为 terminal，不具备 Agent 级 Provider recovery "
+                    "资格，因此没有再次请求。"
+                )
+            summary_text = (
+                "Candidate Provider/API 阶段已停止：首次 Candidate 响应属于可恢复的"
+                "协议 / 内容失败，随后发起的唯一 Candidate 协议 recovery 逻辑调用"
+                f"发生 {provider_classification} Provider/API 失败；"
+                f"{reason_text}{status_text}；{stop_detail}"
+            )
+        else:
+            raise
+
+        summary_text += (
+            "没有任何 Candidate / 摘要通过校验；"
+            "结果中的 sources 仅是本轮真实工具取得、供人工复核的证据池，"
+            "不代表已验证摘要引用；"
+            "Agent 已停止自治并交还人工。"
+        )
+        return make_result(
+            "needs_manual",
+            summary_text,
+            list(allowed_sources),
+        )
     except CandidateSummaryStageStopError as exc:
         if type(exc) is not CandidateSummaryStageStopError:
             raise
 
         stop_kind = getattr(exc, "stop_kind", None)
         candidate_reason = getattr(exc, "candidate_reason", None)
-        recovery_attempts = getattr(exc, "recovery_attempts", None)
+        candidate_protocol_recovery_attempts = getattr(
+            exc,
+            "candidate_protocol_recovery_attempts",
+            None,
+        )
+        provider_recovery_attempts = getattr(
+            exc,
+            "provider_recovery_attempts",
+            None,
+        )
         current_step = getattr(exc, "current_step", None)
         allowed_sources = getattr(exc, "allowed_sources", None)
         if (
             type(stop_kind) is not str
             or type(candidate_reason) is not str
-            or type(recovery_attempts) is not int
+            or type(candidate_protocol_recovery_attempts) is not int
+            or candidate_protocol_recovery_attempts not in {0, 1}
+            or type(provider_recovery_attempts) is not int
+            or provider_recovery_attempts not in {0, 1}
+            or (
+                candidate_protocol_recovery_attempts == 1
+                and provider_recovery_attempts == 1
+            )
             or type(current_step) is not int
             or not (1 <= current_step <= MAX_STEPS)
+            or current_step != run_context.get("step")
+            or (
+                (provider_recovery_attempts == 1
+                or candidate_protocol_recovery_attempts == 1)
+                and current_step != 4
+            )
             or type(allowed_sources) is not list
             or not allowed_sources
             or not all(
@@ -3001,9 +3617,19 @@ def run_research_summary_once(
 
         if stop_kind == "terminal_response":
             reason_text = terminal_reason_texts.get(candidate_reason)
-            if reason_text is None or recovery_attempts not in {0, 1}:
+            if reason_text is None:
                 raise
-            if recovery_attempts == 0:
+            if provider_recovery_attempts == 1:
+                if candidate_protocol_recovery_attempts != 0:
+                    raise
+                summary_text = (
+                    "候选摘要阶段已停止：首次 Candidate Provider/API 调用发生"
+                    "可恢复失败后，已执行唯一一次 Agent 级 Candidate Provider "
+                    "recovery；恢复调用返回了 Candidate 响应，但该响应触发不可"
+                    "恢复的协议 / 内容终止条件；"
+                    f"{reason_text}"
+                )
+            elif candidate_protocol_recovery_attempts == 0:
                 summary_text = (
                     "候选摘要阶段已停止：首次 Candidate 响应触发不可恢复的"
                     "终止条件，未发起 Candidate recovery；"
@@ -3018,7 +3644,11 @@ def run_research_summary_once(
                 )
         elif stop_kind == "recovery_exhausted":
             reason_text = recoverable_reason_texts.get(candidate_reason)
-            if reason_text is None or recovery_attempts != 1:
+            if (
+                reason_text is None
+                or candidate_protocol_recovery_attempts != 1
+                or provider_recovery_attempts != 0
+            ):
                 raise
             summary_text = (
                 "候选摘要阶段已停止：首次 Candidate 响应不合法，已执行唯一一次"
@@ -3028,17 +3658,35 @@ def run_research_summary_once(
             )
         elif stop_kind == "insufficient_completion_steps":
             reason_text = recoverable_reason_texts.get(candidate_reason)
-            if reason_text is None or recovery_attempts != 0:
+            if (
+                reason_text is None
+                or candidate_protocol_recovery_attempts != 0
+                or has_candidate_recovery_completion_budget(current_step)
+            ):
                 raise
-            summary_text = (
-                "候选摘要阶段已停止：首次 Candidate 响应不合法但属于可恢复分类；"
-                f"{reason_text}"
-                f"当前累计 step 为 {current_step}，全局上限为 {MAX_STEPS}；"
-                "Candidate recovery、Reflection 与 Refinement 的完整可信链"
-                f"仍需 {MIN_STEPS_FOR_CANDIDATE_RECOVERY_CHAIN} 个调用 step"
-                "（各 1 次），剩余预算不足；"
-                "本次 Candidate recovery 模型调用没有发生。"
-            )
+            if provider_recovery_attempts == 1:
+                summary_text = (
+                    "候选摘要阶段已停止：首次 Candidate Provider/API 调用发生"
+                    "可恢复失败后，已执行唯一一次 Agent 级 Candidate Provider "
+                    "recovery；恢复调用返回了 Candidate 响应，但该响应仍属于"
+                    "可恢复的协议 / 内容失败；"
+                    f"{reason_text}"
+                    f"当前累计 step 为 {current_step}，全局上限为 {MAX_STEPS}；"
+                    "另一次 Candidate 协议 recovery、Reflection 与 Refinement 的"
+                    f"完整可信链仍需 {MIN_STEPS_FOR_CANDIDATE_RECOVERY_CHAIN} 个"
+                    "调用 step（各 1 次），剩余预算不足；"
+                    "本次 Candidate 协议 recovery 模型调用没有发生。"
+                )
+            else:
+                summary_text = (
+                    "候选摘要阶段已停止：首次 Candidate 响应不合法但属于可恢复分类；"
+                    f"{reason_text}"
+                    f"当前累计 step 为 {current_step}，全局上限为 {MAX_STEPS}；"
+                    "Candidate recovery、Reflection 与 Refinement 的完整可信链"
+                    f"仍需 {MIN_STEPS_FOR_CANDIDATE_RECOVERY_CHAIN} 个调用 step"
+                    "（各 1 次），剩余预算不足；"
+                    "本次 Candidate recovery 模型调用没有发生。"
+                )
         else:
             raise
 
