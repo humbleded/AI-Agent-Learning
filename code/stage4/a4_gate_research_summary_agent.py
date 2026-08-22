@@ -77,7 +77,10 @@
 当前已完成 C4b-2b-2b-I1b/I2：Reflection Provider 生产接线、协议 recovery 的
 Provider/API 安全停止、双计数公开映射，以及故障矩阵与真实正常链验证。
 当前已完成 C4b-2b-2b-U1：用户已审核最终调用轨迹、停止结果与来源语义。
-后续 Refinement / 最终 validator 失败恢复、安全确认和 eval 尚未完成。
+当前已完成 C4b-2c-I1/I2：Refinement Provider/API、协议 / JSON / 最终候选
+合同失败共用唯一恢复额度，并在客户端最终校验前保持 fail-closed。
+当前已完成 C4b-2c-U1：用户已审核双向跨失败域共享额度、prompt 选择、
+候选错误 / 程序错误所有权、最终停止与来源语义。后续 HITL、安全确认和 eval 尚未完成。
 """
 
 import html
@@ -115,6 +118,7 @@ MODEL_SDK_MAX_RETRIES = 2  # 每次逻辑 SDK 调用内部最多额外尝试两�
 MODEL_REQUEST_TIMEOUT_SECONDS = 60.0  # 单次物理模型请求的显式 timeout
 MAX_CANDIDATE_PROVIDER_RECOVERIES = 1  # Candidate 阶段的 Agent 级 Provider 恢复额度
 MAX_REFLECTION_PROVIDER_RECOVERIES = 1  # Reflection 阶段的 Agent 级 Provider 恢复额度
+MAX_REFINEMENT_RECOVERIES = 1  # Refinement 全部可恢复失败共用的唯一额度
 MAX_STEPS = 6  # 每次请求允许的最大调用步数
 MIN_STEPS_FOR_CANDIDATE_RECOVERY_CHAIN = 3  # 候选恢复链所需的最少调用步数
 MIN_STEPS_FOR_REFLECTION_RECOVERY_CHAIN = 2  # Reflection 恢复与后续 Refinement 所需的调用步数
@@ -132,6 +136,16 @@ RECOVERABLE_REFLECTION_RESPONSE_REASONS = frozenset(
         "invalid_feedback_content",
         "length",
         "unexpected_tool_calls",
+    }
+)
+RECOVERABLE_REFINEMENT_REASONS = frozenset(
+    {
+        "invalid_response_shape",
+        "invalid_refinement_content",
+        "length",
+        "unexpected_tool_calls",
+        "invalid_json",
+        "invalid_candidate_contract",
     }
 )
 MAX_TOOL_RETRIES = 1  # 工具可重试的最大次数
@@ -678,6 +692,129 @@ class ReflectionFeedbackStageStopError(RuntimeError):
         super().__init__("Reflection feedback stage stopped")
 
 
+class InvalidSuccessCandidateError(ValueError):
+    """只表示模型候选未通过最终 success 合同的内部精确异常。"""
+
+
+class RefinementStageStopError(RuntimeError):
+    """表示 Refinement 已按共享恢复额度安全停止的内部窄信号。"""
+
+    def __init__(
+        self,
+        *,
+        stop_kind: str,
+        failure_domain: str,
+        reason: str,
+        recovery_attempts: int,
+        initial_call_step: int,
+        current_step: int,
+        allowed_sources: list[str],
+        provider_classification: str | None = None,
+        status_code: int | None = None,
+    ) -> None:
+        terminal_response_reasons = {
+            "content_filter",
+            "insufficient_system_resource",
+            "missing_finish_reason",
+            "unknown_finish_reason",
+        }
+        provider_reasons = {
+            "timeout",
+            "connection",
+            "transient_http_status",
+            "deterministic_http_status",
+            "unknown_api_error",
+        }
+        if type(stop_kind) is not str or stop_kind not in {
+            "terminal",
+            "budget_exhausted",
+            "recovery_exhausted",
+        }:
+            raise ValueError("stop_kind 必须属于 Refinement 冻结停止类型")
+        if type(failure_domain) is not str or failure_domain not in {
+            "provider",
+            "response",
+            "candidate",
+        }:
+            raise ValueError("failure_domain 必须属于 Refinement 冻结失败域")
+        if type(reason) is not str:
+            raise ValueError("reason 必须是冻结的安全原因字符串")
+        if (
+            type(recovery_attempts) is not int
+            or recovery_attempts not in {0, MAX_REFINEMENT_RECOVERIES}
+        ):
+            raise ValueError("Refinement recovery_attempts 必须是 0 或 1")
+        if (
+            type(initial_call_step) is not int
+            or not (1 <= initial_call_step <= MAX_STEPS)
+            or type(current_step) is not int
+            or not (1 <= current_step <= MAX_STEPS)
+            or current_step != initial_call_step + recovery_attempts
+        ):
+            raise ValueError("Refinement step 与恢复次数不一致")
+        if (
+            type(allowed_sources) is not list
+            or not allowed_sources
+            or not all(
+                type(source) is str and bool(source.strip())
+                for source in allowed_sources
+            )
+        ):
+            raise ValueError("allowed_sources 必须是非空真实来源列表")
+
+        if failure_domain == "provider":
+            if (
+                reason not in provider_reasons
+                or type(provider_classification) is not str
+                or provider_classification not in {"recoverable", "terminal"}
+                or (status_code is not None and type(status_code) is not int)
+            ):
+                raise ValueError("Provider 停止事实不合法")
+        else:
+            if provider_classification is not None or status_code is not None:
+                raise ValueError("非 Provider 停止不得携带 Provider 分类")
+            if failure_domain == "response" and (
+                reason
+                not in (terminal_response_reasons | RECOVERABLE_REFINEMENT_REASONS)
+                or reason == "invalid_candidate_contract"
+            ):
+                raise ValueError("Refinement response reason 不合法")
+            if failure_domain == "candidate" and reason != "invalid_candidate_contract":
+                raise ValueError("候选停止只能表示最终合同失败")
+
+        is_recoverable = (
+            (failure_domain == "provider" and provider_classification == "recoverable")
+            or (
+                failure_domain == "response"
+                and reason in RECOVERABLE_REFINEMENT_REASONS
+            )
+            or failure_domain == "candidate"
+        )
+        if stop_kind == "terminal" and not (
+            recovery_attempts == 0 and not is_recoverable
+        ):
+            raise ValueError("terminal 必须是首次不可恢复失败")
+        if stop_kind == "budget_exhausted" and not (
+            recovery_attempts == 0
+            and is_recoverable
+            and current_step == MAX_STEPS
+        ):
+            raise ValueError("budget_exhausted 必须是首次可恢复失败后的步数耗尽")
+        if stop_kind == "recovery_exhausted" and recovery_attempts != 1:
+            raise ValueError("recovery_exhausted 必须发生在唯一恢复之后")
+
+        self.stop_kind = stop_kind
+        self.failure_domain = failure_domain
+        self.reason = reason
+        self.recovery_attempts = recovery_attempts
+        self.initial_call_step = initial_call_step
+        self.current_step = current_step
+        self.allowed_sources = list(allowed_sources)
+        self.provider_classification = provider_classification
+        self.status_code = status_code
+        super().__init__("Refinement stage stopped")
+
+
 # 初始化单次请求共享的运行上下文的工具函数
 def create_run_context(
     request_id: str | None = None,
@@ -790,6 +927,13 @@ def has_reflection_recovery_completion_budget(
 
     remaining_steps = MAX_STEPS - current_step
     return remaining_steps >= MIN_STEPS_FOR_REFLECTION_RECOVERY_CHAIN
+
+
+def has_refinement_recovery_budget(current_step: int) -> bool:
+    """判断首次 Refinement 失败后是否还容得下一次唯一模型调用。"""
+    if type(current_step) is not int or not (1 <= current_step <= MAX_STEPS):
+        raise ValueError("current_step 必须是位于 1 到全局上限之间的整数")
+    return MAX_STEPS - current_step >= MAX_REFINEMENT_RECOVERIES
 
 
 # 把 SDK 最终抛出的 Provider/API 异常转换为固定安全分类。
@@ -1005,6 +1149,39 @@ def classify_reflection_feedback_response(
         "classification": candidate_classification["classification"],
         "reason": reason,
         "feedback": candidate_classification["candidate_summary"],
+    }
+
+
+def classify_refinement_response(response: object) -> dict[str, object]:
+    """复用非工具文本响应守门，并只在合法正文上执行 JSON 语法解析。"""
+    candidate_classification = classify_candidate_summary_response(response)
+    classification = candidate_classification["classification"]
+    reason = candidate_classification["reason"]
+    content = candidate_classification["candidate_summary"]
+
+    if reason == "invalid_candidate_content":
+        reason = "invalid_refinement_content"
+    if classification != "valid":
+        return {
+            "classification": classification,
+            "reason": reason,
+            "candidate": None,
+        }
+
+    if type(content) is not str or not content.strip():
+        raise RuntimeError("Refinement valid content invariant failed")
+    try:
+        candidate = json.loads(content.strip())
+    except json.JSONDecodeError:
+        return {
+            "classification": "recoverable",
+            "reason": "invalid_json",
+            "candidate": None,
+        }
+    return {
+        "classification": "valid",
+        "reason": None,
+        "candidate": candidate,
     }
 
 
@@ -3014,6 +3191,79 @@ def build_refinement_prompt(
     return json.dumps(prompt, ensure_ascii=False)
 
 
+# 构造不回填失败输出的 Refinement recovery prompt。
+def build_refinement_recovery_prompt(
+    refinement_prompt: str,
+    recoverable_reason: str,
+) -> str:
+    """返回“原 Refinement prompt + 固定安全纠错指令”的新字符串。
+
+    两个参数都只接受非空内建字符串；``recoverable_reason`` 还必须属于
+    ``RECOVERABLE_REFINEMENT_REASONS``。返回值必须把传入的
+    ``refinement_prompt`` 逐字符不变地保留为完整前缀，再根据六种安全原因
+    追加不同的固定指令，并要求从头完成同一 Refinement、只沿用原 prompt
+    中的真实证据 / feedback / ``allowed_sources``、禁止工具与模型常识、只输出
+    单一合法 JSON 对象，以及让新 candidate 继续接受客户端最终 validator。
+
+    函数签名故意不接收首次失败的 response、content、candidate、越界值、
+    原始异常、日志或独立的 ``allowed_sources`` 副本；不得把这些内容拼回
+    prompt。函数必须保持纯函数：不检查预算，不占 step，不写日志，不调用
+    模型 / 工具 / ``json.loads`` / validator，也不构造公开结果或停止信号。
+    """
+    # (A4-Gate-C4b-2c-I1a): 实现严格输入门、六类固定指令和公共恢复合同。
+    if type(refinement_prompt) is not str or not refinement_prompt.strip():
+        raise ValueError("refinement_prompt 必须是非空内建字符串")
+    if (
+        type(recoverable_reason) is not str
+        or not recoverable_reason.strip()
+        or recoverable_reason not in RECOVERABLE_REFINEMENT_REASONS
+    ):
+        raise ValueError("recoverable_reason 必须是冻结的 Refinement 可恢复原因")
+
+    reason_instruction = {
+        "invalid_response_shape": (
+            "上一轮 Refinement 响应外壳结构不可用。"
+            "请从头重新生成完整的 Refinement 响应。"
+        ),
+        "invalid_refinement_content": (
+            "上一轮 Refinement 响应没有提供可用的非空 JSON 正文。"
+            "请重新输出非空 JSON 正文。"
+        ),
+        "length": (
+            "上一轮 Refinement 响应因长度限制被截断。"
+            "请从头生成更短但完整的结果，不得续写被截断的内容。"
+        ),
+        "unexpected_tool_calls": (
+            "上一轮 Refinement 响应意外尝试了 Tool Action。"
+            "本阶段禁止 Tool Action 或任何工具调用。"
+        ),
+        "invalid_json": (
+            "上一轮 Refinement 正文不是语法合法的单一 JSON 对象。"
+            "请重新输出语法合法的单一 JSON 对象，不得使用 Markdown 代码围栏，"
+            "不得附加解释或其他文本。"
+        ),
+        "invalid_candidate_contract": (
+            "上一轮候选未通过客户端最终合同校验。"
+            "请重新生成键恰好为 status、summary、sources 的 JSON 对象；"
+            'status 必须精确为字符串 "success"，summary 必须是非空字符串，'
+            "sources 必须是非空字符串列表，且只能使用原 prompt 中的 "
+            "allowed_sources。"
+        ),
+    }[recoverable_reason]
+    recovery_instruction = (
+        "\n\n[Refinement recovery]\n"
+        f"{reason_instruction}"
+        "请从头重新完成原 prompt 定义的同一 Refinement，"
+        "并严格遵守其中既有的 refinement_instructions。"
+        "只能沿用原 prompt 中的真实工具证据、feedback 与 allowed_sources "
+        "来源白名单；不得调用或重新执行任何工具，不得使用模型常识补充事实。"
+        "只输出一个语法合法的 JSON 对象，JSON 前后不得有任何其他内容。"
+        "新 candidate 仍须接受客户端最终 validator；"
+        "本恢复指令不表示该 candidate 已经通过校验。"
+    )
+    return refinement_prompt + recovery_instruction
+
+
 # 硬校验候选摘要并返回固定三字段的 success 结果
 def validate_success_result(
     candidate: object,
@@ -3034,16 +3284,16 @@ def validate_success_result(
     ):
         raise ValueError("allowed_sources 必须是非空字符串列表")
     if not isinstance(candidate, dict):
-        raise ValueError("候选摘要必须是字典类型")
+        raise InvalidSuccessCandidateError("候选摘要必须是字典类型")
     expected_keys = {"status", "summary", "sources"}
     if set(candidate.keys()) != expected_keys:
-        raise ValueError(f"候选摘要的键必须恰好是 {expected_keys}")
+        raise InvalidSuccessCandidateError(f"候选摘要的键必须恰好是 {expected_keys}")
     status = candidate.get("status")
     if not isinstance(status, str) or status != "success":
-        raise ValueError("status 必须是字符串 'success'")
+        raise InvalidSuccessCandidateError("status 必须是字符串 'success'")
     summary = candidate.get("summary")
     if not isinstance(summary, str) or summary.strip() == "":
-        raise ValueError("summary 必须是非空字符串")
+        raise InvalidSuccessCandidateError("summary 必须是非空字符串")
     sources = candidate.get("sources")
     if (
         not isinstance(sources, list)
@@ -3052,10 +3302,10 @@ def validate_success_result(
             isinstance(source, str) and source.strip() != "" for source in sources
         )
     ):
-        raise ValueError("sources 必须是非空字符串列表")
+        raise InvalidSuccessCandidateError("sources 必须是非空字符串列表")
     if not set(sources).issubset(set(allowed_sources)):
-        raise ValueError("sources 必须是 allowed_sources 的子集")
-    return make_result("success", summary.strip(), sources)
+        raise InvalidSuccessCandidateError("sources 必须是 allowed_sources 的子集")
+    return make_result("success", summary.strip(), list(sources))
 
 
 # 发起一次 Reflection 模型调用并原样返回不可信响应。
@@ -3502,17 +3752,18 @@ def resolve_reflection_feedback_stage(
     )
 
 
-# 调用 Refinement 并获取候选摘要对象
-def request_refinement_candidate(
+# 发起一次 Refinement 模型调用并原样返回不可信响应。
+def request_refinement_response(
     refinement_prompt: str,
     client: OpenAI | None = None,
     *,
     run_context: dict[str, object],
 ) -> object:
-    """调用一次 Refinement JSON Output，并返回解析后的不可信候选对象。
+    """调用恰好一次 Refinement，并原样返回 API 正常返回的任意对象。
 
-    当前检查点只负责模型请求、响应外壳和 JSON 语法解析；不调用
-    ``validate_success_result``，也不构造最终可信三字段结果。
+    本层保留既有请求参数，只负责一次共享 step、一次聚合日志与一次 SDK
+    逻辑调用。异常日志只记录安全类型名，随后保持同一异常 identity 上抛；
+    不分类、解析、恢复、校验候选或构造公开结果。
     """
     if not isinstance(refinement_prompt, str) or refinement_prompt.strip() == "":
         raise ValueError("refinement_prompt 必须是非空字符串")
@@ -3565,37 +3816,188 @@ def request_refinement_candidate(
             model=DEEPSEEK_MODEL,
             tool_name=None,
         )
+        return response
 
-    if response is None:
-        raise RuntimeError("Refinement 响应为空")
-    if hasattr(response, "choices") is False:
-        raise RuntimeError("Refinement 响应缺少 choices 字段")
-    choices = response.choices
-    if not isinstance(choices, list) or not choices:
-        raise RuntimeError("Refinement 响应缺少 choices 字段或类型不正确")
-    if hasattr(choices[0], "message") is False:
-        raise RuntimeError("Refinement 响应中的 message 字段为空")
-    message = choices[0].message
-    if hasattr(choices[0], "finish_reason") is False:
-        raise RuntimeError("Refinement 响应中的 finish_reason 字段为空")
-    finish_reason = choices[0].finish_reason
-    if finish_reason != "stop":
-        raise RuntimeError("Refinement 未以 stop 结束")
-    # message.tool_calls 必须是 None 或空列表
-    if hasattr(message, "tool_calls") is False:
-        raise RuntimeError("Refinement 响应中的 tool_calls 字段为空")
-    tool_calls = message.tool_calls
-    if tool_calls is not None and tool_calls != []:
-        raise RuntimeError("Refinement 响应中的 tool_calls 字段必须是 None 或空列表")
-    if hasattr(message, "content") is False:
-        raise RuntimeError("Refinement 响应中的 content 字段为空")
-    content = message.content
-    if not isinstance(content, str) or content.strip() == "":
-        raise RuntimeError("Refinement 响应中的 content 字段非法")
+
+# 保留既有“请求后直接取得解析候选”的兼容接口。
+def request_refinement_candidate(
+    refinement_prompt: str,
+    client: OpenAI | None = None,
+    *,
+    run_context: dict[str, object],
+) -> object:
+    """调用原始请求层，并为旧调用者保留单次解析行为。"""
+    response = request_refinement_response(
+        refinement_prompt,
+        client,
+        run_context=run_context,
+    )
+    classification = classify_refinement_response(response)
+    if classification["classification"] == "valid":
+        return classification["candidate"]
+    raise RuntimeError(
+        "Refinement 响应未得到可解析候选：" f"{classification['reason']}"
+    )
+
+# 解析 Refinement 阶段的响应。
+def resolve_refinement_stage(
+    refinement_prompt: str,
+    allowed_sources: list[str],
+    client: OpenAI | None = None,
+    *,
+    run_context: dict[str, object],
+) -> dict[str, object]:
+    """编排首次 Refinement、共享的唯一恢复和每份候选的最终硬校验。"""
+    if type(refinement_prompt) is not str or not refinement_prompt.strip():
+        raise ValueError("refinement_prompt 必须是非空内建字符串")
+    if (
+        type(allowed_sources) is not list
+        or not allowed_sources
+        or not all(
+            type(source) is str and bool(source.strip())
+            for source in allowed_sources
+        )
+    ):
+        raise ValueError("allowed_sources 必须是非空真实来源列表")
+    if type(run_context) is not dict or "step" not in run_context:
+        raise ValueError("run_context 必须包含共享 step")
+    starting_step = run_context["step"]
+    if type(starting_step) is not int or not (0 <= starting_step < MAX_STEPS):
+        raise ValueError("Refinement 开始前的共享 step 不合法")
+    if client is None:
+        client = create_deepseek_client()
+
+    def evaluate_response(response: object) -> dict[str, object]:
+        classification = classify_refinement_response(response)
+        if (
+            type(classification) is not dict
+            or set(classification) != {"classification", "reason", "candidate"}
+            or classification["classification"]
+            not in {"valid", "recoverable", "terminal"}
+        ):
+            raise RuntimeError("Refinement classification invariant failed")
+        if classification["classification"] != "valid":
+            return {
+                "result": None,
+                "classification": classification["classification"],
+                "failure_domain": "response",
+                "reason": classification["reason"],
+                "provider_classification": None,
+                "status_code": None,
+                "cause": None,
+            }
+
+        try:
+            result = validate_success_result(
+                classification["candidate"],
+                allowed_sources,
+            )
+        except InvalidSuccessCandidateError as exc:
+            if type(exc) is not InvalidSuccessCandidateError:
+                raise
+            return {
+                "result": None,
+                "classification": "recoverable",
+                "failure_domain": "candidate",
+                "reason": "invalid_candidate_contract",
+                "provider_classification": None,
+                "status_code": None,
+                "cause": exc,
+            }
+        return {
+            "result": result,
+            "classification": "valid",
+            "failure_domain": None,
+            "reason": None,
+            "provider_classification": None,
+            "status_code": None,
+            "cause": None,
+        }
+
+    def provider_failure(error: APIError) -> dict[str, object]:
+        provider_classification = classify_provider_api_error(error)
+        return {
+            "result": None,
+            "classification": provider_classification["classification"],
+            "failure_domain": "provider",
+            "reason": provider_classification["reason"],
+            "provider_classification": provider_classification["classification"],
+            "status_code": provider_classification["status_code"],
+            "cause": error,
+        }
+
+    def raise_stop(
+        stop_kind: str,
+        failure: dict[str, object],
+        recovery_attempts: int,
+        initial_call_step: int,
+    ) -> None:
+        signal = RefinementStageStopError(
+            stop_kind=stop_kind,
+            failure_domain=failure["failure_domain"],
+            reason=failure["reason"],
+            recovery_attempts=recovery_attempts,
+            initial_call_step=initial_call_step,
+            current_step=run_context["step"],
+            allowed_sources=allowed_sources,
+            provider_classification=failure["provider_classification"],
+            status_code=failure["status_code"],
+        )
+        cause = failure["cause"]
+        if cause is None:
+            raise signal
+        raise signal from cause
+
     try:
-        return json.loads(content.strip())
-    except json.JSONDecodeError as e:
-        raise RuntimeError(f"Refinement 响应的 content 不是合法 JSON: {e}")
+        initial_response = request_refinement_response(
+            refinement_prompt,
+            client,
+            run_context=run_context,
+        )
+    except APIError as exc:
+        failure = provider_failure(exc)
+    else:
+        failure = evaluate_response(initial_response)
+
+    initial_call_step = run_context["step"]
+    if failure["classification"] == "valid":
+        return failure["result"]
+    if failure["classification"] == "terminal":
+        raise_stop("terminal", failure, 0, initial_call_step)
+    if failure["classification"] != "recoverable":
+        raise RuntimeError("Unknown Refinement failure classification")
+    if not has_refinement_recovery_budget(initial_call_step):
+        raise_stop("budget_exhausted", failure, 0, initial_call_step)
+
+    if failure["failure_domain"] == "provider":
+        recovery_prompt = refinement_prompt
+    else:
+        recovery_prompt = build_refinement_recovery_prompt(
+            refinement_prompt,
+            failure["reason"],
+        )
+
+    try:
+        recovery_response = request_refinement_response(
+            recovery_prompt,
+            client,
+            run_context=run_context,
+        )
+    except APIError as exc:
+        recovered_failure = provider_failure(exc)
+    else:
+        recovered_failure = evaluate_response(recovery_response)
+
+    if recovered_failure["classification"] == "valid":
+        return recovered_failure["result"]
+    if recovered_failure["classification"] not in {"recoverable", "terminal"}:
+        raise RuntimeError("Unknown recovered Refinement failure classification")
+    raise_stop(
+        "recovery_exhausted",
+        recovered_failure,
+        MAX_REFINEMENT_RECOVERIES,
+        initial_call_step,
+    )
 
 
 # 编排 Reflection、Refinement 和最终硬校验的流程。
@@ -3608,11 +4010,12 @@ def reflect_refine_and_validate(
     *,
     run_context: dict[str, object],
 ) -> dict[str, object]:
-    """编排 Reflection 的受控恢复、一次 Refinement 与最终硬校验。
+    """编排 Reflection 受控恢复、Refinement 域内共享单次恢复与最终硬校验。
 
     本层不重新调用工具，也不负责 Candidate 生成。首次 Reflection 的
     Provider/API 失败先按完整链预算至多恢复一次；API 正常返回的响应再进入
-    协议阶段解析器。只有合法反馈才进入一次 Refinement 与最终 validator。
+    协议阶段解析器。只有合法反馈才进入 Refinement；该阶段的全部可恢复失败
+    共用一次恢复额度，每一份解析候选都必须重新通过最终 validator。
     """
     allowed_sources = derive_allowed_sources(
         normalized_request,
@@ -3658,12 +4061,12 @@ def reflect_refine_and_validate(
         allowed_sources,
         feedback,
     )
-    candidate = request_refinement_candidate(
+    return resolve_refinement_stage(
         refinement_prompt,
+        allowed_sources,
         client,
         run_context=run_context,
     )
-    return validate_success_result(candidate, allowed_sources)
 
 
 # 连接原始请求、C3c 候选生成与 C3d 反思改写的单次正常路径
@@ -3681,8 +4084,9 @@ def run_research_summary_once(
     内容失败按完整链预算至多恢复一次，并把冻结的安全停止映射为
     ``needs_manual``；取得 Tool Observation 后的 Candidate 与 Reflection
     Provider/API 失败也按各自独立额度、完整链预算、协议恢复计数和安全来源
-    语义映射。HITL、首次 Tool Action / Action correction、Refinement 的
-    Provider/API 异常、最终 validator 及其他未映射异常继续向上抛出。
+    语义映射。Refinement 的 Provider/API、协议 / JSON 与候选合同失败共用
+    唯一恢复额度，并只把精确停止信号映射为 ``needs_manual``；HITL、首次
+    Tool Action / Action correction 及其他未映射异常继续向上抛出。
     """
     normalized_request, invalid_result = prepare_request(request)
     if normalized_request is None:
@@ -4294,6 +4698,225 @@ def run_research_summary_once(
             "Reflection、Refinement 与客户端校验；"
             "结果中的 sources 仅是本轮真实工具取得、供人工复核的证据池，"
             "不代表已验证摘要引用；Agent 已停止自治并交还人工。"
+        )
+        return make_result(
+            "needs_manual",
+            summary_text,
+            list(expected_allowed_sources),
+        )
+    except RefinementStageStopError as exc:
+        if type(exc) is not RefinementStageStopError:
+            raise
+
+        stop_kind = getattr(exc, "stop_kind", None)
+        failure_domain = getattr(exc, "failure_domain", None)
+        reason = getattr(exc, "reason", None)
+        recovery_attempts = getattr(exc, "recovery_attempts", None)
+        initial_call_step = getattr(exc, "initial_call_step", None)
+        current_step = getattr(exc, "current_step", None)
+        allowed_sources = getattr(exc, "allowed_sources", None)
+        provider_classification = getattr(
+            exc,
+            "provider_classification",
+            None,
+        )
+        status_code = getattr(exc, "status_code", None)
+        cause = exc.__cause__
+
+        provider_reasons = {
+            "timeout",
+            "connection",
+            "transient_http_status",
+            "deterministic_http_status",
+            "unknown_api_error",
+        }
+        terminal_response_reasons = {
+            "content_filter",
+            "insufficient_system_resource",
+            "missing_finish_reason",
+            "unknown_finish_reason",
+        }
+        if (
+            type(stop_kind) is not str
+            or stop_kind not in {
+                "terminal",
+                "budget_exhausted",
+                "recovery_exhausted",
+            }
+            or type(failure_domain) is not str
+            or failure_domain not in {"provider", "response", "candidate"}
+            or type(reason) is not str
+            or type(recovery_attempts) is not int
+            or recovery_attempts not in {0, MAX_REFINEMENT_RECOVERIES}
+            or type(initial_call_step) is not int
+            or type(current_step) is not int
+            or not (1 <= initial_call_step <= current_step <= MAX_STEPS)
+            or current_step != initial_call_step + recovery_attempts
+            or type(run_context.get("step")) is not int
+            or current_step != run_context.get("step")
+            or initial_call_step
+            not in {reflection_start_step + 2, reflection_start_step + 3}
+            or type(allowed_sources) is not list
+            or not allowed_sources
+            or not all(
+                type(source) is str and bool(source.strip())
+                for source in allowed_sources
+            )
+        ):
+            raise
+
+        expected_allowed_sources = derive_allowed_sources(
+            normalized_request,
+            tool_name,
+            tool_result,
+        )
+        if allowed_sources != expected_allowed_sources:
+            raise
+
+        logs = run_context.get("logs")
+        if (
+            type(logs) is not list
+            or type(run_context.get("request_id")) is not str
+            or not run_context["request_id"].strip()
+            or len(logs) != current_step
+            or any(
+                type(entry) is not dict
+                or set(entry) != set(CALL_LOG_FIELDS)
+                or type(entry.get("request_id")) is not str
+                or entry.get("request_id") != run_context.get("request_id")
+                or type(entry.get("step")) is not int
+                or entry.get("step") != expected_step
+                or type(entry.get("event_type")) is not str
+                or entry.get("event_type") not in {"model_call", "tool_call"}
+                or type(entry.get("duration_ms")) is not int
+                or entry.get("duration_ms") < 0
+                or not (
+                    entry.get("error") is None
+                    or (
+                        type(entry.get("error")) is str
+                        and bool(entry["error"].strip())
+                    )
+                )
+                or (
+                    entry.get("event_type") == "model_call"
+                    and (
+                        type(entry.get("model")) is not str
+                        or entry.get("model") != DEEPSEEK_MODEL
+                        or entry.get("tool_name") is not None
+                    )
+                )
+                or (
+                    entry.get("event_type") == "tool_call"
+                    and (
+                        entry.get("model") is not None
+                        or type(entry.get("tool_name")) is not str
+                        or not entry["tool_name"].strip()
+                    )
+                )
+                for expected_step, entry in enumerate(logs, start=1)
+            )
+        ):
+            raise
+        refinement_logs = logs[-(1 + recovery_attempts) :]
+        expected_refinement_steps = list(range(initial_call_step, current_step + 1))
+        if (
+            len(refinement_logs) != 1 + recovery_attempts
+            or [entry.get("step") for entry in refinement_logs]
+            != expected_refinement_steps
+            or any(
+                set(entry) != set(CALL_LOG_FIELDS)
+                or entry.get("event_type") != "model_call"
+                or entry.get("model") != DEEPSEEK_MODEL
+                or entry.get("tool_name") is not None
+                or entry.get("request_id") != run_context.get("request_id")
+                or type(entry.get("duration_ms")) is not int
+                or entry.get("duration_ms") < 0
+                or not (
+                    entry.get("error") is None
+                    or (
+                        type(entry.get("error")) is str
+                        and bool(entry["error"].strip())
+                    )
+                )
+                for entry in refinement_logs
+            )
+        ):
+            raise
+
+        if failure_domain == "provider":
+            if (
+                reason not in provider_reasons
+                or type(provider_classification) is not str
+                or provider_classification not in {"recoverable", "terminal"}
+                or (status_code is not None and type(status_code) is not int)
+                or not isinstance(cause, APIError)
+                or refinement_logs[-1].get("error") != type(cause).__name__
+            ):
+                raise
+            cause_classification = classify_provider_api_error(cause)
+            if cause_classification != {
+                "classification": provider_classification,
+                "reason": reason,
+                "status_code": status_code,
+            }:
+                raise
+            is_recoverable = provider_classification == "recoverable"
+        elif failure_domain == "response":
+            if (
+                provider_classification is not None
+                or status_code is not None
+                or cause is not None
+                or refinement_logs[-1].get("error") is not None
+                or reason
+                not in (terminal_response_reasons | RECOVERABLE_REFINEMENT_REASONS)
+                or reason == "invalid_candidate_contract"
+            ):
+                raise
+            is_recoverable = reason in RECOVERABLE_REFINEMENT_REASONS
+        else:
+            if (
+                reason != "invalid_candidate_contract"
+                or provider_classification is not None
+                or status_code is not None
+                or type(cause) is not InvalidSuccessCandidateError
+                or refinement_logs[-1].get("error") is not None
+            ):
+                raise
+            is_recoverable = True
+
+        if stop_kind == "terminal":
+            if recovery_attempts != 0 or is_recoverable:
+                raise
+            stop_text = (
+                "首次 Refinement 失败属于 terminal，不能使用自动 recovery；"
+                "Refinement 已安全停止。"
+            )
+        elif stop_kind == "budget_exhausted":
+            if (
+                recovery_attempts != 0
+                or not is_recoverable
+                or has_refinement_recovery_budget(current_step)
+            ):
+                raise
+            stop_text = (
+                "首次 Refinement 失败虽属于 recoverable，但该调用已使累计 step "
+                f"达到全局上限 {MAX_STEPS}；不存在 step {MAX_STEPS + 1}，"
+                "因此 recovery 模型调用没有发生。"
+            )
+        else:
+            if recovery_attempts != MAX_REFINEMENT_RECOVERIES:
+                raise
+            stop_text = (
+                "首次 Refinement 失败后已经执行唯一一次自动 recovery；"
+                "恢复调用仍未获得可返回结果，共享 Refinement recovery 额度 "
+                f"{MAX_REFINEMENT_RECOVERIES} 次已经耗尽。"
+            )
+
+        summary_text = (
+            f"Refinement 阶段已停止：{stop_text}"
+            "本轮尚未获得任何通过 validate_success_result 最终校验的结果；"
+            "结果中的 sources 仅保留本轮真实工具取得、供人工复核的证据池，"
+            "不代表已有经过验证的摘要引用；Agent 已停止自治并交还人工。"
         )
         return make_result(
             "needs_manual",
