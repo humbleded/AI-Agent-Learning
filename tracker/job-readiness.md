@@ -1,6 +1,6 @@
 # Agent 应用岗位能力与证据
 
-最后校准：2026-08-11。
+最后校准：2026-08-24。
 
 本表是“是否已有求职证据”的唯一事实源；`tracker/progress.md` 仍是课程任务 PASS 的唯一事实源。两者不能互相替代。
 
@@ -36,8 +36,8 @@
 | --- | --- | --- | --- | --- |
 | Python 基础与脚本 | COURSE_PASS | P0-01~Gate 已通过，能写函数、文件/JSON、异常、HTTP 与基础测试 | 在真实服务中补类型、分层、pytest/mock、lint/type-check、配置与日志 | BE5-01 |
 | LLM API、Prompt、结构化输出 | COURSE_PASS | L1、PR2、S-03 已通过；有聊天、流式、分类、JSON、邮件处理器；A4-Gate C3d 已把普通文本 Reflection、DeepSeek `json_object` Refinement、`json.loads` 与客户端 validator 接成 topic/path 真实链 | 抽 provider、严格 schema、版本化 prompt/eval，并接入服务 | S-01、E10、旗舰项目 |
-| Tool Calling | COURSE_PASS | T3-01~Gate 已通过；原生三工具闭环、直接回答、`t3-gate-v2` 14/14、holdout 3/3；A4-Gate C3c/C3d 已实跑 topic/path 各 4 次模型 + 恰好 1 次匹配工具并以真实 Observation 限定来源 | 完成 A4 统一控制器、14 条 eval 与 HITL，再接入 BE5 可复现服务工程；补维护型自动测试、README/架构、生产事故证据与独立交叉复核 | A4-Gate、BE5-Gate、旗舰二 |
-| Agent 原理与控制循环 | LEARNING | A4-01～A4-05 已通过；2026-08-06 模拟面试中 ReAct、Plan-and-Solve、上下文清洗与停止边界稳定；A4-Gate Problem Contract、C1/C2、C3a～C3d 已核验，C3d 正式无落盘矩阵 129/129 且 topic/path 真实正常链通过 | 完成 A4-Gate 七字段日志、`max_steps=6`、工具失败/超时恢复、HITL 与 14 条 eval；补幂等与端到端事实一致性 | A4-Gate、G8-00、旗舰二 |
+| Tool Calling | COURSE_PASS | T3-01~Gate 已通过；A4-Gate 又把 topic/path 两路接成 Action → 真工具 → Tool Observation → 三阶段摘要链，唯一 V5 RUN-5 为 normal 10/10、holdout 3/3、完整 14/14，HITL D01 A～K 11/11 | 接入 BE5 可复现服务工程；补维护型自动测试、README/架构、依赖锁定、生产事故证据与独立岗位证据交叉复核 | A4-Gate、BE5-Gate、旗舰二 |
+| Agent 原理与控制循环 | COURSE_PASS | A4-01～A4-Gate 全部通过；能实现并解释 Problem Contract、Action/Observation、Candidate/Reflection/Refinement、客户端 exact validator、共享 `MAX_STEPS=6` 账本、七字段日志、工具/Provider 恢复、安全停止与 action-bound HITL；V5 完整固定集 14/14 | G8-00 迁移基础 Graph；BE5 补服务化、并发/幂等、维护型测试与可复现工程；旗舰二再补持久恢复和端到端事实一致性 | A4-Gate、G8-00、BE5-Gate、旗舰二 |
 | 主流 Agent 框架基础 | NOT_STARTED | 已有手写 Agent 前置，但尚无框架迁移证据 | 用 LangGraph `StateGraph` 表达 state/node/edge/条件路由/tool/stream，并用同一案例测试迁移前后行为；能说明何时不需要框架 | G8-00、旗舰二 v1 |
 | Agent Memory / Context 生命周期 | NOT_STARTED | 仅有聊天历史与上下文实验，不等于长期 Memory | 跨会话 CRUD/TTL/provenance/冲突/删除、租户隔离、PII/poisoning、无 Memory baseline | D7-03、D7/G8/FINAL |
 | Python Agent 后端 | NOT_STARTED | 现有产物以 CLI/脚本为主 | async、FastAPI/Pydantic、PostgreSQL/Redis、后台任务、认证、压测 | BE5-01~Gate |
@@ -46,10 +46,10 @@
 | 生产 RAG | NOT_STARTED | 无 R6 课程证据 | 具体领域/用户流程、多格式/增量索引、pgvector、hybrid/rerank、ACL、检索/答案评估和至少一个业务/操作指标 | R6、S-02、旗舰一 |
 | 可恢复 LangGraph Agent | NOT_STARTED | 无高级 G8 课程证据；G8-00 只负责基础框架能力 | persistence、checkpoint/thread、interrupt/resume、幂等、进程退出恢复与故障注入 | G8、旗舰二 v2 |
 | MCP 生产接入 | NOT_STARTED | 仅前置 Tool Calling 概念 | 最新官方规范、STDIO/HTTP、认证边界、权限/断连/审计 | M9-Gate |
-| 安全与权限 | LEARNING | 文件沙箱、工具白名单、参数校验已有练习；A4-Gate 已把路径门接入真实文件工具并二次校验，把工具名/参数绑定规范化请求；C3d 实际 validator 会拒绝虚构或混合越界来源，合同已定义 `confirmed` 门槛 | 补 HITL 允许/拒绝、`needs_manual`、审计轨迹和完整攻击测试；再补威胁模型、注入/SSRF/越权/外泄/poisoning/MCP auth | A4-Gate、S-05、D7/G8/M9/FINAL |
-| 评估与可观测 | LEARNING | T3 有自包含 v2 数据集、冻结 holdout、分项阈值和 14/14 正式结果；仍是早期 Gate 级证据 | 维护型自动测试、版本化 baseline/candidate、代码+LLM evaluator、trace、CI 回归门禁与在线闭环 | E10、J11-05 |
+| 安全与权限 | COURSE_PASS | T3/A4 已覆盖文件沙箱、工具白名单、参数原值绑定、候选来源/正文硬门和失败不回显；A4 D01 A～K 11/11 证明 action-bound confirmation、一次性消费、allow/deny/missing/错绑/replay/timeout 与生产 fake 隔离 | 补威胁模型、间接提示注入、SSRF/越权/外泄/poisoning、多租户与持久授权；在 R6/M9/FINAL 复测真实攻击面 | A4-Gate、S-05、D7/G8/M9/FINAL |
+| 评估与可观测 | COURSE_PASS | T3 与 A4 均有运行前冻结的自包含数据集、分项不可补偿阈值和 holdout；A4 透明保留 RUN-4 RETRY，V5 唯一 RUN-5 为 14/14，并用共享 step/固定七字段日志定位 F01～F03；源码/eval/Contract 指纹绑定完整 | E10 补维护型自动测试、版本化 baseline/candidate、代码+LLM evaluator、完整 trace、CI regression 与线上失败回灌；BE5 先补服务级指标/测试入口 | E10、J11-05、BE5-Gate |
 | CI/CD、部署与运维 | NOT_STARTED | 无公网服务与自动发布证据 | BE5-Gate 先补 pytest/Ruff/type-check CI、Docker build、测试部署与 smoke；R6 更新应用，J11-04 再补 secret、告警、负载、备份和回滚 | BE5-Gate、R6-Gate、J11-04/W17 |
-| 作品集与项目表达 | LEARNING | 已有课程代码和 daily/notes 证据 | 2 旗舰+1 小项目、架构/指标/威胁模型/失败复盘、至少一个公网 demo | J11-01/06、FINAL |
+| 作品集与项目表达 | LEARNING | 已有课程代码与 daily/notes；A4-Gate 是可运行的课程级 Agent 里程碑，具备 Contract、固定 eval、故障复盘与安全矩阵，但尚无对外 README/架构、维护型测试、服务化或部署 | 2 旗舰+1 小项目、架构/指标/威胁模型/失败复盘、可复现运行与至少一个公网 demo | J11-01/06、FINAL |
 | 算法与系统设计 | LEARNING | W4 内容块已正式 4/4 PASS、结转债务 0：两数之和、存在重复元素、有效的字母异位词、存在相近的重复元素均有真实测试；两数之和已完成独立复测 | 后续内容块继续按 `3 新 + 1 旧错题` 累计 50–70 道高质量题，并补 RAG/对话服务系统设计 | algorithm-progress、J11-08 |
 | Python/Vue 全栈集成 | NOT_STARTED | 项目内尚无完整前后端集成证据 | 从基础复核后，让一个旗舰展示 Python/FastAPI Agent 后端与 Vue 的流式接口、认证、错误和部署边界 | J11-02/03/06 |
 
@@ -112,7 +112,7 @@
 - [AI 应用/RAG：hybrid/rerank/pgvector/MCP/observability](https://www.gzlpsyaj.com/correcruit/content/id/54911.html)
 - [RAG 与智能体：Prompt A/B、Tool Calling、Agent、Python 服务](https://jobs.morganphilips.cn/en-cn/ai%E5%A4%A7%E6%A8%A1%E5%9E%94%E7%94%A8%E5%B7%A5%E7%A8%8B%E5%B8%88-rag%E4%B8%8E%E6%99%BA%E8%83%BD%E4%BD%93%E6%96%B9%E5%90%91-shenzhen-153501/)
 
-当前结论：尚未达到稳定投递的岗位证据门槛。T3-Gate 已把 Tool Calling 升到 `COURSE_PASS`，下一条证据链是 `A4-Gate → G8-00 → BE5-Gate`；W10 最小部署完成后先校准项目描述和 2–3 条硬可投岗位，W12 领域 RAG 旗舰成形后再开始小范围试投递。个人真实匹配率仍须等 W6 补齐硬门槛字段和合格样本，不能由本次方向性审计代替。
+当前结论：尚未达到稳定投递的岗位证据门槛。A4-Gate 已把 Agent 控制循环、最小安全门和早期 eval/日志能力升级到 `COURSE_PASS`，但没有自动生成 `JOB_EVIDENCE`；下一条证据链是 `G8-00 → BE5-Gate → 旗舰二`。W10 最小部署完成后先校准项目描述和 2–3 条硬可投岗位，W12 领域 RAG 旗舰成形后再开始小范围试投递。个人真实匹配率仍须等 W6 补齐硬门槛字段和合格样本，不能由本次课程 Gate 代替。
 
 ## 审计记录
 
@@ -120,6 +120,7 @@
 | --- | --- | --- | --- | --- |
 | 2026-07-10 / W4 | 近期岗位方向性样本 | Python 后端、生产 RAG、持久化 Agent、评估回归、安全和 CI/CD 深度不足 | 新增 BE5；升级 R6/G8/M9/E10/J11/FINAL | 维持应用岗主线，延长到 W20 |
 | 2026-07-22 / 路线改造复审 | 大厂能力标杆 + 近期应用岗方向性样本；因个人硬门槛字段未齐，不计算匹配率 | 主流框架基础、最小部署和业务型作品证据出现偏晚；H5 教学框架源码任务性价比偏低 | 前移 G8-00；H5 压成可选单链路；BE5-Gate 完成最小部署；R6 改为领域/业务旗舰 | 修订方案 PASS；不改变当前 A4-04，不扩第二后端/模型训练主线 |
+| 2026-08-24 / A4-Gate | 未新增 JD 样本；本行只做 Gate 证据校准 | Agent 控制循环、最小安全门、固定 eval/holdout 和结构化日志已形成课程证据；仍缺服务化、维护型自动测试、README/架构、CI/部署与岗位证据独立复核 | Agent 控制循环、安全与权限、评估与可观测升 `COURSE_PASS`；下一主块 G8-00，随后 BE5-Gate | 课程 Gate PASS；不升级 `JOB_EVIDENCE`，不触发强制岗位证据交叉复核 |
 | W6 | 待核验大厂标杆 4–6 条 + 在招样本 10 条（≥7 `HARD_ELIGIBLE`） |  |  |  |
 | W12 | 待核验大厂标杆 4–6 条 + 在招样本 10 条（≥7 `HARD_ELIGIBLE`） |  |  |  |
 | W16 | 待核验大厂标杆 4–6 条 + 在招样本 10 条（≥7 `HARD_ELIGIBLE`） |  |  |  |

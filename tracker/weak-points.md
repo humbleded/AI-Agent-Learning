@@ -29,12 +29,12 @@
 | 字段 | 当前值 |
 |------|--------|
 | 状态 | `NORMAL` |
-| 快照日期 | 2026-08-22 |
+| 快照日期 | 2026-08-24 |
 | 到期 📌/✅ 项 | 3：`WP-28`、`WP-27`、`WP-29` |
-| 最老到期日 | 2026-08-20（逾期 2 天） |
+| 最老到期日 | 2026-08-20（逾期 4 天） |
 | 已完成的阈值流程 | 优先席位 `2/2`：2026-08-04 `CD-003`、2026-08-06 `CD-004`；2026-08-07 回收块完成 `WP-17` / `WP-20`；2026-08-08 回收块完成 `WP-05` / `WP-06`；2026-08-09 回收块完成 `CD-001` / `CD-002`；2026-08-10 回收块完成 `WP-15` / `WP-02`；2026-08-11 回收块完成 `WP-04` / `WP-24`，其中 `WP-04` 因同日近端语义提示不升档，`WP-24` 升至 `+1月`；2026-08-12 新 pending 回收块在无近端提示的 hybrid 规则优先 / LLM fallback 表面完成 `WP-04`。新一轮优先席位 `1/2`：2026-08-22 `CD-005` 题级 `PARTIAL → RETRY → PASS`，但到期间隔首答重现核心错误，正式移出 📌 并合并到活跃 `WP-26` |
-| 本次重算 | 2026-08-22 正式核对：`CD-005` 到期首答把静态 history 误当自动 Replanning，且经多级提示才取得题级 PASS，不满足间隔升档条件，故移出 📌 并合并到活跃 `WP-26`；`WP-08` 的 2026-08-13～17 轨迹同样是到期首答失败、提示后教学 PASS，故从 ✅ 移回活跃 🟡。移出两项后，只剩 `WP-28 / WP-27 / WP-29` 共 3 项到期，最老为 2026-08-20、逾期 2 天，当前未达到积压阈值 |
-| 下一次必须执行 | 当前没有强制回收块；新一轮阈值流程已有第 1 个普通优先席位的真实证据，下一次正式练习优先从 `WP-28 / WP-27 / WP-29` 中按相关性使用第 2 个旧复习席位，再由正式检查重算。不得把 `WP-08` 的追溯写账伪造成第二次练习；只有第二次席位后仍达到阈值，才可签发 `RECOVERY_BLOCK_PENDING` |
+| 本次重算 | 2026-08-24 A4-Gate 正式核对：今日五道 Gate 问题没有覆盖 `WP-28 / WP-27 / WP-29` 的算法语义，不能伪记为旧复习席位；到期项仍为 3 个，最老 2026-08-20、逾期 4 天，尚未达到“到期 ≥4 或最老逾期 ≥7 天”的积压阈值。A4 的 GQ4/GQ5 暴露项已分别合并到 `WP-12 / WP-25 / WP-33`，不新建重复 ID |
+| 下一次必须执行 | 当前没有强制回收块；新一轮阈值流程仍为普通优先席位 `1/2`。下一次正式练习优先从 `WP-28 / WP-27 / WP-29` 中按相关性使用第 2 个旧复习席位，再由正式检查重算；只有第二次席位后仍达到阈值，才可签发 `RECOVERY_BLOCK_PENDING` |
 | 清除条件 | 当前无 `RECOVERY_BLOCK_PENDING` 可清除；优先席位 `1/2` 不等于回收块。未来若第二次真实优先席位后仍达到阈值，才能签发 pending；签发后仍必须有实际作答 / 执行证据与逐项结果，才能由正式检查清除 |
 
 ---
@@ -59,13 +59,13 @@
 | WP-21 | Action JSON 严格格式 | A4-01/T3-Gate | 写工具调用请求时用了弯引号、工具名未加字符串引号、字段名写成 `arg`，订正后又留下尾逗号 → Action 要写成客户端可解析的严格结构：`{"tool_name": "...", "arguments": {...}}`，JSON 最后一个字段后不能有尾逗号 | 🟡 | 2026-07-09 | 2026-07-09 |
 | WP-22 | Tool Calling 五种数量分层 | T3-Gate | 反复把模型 API 次数、工具轮数、`tool_call` 数、Python 真执行数和 `role="tool"` 回填数混为一谈；还把 `tool_rounds` 写成调用 ID → 沿轨迹逐层计数：一次响应可含多个调用，执行前拒绝仍需逐 ID 回填；最大轮数场景可能多发起一次模型 API 请求并收到一个不会执行的 `tool_call` | 🔴 | 2026-07-11 | 2026-07-12 |
 | WP-23 | `urlparse` 是宽松解析器 | T3-Gate | 以为 `https://host:` 已被自动赋默认 443 → `.port is None` 同时可能表示未写端口或空端口；先检查 `netloc` 的空端口，再允许 `None/443`，显式 `:443` 的 `.port` 是整数 443 | 🟡 | 2026-07-12 | 2026-07-12 |
-| WP-25 | 内部步骤结果 vs 外部编排返回契约 | A4-04/A4-Gate | 把编排函数空计划返回的 `None` 当成会污染 history，又在成功路径返回整个 `StepResult`，并混淆 prompts/return/stdout；A4-Gate I4 又把 `prepare_request()` 的二项返回当成单个请求对象，并未按 C3c 中间字典的精确键接力 → 每层先读真实返回合同：`execute_plan` 内部维持 `(step, str)`、外层按 `str \| None` 返回；Gate 入口先解包 `(normalized_request, invalid_result)` 并早返回，再用 `candidate_summary/tool_name/tool_result` 三键接力 | 🟡 | 2026-07-30 | 2026-08-11 |
+| WP-25 | 内部步骤结果、direct validator 与外部编排返回契约 | A4-04/A4-Gate | 把编排函数空计划返回的 `None` 当成会污染 history，又在成功路径返回整个 `StepResult`，并混淆 prompts/return/stdout；A4-Gate I4 又误读入口与中间字典；2026-08-24 GQ5 一度把 direct validator 的合同拒绝写成公开 `needs_manual` → 每层先读真实返回合同：direct `validate_success_result` 成功返回三字段对象、坏模型候选直接抛 `InvalidSuccessCandidateError`、非法客户端权威参数抛内建 `ValueError`；只有公开编排层才捕获候选错误并决定 recovery 或 `needs_manual`，普通程序/不变量异常继续上抛 | 🟡 | 2026-07-30 | 2026-08-24 |
 | WP-26 | 历史 / 约束数据不等于自动 Replanning 或可执行剩余计划 | A4-04/A4-Gate | 只复述“不能再买票/不能用酒店 A”或提前写死酒店 B，却没有形成可执行动作；2026-08-22 `CD-005` 到期首答又把静态 Executor 的 `history` 误当成会自动生成新步骤 → `history` 只保存 `(step, result)` 并进入后续 prompt；客户端必须显式读取并分类结果，经 `if` 分支、Replanning 次数与全局 step 双护栏后调用 Replanner，保留已发生结果和不可重复副作用，只重写包含动作、约束、真实产出与后续依赖的未完成路线 | 🟡 | 2026-07-30 | 2026-08-22 |
-| WP-12 | 模型软评审、代码硬门槛与外部证据分层 | PR2-02/A4-02/A4-03/A4-05/A4-Gate | 把 Reflection prompt 缩窄成“只规定输出格式”，并一度把模型反馈、非空字段或未覆盖语义维度的硬检查当成整体质量证明 → prompt 负责写明评审标准与反馈协议但仍是软约束；客户端只对已编码条件作硬判定，真实工具结果/外部测试提供独立证据，高风险动作还需人工确认，失败/超时必须保持未知。A4-Gate 进一步闭合为：从本轮 Observation 派生 `allowed_sources`，prompt 中的 allowlist 仍只是软约束，解析后必须由 validator 硬验来源子集；来源身份在白名单内仍不等于摘要事实已获 `content/results` 正文支持 | 🟡 | 2026-06-27 | 2026-08-10 |
+| WP-12 | 模型软评审、代码硬门槛与外部证据分层 | PR2-02/A4-02/A4-03/A4-05/A4-Gate | 把 Reflection prompt 缩窄成“只规定输出格式”，并一度把模型反馈、非空字段或未覆盖语义维度的硬检查当成整体质量证明；2026-08-24 GQ4 又先断言 Candidate 幻觉“不可能”逃逸 → prompt/Reflection 都是软约束；validator 只能机械证明最终 `summary/sources` 与客户端 `approved_summary/allowed_sources` 一致。若工具证据本身错误、恶意、注入或不相关，而客户端仍批准它，exact gate 仍可能放行；因此一致性、支持性、外部真实性与内容安全必须分层验证 | 🟡 | 2026-06-27 | 2026-08-24 |
 | WP-30 | 测试代码存在不等于测试已经执行 | W4 算法/Python 测试 | 把 `assert` 放在函数内无条件 `return` 之后导致不可达，移到函数外时又保留顶层空格触发 `IndentationError` → 测试必须调用交付接口、位于可达路径、顶层缩进合法，并以真实运行输出/退出码作为证据 | 🟡 | 2026-08-07 | 2026-08-07 |
 | WP-31 | 在线哈希判断要维护最近一次状态 | W4 算法 | 首答只保存“元素和下标”，计划循环结束后再计算距离，未说明如何避免漏掉后续更近的一对或退化为重复比较 → 扫描时先用当前下标减该值最近下标判断，未命中也立即把记录更新为当前下标 | 🟡 | 2026-08-08 | 2026-08-08 |
 | WP-32 | 跨模型 Chat Template / Tokenizer 的归属链 | A4-02/A4-Gate | 首答跳过 Chat Template，订正时仍把 X 的模板 / tokenizer 接到 Y，并认为切到 Y 后可能继续使用 X 模板 → 只有原始结构化 messages 可作为跨模型上层表示；目标 Y 必须用 Y 配套 Chat Template 渲染 Y 格式 Prompt，再由 Y tokenizer 生成 Y 的 Token IDs，渲染 Prompt / Token IDs 都不能跨模型复用 | 🟡 | 2026-08-09 | 2026-08-09 |
-| WP-33 | 协议字段与容器必须按精确类型 / 顺序校验 | A4-Gate | 2026-08-08 曾让 `bool` 冒充整数 `pageid`；2026-08-10 又让缺失字段或整数 `1` 冒充成功，并在 validator 中因 `and/or`、`all([])` 与守门顺序错误放行坏值或泄漏异常；2026-08-11 C3d I1 再把 SDK 属性对象当 dict并从 message 误取 choice 的 `finish_reason`；2026-08-13 C4a-1j 又把精确值写成单数 `"tool_call"`，再叠加与之互斥的 `"stop"` 判断，两轮订正后才收敛为唯一 allow 条件 → 先按真实 SDK 层级守住 `response → choices(list, non-empty) → choice.finish_reason/message → message.tool_calls/content`；首次工具选择只允许精确 `finish_reason == "tool_calls"`，其他值用一条受控 `RuntimeError` 在读取 message / 执行工具前拒绝；业务容器仍按类型 → 非空 → 元素 → 集合/子集顺序 fail-closed | 🔴 | 2026-08-08 | 2026-08-13 |
+| WP-33 | 协议字段、异常名与评估分母必须读取精确生产证据 | A4-Gate | 2026-08-08～13 曾让 `bool`/整数冒充协议值、误读 SDK 层级并把 `finish_reason` 写成单数；2026-08-24 GQ5 又连续猜造 `ValidationError / AgentContractError / AgentInvariantError`，并把 10 条 normal、3 条 holdout 与 14 条总套件混成 `14/14` → 守门前按真实层级与精确类型/字面量读取生产代码；direct 候选拒绝是 `InvalidSuccessCandidateError`，非法客户端权威参数是内建 `ValueError`；冻结指标分别是 exact `10/10`、supportedness `10/10`、semantic 至少 `9/10 normal cases`、holdout `3/3`，完整套件才是 `14/14` | 🔴 | 2026-08-08 | 2026-08-24 |
 
 ## 📌 核心定义间隔池（正式 PASS 后才入池）
 

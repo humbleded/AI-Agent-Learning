@@ -80,15 +80,24 @@ Provider/API 安全停止、双计数公开映射，以及故障矩阵与真实�
 当前已完成 C4b-2c-I1/I2：Refinement Provider/API、协议 / JSON / 最终候选
 合同失败共用唯一恢复额度，并在客户端最终校验前保持 fail-closed。
 当前已完成 C4b-2c-U1：用户已审核双向跨失败域共享额度、prompt 选择、
-候选错误 / 程序错误所有权、最终停止与来源语义。后续 HITL、安全确认和 eval 尚未完成。
+候选错误 / 程序错误所有权、最终停止与来源语义。
+当前已完成 A4-Gate-HITL-I1a：动作绑定确认的纯校验与一次性消费器。
+当前已完成 A4-Gate-HITL-I1b/I1c/U1：显式注入内存 fake，连接确认短路、
+三方 request 绑定、真实工具调用记账、固定 ``needs_manual`` 停止映射，
+并完成异常后禁止重放的用户审核。
+V4 唯一正式运行已判 ``RETRY``；当前已完成 R5a：客户端从真实工具结果构造
+唯一 ``approved_summary``，Refinement 候选只有逐字符精确相等才可 success。
+V5 holdout / 数据集冻结、正式运行、五道 Gate 问题与整关复核尚未完成。
 """
 
 import html
 import json
 import os
+from copy import deepcopy
 from pathlib import Path
 import re
-from time import perf_counter
+import ssl
+from time import perf_counter, sleep
 import uuid
 
 from dotenv import load_dotenv
@@ -111,7 +120,22 @@ WIKIPEDIA_API_URL = "https://zh.wikipedia.org/w/api.php"  # 中文 Wikipedia API
 WIKIPEDIA_PAGE_URL_TEMPLATE = "https://zh.wikipedia.org/w/index.php?curid={page_id}"  # 中文 Wikipedia 页面 URL 模板
 WIKIPEDIA_USER_AGENT = "AI-Agent-Learning/0.1 (https://github.com/humbleded/AI-Agent-Learning)"  # 中文 Wikipedia 请求使用的 User-Agent
 SEARCH_TIMEOUT_SECONDS = 5
+MAX_SEARCH_TRANSPORT_RETRIES = 2
+SEARCH_RETRY_BACKOFF_SECONDS = (0.25, 0.5)
 MAX_SEARCH_RESULTS = 3  # 最大搜索结果条数
+EVIDENCE_COVERAGE_INSTRUCTIONS = (
+    "摘要必须严格停留在本轮允许的真实证据域内。"
+    "若工具为 search_web，摘要正文的每个事实只能来自 "
+    "results[0].snippet 中已经完整、明确表达的内容，并覆盖其中彼此不同的"
+    "核心事实。该 snippet 已由客户端裁成截至明确句末边界的最大完整前缀；"
+    "模型不得补完、解释或推断该字段之外的原始尾部。results[0].title 和 url "
+    "只能用于识别来源，不能证明正文事实；必须完全忽略 results[1:]。"
+    "search_web 成功结果的 sources "
+    "必须精确为只含 results[0].url 的单元列表。"
+    "若工具为 read_material，正文事实只能来自 content，并且必须依据 truncated "
+    "精确说明本次读取是否发生截断；truncated 只能证明读取状态，不能推导"
+    "正文之外的事实。"
+)
 DEEPSEEK_BASE_URL = "https://api.deepseek.com"
 DEEPSEEK_MODEL = "deepseek-v4-pro"
 MODEL_SDK_MAX_RETRIES = 2  # 每次逻辑 SDK 调用内部最多额外尝试两次
@@ -836,6 +860,112 @@ def create_run_context(
         "request_id": request_id,
         "step": 0,
         "logs": [],
+    }
+
+
+# 校验并一次性消费动作绑定 confirmation 的纯客户端安全门
+def consume_action_bound_confirmation(
+    planned_action: object,
+    confirmation: object,
+    consumed_confirmation_ids: set[str],
+) -> dict[str, str]:
+    """校验并消费一份只对当前冻结动作有效的 confirmation。
+
+    ``planned_action`` 必须恰好包含 ``request_id / tool_name / arguments``；
+    ``confirmation`` 为 ``None``，或恰好包含 ``confirmation_id / request_id /
+    tool_name / arguments / decision``。``decision`` 只允许 ``allow / deny``。
+
+    返回值必须恰好包含 ``outcome / reason``：只有新鲜、合法且精确绑定的
+    ``allow`` 可以返回 ``{"outcome": "allow", "reason": "confirmed"}``；
+    其余不可信 confirmation 状态一律返回 ``outcome == "stop"``，reason
+    分别使用 ``missing_confirmation / invalid_confirmation /
+    confirmation_mismatch / confirmation_replayed / user_denied``。
+
+    新鲜且精确绑定的 ``allow`` 或 ``deny`` 都必须在返回前消费其
+    ``confirmation_id``；缺失、非法、错绑或已消费的 confirmation 不得改变
+    集合。非法 ``planned_action`` 或非法消费集合属于调用方不变量错误，
+    应抛出 ``ValueError``，不能伪装成普通安全停止。
+
+    本函数不得调用模型、工具或 fake，不得接收或修改 ``run_context``，不得
+    占用 step、追加七字段调用日志、构造公开结果，也不得修改传入的动作或
+    confirmation。当前同步 V1 不扩展并发持久化；未来并发实现必须把“检查未
+    消费 + 写入已消费集合”作为一个原子操作。
+    """
+    #  A4-Gate-HITL-I1a：按上述精确合同实现纯校验与一次性消费。
+    expected_action_keys = {"request_id", "tool_name", "arguments"}
+    if (
+        type(planned_action) is not dict
+        or set(planned_action) != expected_action_keys
+        or type(planned_action["request_id"]) is not str
+        or not planned_action["request_id"].strip()
+        or type(planned_action["tool_name"]) is not str
+        or not planned_action["tool_name"].strip()
+        or type(planned_action["arguments"]) is not dict
+    ):
+        raise ValueError("planned_action 必须是合法的冻结动作")
+    if type(consumed_confirmation_ids) is not set or not all(
+        type(confirmation_id) is str and bool(confirmation_id.strip())
+        for confirmation_id in consumed_confirmation_ids
+    ):
+        raise ValueError("consumed_confirmation_ids 必须是合法的内建字符串集合")
+
+    if confirmation is None:
+        return {
+            "outcome": "stop",
+            "reason": "missing_confirmation",
+        }
+
+    expected_confirmation_keys = {
+        "confirmation_id",
+        "request_id",
+        "tool_name",
+        "arguments",
+        "decision",
+    }
+    if (
+        type(confirmation) is not dict
+        or set(confirmation) != expected_confirmation_keys
+        or type(confirmation["confirmation_id"]) is not str
+        or not confirmation["confirmation_id"].strip()
+        or type(confirmation["request_id"]) is not str
+        or not confirmation["request_id"].strip()
+        or type(confirmation["tool_name"]) is not str
+        or not confirmation["tool_name"].strip()
+        or type(confirmation["arguments"]) is not dict
+        or type(confirmation["decision"]) is not str
+        or confirmation["decision"] not in {"allow", "deny"}
+    ):
+        return {
+            "outcome": "stop",
+            "reason": "invalid_confirmation",
+        }
+
+    if (
+        confirmation["request_id"] != planned_action["request_id"]
+        or confirmation["tool_name"] != planned_action["tool_name"]
+        or confirmation["arguments"] != planned_action["arguments"]
+    ):
+        return {
+            "outcome": "stop",
+            "reason": "confirmation_mismatch",
+        }
+
+    confirmation_id = confirmation["confirmation_id"]
+    if confirmation_id in consumed_confirmation_ids:
+        return {
+            "outcome": "stop",
+            "reason": "confirmation_replayed",
+        }
+
+    consumed_confirmation_ids.add(confirmation_id)
+    if confirmation["decision"] == "allow":
+        return {
+            "outcome": "allow",
+            "reason": "confirmed",
+        }
+    return {
+        "outcome": "stop",
+        "reason": "user_denied",
     }
 
 
@@ -1800,6 +1930,147 @@ def make_result(
     }
 
 
+# 把确认门的固定停止原因映射为安全公开结果
+def build_high_risk_confirmation_stop_result(
+    gate_result: object,
+) -> dict[str, object]:
+    """把精确 confirmation 停止分类映射为固定 ``needs_manual`` 结果。
+
+    本函数只接受 ``consume_action_bound_confirmation()`` 产生的五种 stop
+    分类；不拼接原始 confirmation、参数、异常或内部日志，也不接受 allow。
+    """
+    if (
+        type(gate_result) is not dict
+        or set(gate_result) != {"outcome", "reason"}
+        or type(gate_result.get("outcome")) is not str
+        or type(gate_result.get("reason")) is not str
+    ):
+        raise ValueError("gate_result 必须是精确的确认门内部结果")
+
+    stop_summaries = {
+        "missing_confirmation": (
+            "高风险动作未执行：当前冻结动作缺少人工确认；"
+            "Agent 已停止自治并交还人工。"
+        ),
+        "invalid_confirmation": (
+            "高风险动作未执行：人工确认的结构或决定字段不合法；"
+            "Agent 已停止自治并交还人工。"
+        ),
+        "confirmation_mismatch": (
+            "高风险动作未执行：人工确认与当前冻结动作不匹配；"
+            "Agent 已停止自治并交还人工。"
+        ),
+        "confirmation_replayed": (
+            "高风险动作未执行：这份人工确认已经消费，禁止重复使用；"
+            "Agent 已停止自治并交还人工。"
+        ),
+        "user_denied": (
+            "高风险动作未执行：用户明确拒绝当前冻结动作；"
+            "Agent 已停止自治并交还人工。"
+        ),
+    }
+    reason = gate_result["reason"]
+    if gate_result["outcome"] != "stop" or reason not in stop_summaries:
+        raise ValueError("gate_result 必须是允许公开映射的固定 stop 分类")
+    return make_result("needs_manual", stop_summaries[reason], [])
+
+
+# 将动作绑定确认门接到显式注入的高风险动作执行器
+def execute_high_risk_action_with_confirmation(
+    planned_action: object,
+    confirmation: object,
+    consumed_confirmation_ids: set[str],
+    *,
+    run_context: dict[str, object],
+    action_executor_name: object,
+    action_executor: object,
+) -> dict[str, object]:
+    """经确认后至多执行一次显式注入的高风险动作。
+
+    返回值恰好包含 ``tool_result / stop_result``：确认门停止时前者为
+    ``None``、后者为固定三字段 ``needs_manual``；exact allow 且执行器正常
+    返回时，前者保留执行器结果、后者为 ``None``。本函数不构造 success。
+
+    ``action_executor`` 只通过调用方显式注入，不读取或修改生产
+    ``TOOL_REGISTRY``。调用方必须同时提供与冻结动作工具名精确相等的
+    ``action_executor_name``，并保证冻结动作的 request ID 与当前
+    ``run_context`` 精确一致，防止确认的动作、实际执行器或调用账本错绑。
+    """
+    if type(action_executor_name) is not str or not action_executor_name.strip():
+        raise ValueError("action_executor_name 必须是非空内建字符串")
+    if not callable(action_executor):
+        raise ValueError("action_executor 必须是可调用对象")
+    if (
+        type(planned_action) is not dict
+        or planned_action.get("tool_name") != action_executor_name
+    ):
+        raise ValueError("action_executor_name 必须与冻结动作工具名精确匹配")
+    if (
+        type(run_context) is not dict
+        or type(run_context.get("request_id")) is not str
+        or not run_context.get("request_id").strip()
+        or type(run_context.get("step")) is not int
+        or not 0 <= run_context.get("step") <= MAX_STEPS
+        or type(run_context.get("logs")) is not list
+        or len(run_context.get("logs")) != run_context.get("step")
+    ):
+        raise ValueError("run_context 必须是未损坏的共享调用账本")
+    if planned_action.get("request_id") != run_context.get("request_id"):
+        raise ValueError("冻结动作必须与当前 run_context 的 request_id 精确匹配")
+
+    gate_result = consume_action_bound_confirmation(
+        planned_action,
+        confirmation,
+        consumed_confirmation_ids,
+    )
+    if gate_result["outcome"] == "stop":
+        return {
+            "tool_result": None,
+            "stop_result": build_high_risk_confirmation_stop_result(gate_result),
+        }
+    if gate_result != {"outcome": "allow", "reason": "confirmed"}:
+        raise RuntimeError("确认门返回了未知内部结果")
+
+    action_arguments = deepcopy(planned_action["arguments"])
+    call_step = reserve_call_step(run_context)
+    perf_counter_start = perf_counter()
+    try:
+        tool_result = action_executor(**action_arguments)
+    except Exception as exc:
+        perf_counter_end = perf_counter()
+        append_call_log(
+            run_context,
+            step=call_step,
+            event_type="tool_call",
+            model=None,
+            tool_name=action_executor_name,
+            duration_ms=max(
+                0,
+                int((perf_counter_end - perf_counter_start) * 1000),
+            ),
+            error=type(exc).__name__,
+        )
+        raise
+    else:
+        perf_counter_end = perf_counter()
+        append_call_log(
+            run_context,
+            step=call_step,
+            event_type="tool_call",
+            model=None,
+            tool_name=action_executor_name,
+            duration_ms=max(
+                0,
+                int((perf_counter_end - perf_counter_start) * 1000),
+            ),
+            error=None,
+        )
+        return {
+            "tool_result": tool_result,
+            "stop_result": None,
+        }
+
+
 # 校验请求对象的工具函数
 def validate_request_shape(
     request: object,
@@ -1950,6 +2221,182 @@ def read_material(relative_path: str) -> dict[str, object]:
     return {"ok": True, "content": content, "truncated": truncated}
 
 
+SEARCH_EVIDENCE_SENTENCE_TERMINATORS = frozenset("。！？!?")
+SEARCH_EVIDENCE_CLOSING_MARKS = frozenset("”’」』）》】〉\"'")
+
+
+def build_complete_search_evidence_snippet(raw_snippet: str) -> str:
+    """返回可安全交给摘要模型的最大完整句前缀。
+
+    本地先清理 MediaWiki 的 HTML 标签与实体，再只承认明确的中英文问号、
+    感叹号和中文句号为句末边界。句末后的紧邻闭合引号或括号随句保留；
+    没有任何合格边界时返回空字符串。函数不调用模型、工具或网络。
+    """
+    if type(raw_snippet) is not str:
+        raise ValueError("raw_snippet 必须是字符串")
+
+    cleaned_snippet = re.sub(r"<.*?>", "", raw_snippet)
+    cleaned_snippet = html.unescape(cleaned_snippet).strip()
+    complete_prefix_end = 0
+
+    for index, character in enumerate(cleaned_snippet):
+        if character not in SEARCH_EVIDENCE_SENTENCE_TERMINATORS:
+            continue
+        candidate_end = index + 1
+        while (
+            candidate_end < len(cleaned_snippet)
+            and cleaned_snippet[candidate_end] in SEARCH_EVIDENCE_CLOSING_MARKS
+        ):
+            candidate_end += 1
+        complete_prefix_end = candidate_end
+
+    if complete_prefix_end == 0:
+        return ""
+    return cleaned_snippet[:complete_prefix_end].strip()
+
+
+def _exception_chain_contains_type(
+    exception: BaseException,
+    expected_type: type[BaseException],
+) -> bool:
+    """只按异常对象类型遍历 cause/context/reason/args，不解析异常正文。"""
+    pending: list[BaseException] = [exception]
+    visited_ids: set[int] = set()
+
+    while pending:
+        current = pending.pop()
+        current_id = id(current)
+        if current_id in visited_ids:
+            continue
+        visited_ids.add(current_id)
+        if isinstance(current, expected_type):
+            return True
+
+        related_values = (
+            current.__cause__,
+            current.__context__,
+            getattr(current, "reason", None),
+            *current.args,
+        )
+        for related in related_values:
+            if isinstance(related, BaseException):
+                pending.append(related)
+
+    return False
+
+
+def _request_wikipedia_search_json(
+    params: dict[str, object],
+    headers: dict[str, str],
+) -> dict[str, object]:
+    """在一次逻辑搜索内执行有界、同参数的只读 GET 传输恢复。"""
+    if len(SEARCH_RETRY_BACKOFF_SECONDS) != MAX_SEARCH_TRANSPORT_RETRIES:
+        raise RuntimeError("搜索传输重试退避配置与重试上限不一致")
+
+    max_attempts = MAX_SEARCH_TRANSPORT_RETRIES + 1
+    for attempt_index in range(max_attempts):
+        failure: dict[str, object] | None = None
+        try:
+            response = requests.get(
+                WIKIPEDIA_API_URL,
+                params=params,
+                headers=headers,
+                timeout=SEARCH_TIMEOUT_SECONDS,
+                allow_redirects=False,
+            )
+            status_code = response.status_code
+            if type(status_code) is not int:
+                return {
+                    "ok": False,
+                    "error": "搜索服务响应缺少合法 HTTP 状态码",
+                    "retryable": False,
+                }
+            if 300 <= status_code <= 399:
+                return {
+                    "ok": False,
+                    "error": f"请求被重定向，状态码: {status_code}",
+                    "retryable": False,
+                }
+            if status_code == 429 or 500 <= status_code <= 599:
+                failure = {
+                    "ok": False,
+                    "error": f"请求失败，状态码: {status_code}",
+                    "retryable": True,
+                }
+            elif 400 <= status_code <= 499:
+                return {
+                    "ok": False,
+                    "error": f"请求失败，状态码: {status_code}",
+                    "retryable": False,
+                }
+            elif 100 <= status_code <= 199:
+                return {
+                    "ok": False,
+                    "error": f"请求失败，状态码: {status_code}",
+                    "retryable": False,
+                }
+            elif not 200 <= status_code <= 299:
+                return {
+                    "ok": False,
+                    "error": f"请求失败，非法状态码: {status_code}",
+                    "retryable": False,
+                }
+            else:
+                try:
+                    data = response.json()
+                except requests.exceptions.JSONDecodeError:
+                    failure = {
+                        "ok": False,
+                        "error": "解析 JSON 失败",
+                        "retryable": True,
+                    }
+                else:
+                    return {"ok": True, "data": data}
+        except requests.Timeout:
+            failure = {"ok": False, "error": "请求超时", "retryable": True}
+        except requests.exceptions.SSLError as exc:
+            if _exception_chain_contains_type(exc, ssl.SSLCertVerificationError):
+                return {
+                    "ok": False,
+                    "error": "TLS 证书校验失败",
+                    "retryable": False,
+                }
+            if _exception_chain_contains_type(exc, ssl.SSLEOFError):
+                failure = {
+                    "ok": False,
+                    "error": "TLS 连接意外中断",
+                    "retryable": True,
+                }
+            else:
+                return {
+                    "ok": False,
+                    "error": "TLS 连接失败",
+                    "retryable": False,
+                }
+        except requests.exceptions.ConnectionError:
+            failure = {
+                "ok": False,
+                "error": "请求连接中断",
+                "retryable": True,
+            }
+        except requests.exceptions.ChunkedEncodingError:
+            failure = {
+                "ok": False,
+                "error": "响应传输意外中断",
+                "retryable": True,
+            }
+        except requests.RequestException:
+            return {"ok": False, "error": "请求失败", "retryable": False}
+
+        if failure is None:
+            raise RuntimeError("搜索传输恢复分支没有产生结果")
+        if attempt_index == max_attempts - 1:
+            return failure
+        sleep(SEARCH_RETRY_BACKOFF_SECONDS[attempt_index])
+
+    raise RuntimeError("搜索传输恢复循环意外结束")
+
+
 # 搜索中文 Wikipedia 并返回固定 ok/results 或 ok/error/retryable 字段。
 def search_web(query: str) -> dict[str, object]:
     """搜索中文 Wikipedia 并转换成 Problem Contract 规定的工具结果。"""
@@ -1976,53 +2423,19 @@ def search_web(query: str) -> dict[str, object]:
     headers = {
         "User-Agent": WIKIPEDIA_USER_AGENT  # 描述性 User-Agent，便于识别请求来源
     }
-    try:
-        response = requests.get(
-            WIKIPEDIA_API_URL,
-            params=params,
-            headers=headers,
-            timeout=SEARCH_TIMEOUT_SECONDS,
-            allow_redirects=False,
-        )
-        # 按合同显式分类 HTTP 状态，并在非 2xx 时停止解析响应正文。
-        status_code = response.status_code
-        if status_code >= 300 and status_code < 400:
-            return {
-                "ok": False,
-                "error": f"请求被重定向，状态码: {status_code}",
-                "retryable": False,
-            }
-        elif status_code >= 500 or status_code == 429:
-            return {
-                "ok": False,
-                "error": f"请求失败，状态码: {status_code}",
-                "retryable": True,
-            }
-        elif status_code >= 400 and status_code < 500:
-            return {
-                "ok": False,
-                "error": f"请求失败，状态码: {status_code}",
-                "retryable": False,
-            }
-        elif status_code < 200:
-            return {
-                "ok": False,
-                "error": f"请求失败，状态码: {status_code}",
-                "retryable": False,
-            }
-        # data是一个字典，包含了 API 返回的 JSON 数据。我们可以通过 response.json() 方法将响应内容解析为 Python 字典。
-        data = response.json()
-    except requests.Timeout:
-        return {"ok": False, "error": "请求超时", "retryable": True}
-    except requests.exceptions.JSONDecodeError as e:
-        return {"ok": False, "error": f"解析 JSON 失败: {e}", "retryable": True}
-    except requests.RequestException as e:
-        return {"ok": False, "error": f"请求失败: {e}", "retryable": False}
+    transport_result = _request_wikipedia_search_json(params, headers)
+    if transport_result.get("ok") is not True:
+        return transport_result
+    data = transport_result.get("data")
     # 处理 API 返回的搜索结果，确保每条结果都有 title、pageid、snippet，并进行必要的清理。
     if not isinstance(data, dict):
         return {"ok": False, "error": "API 返回的 JSON 结构不正确", "retryable": False}
     if "error" in data:
-        return {"ok": False, "error": f"API 错误: {data['error']}", "retryable": False}
+        return {
+            "ok": False,
+            "error": "MediaWiki API 返回确定性错误",
+            "retryable": False,
+        }
     if "query" not in data or not isinstance(data.get("query"), dict):
         return {
             "ok": False,
@@ -2057,10 +2470,7 @@ def search_web(query: str) -> dict[str, object]:
                 "retryable": False,
             }
         url = WIKIPEDIA_PAGE_URL_TEMPLATE.format(page_id=pageid)  # 使用 pageid 构造 URL
-        snippet = re.sub(r"<.*?>", "", snippet)  # 去除 HTML 标签，保留纯文本内容
-        snippet = html.unescape(
-            snippet
-        )  # 还原 HTML 实体，例如 &amp; 转换为 &，&lt; 转换为 <，&gt; 转换为 > 等。
+        snippet = build_complete_search_evidence_snippet(snippet)
         # 具体的搜索结果条目包含 title、url、snippet 三个字段
         results.append({"title": title, "url": url, "snippet": snippet})
 
@@ -2465,6 +2875,24 @@ def raise_for_terminal_tool_outcome(
             status="insufficient_evidence",
             detail="搜索工具已成功执行，但没有取得可用于生成摘要的真实证据。",
         )
+    if (
+        tool_name == "search_web"
+        and tool_result.get("ok") is True
+        and isinstance(results, list)
+        and len(results) > 0
+    ):
+        main_result = results[0]
+        main_snippet = (
+            main_result.get("snippet") if isinstance(main_result, dict) else None
+        )
+        if not isinstance(main_snippet, str) or main_snippet == "":
+            raise TerminalToolOutcomeError(
+                status="insufficient_evidence",
+                detail=(
+                    "搜索工具取得了主结果，但主证据没有任何通过客户端"
+                    "完整句边界校验的内容。"
+                ),
+            )
     return None
 
 
@@ -2765,7 +3193,7 @@ def generate_candidate_summary(
 调用工具read_material获取证据，并生成研究摘要。请确保在生成摘要时，引用的证据来源必须来自于你调用的工具返回的结果。
 参数必须原样使用规范化 value，不能在取得 Observation 前直接写摘要，后续摘要只能依据真实 Observation生成。
 你必须严格遵守工具调用的参数规范，不能使用未注册的工具，也不能使用未规范化的参数。
-""",
+""" + EVIDENCE_COVERAGE_INSTRUCTIONS,
         },
         {
             "role": "user",
@@ -2937,8 +3365,9 @@ def derive_allowed_sources(
 ) -> list[str]:
     """根据规范化请求和本轮成功工具结果构造来源白名单。
 
-    合法输入返回保持工具结果顺序的 ``list[str]``；结构、路由或来源字段
-    不符合当前合同的输入抛出 ``ValueError``。本函数不调用模型或工具，
+    文件输入返回规范化相对路径；topic 输入只返回主证据
+    ``results[0].url``。结构、路由或来源字段不符合当前合同的输入
+    抛出 ``ValueError``。本函数不调用模型或工具，
     不生成摘要，也不构造最终 ``success`` 结果。
     """
     if tool_result.get("ok") is not True:
@@ -2956,17 +3385,92 @@ def derive_allowed_sources(
         results = tool_result.get("results")
         if not isinstance(results, list):
             raise ValueError("工具结果缺少 results 字段或类型不正确")
-        sources = []
-        for item in results:
-            if not isinstance(item, dict):
-                raise ValueError("工具结果中的条目不是字典类型")
-            url = item.get("url")
-            if not isinstance(url, str) or url.strip() == "":
-                raise ValueError("工具结果中的 url 字段非法")
-            sources.append(url)
-        return sources
+        if not results:
+            raise ValueError("工具结果没有主证据")
+        main_result = results[0]
+        if not isinstance(main_result, dict):
+            raise ValueError("工具主证据条目不是字典类型")
+        main_snippet = main_result.get("snippet")
+        if not isinstance(main_snippet, str) or main_snippet == "":
+            raise ValueError("工具主证据的 snippet 字段必须是非空字符串")
+        if build_complete_search_evidence_snippet(main_snippet) != main_snippet:
+            raise ValueError("工具主证据的 snippet 不是客户端批准的完整句前缀")
+        main_url = main_result.get("url")
+        if not isinstance(main_url, str) or main_url.strip() == "":
+            raise ValueError("工具主证据的 url 字段非法")
+        return [main_url]
     else:
         raise ValueError(f"未知的工具: {tool_name}")
+
+
+# 从本轮真实工具结果构造客户端唯一批准的最终摘要正文。
+def build_approved_summary(
+    normalized_request: dict[str, str],
+    tool_name: str,
+    tool_result: dict[str, object],
+) -> str:
+    """返回可由客户端逐字符校验的唯一 ``success.summary``。
+
+    topic 路由逐字符采用已经过客户端清洗、句末裁切且幂等的主
+    ``results[0].snippet``。文件路由逐字符保留真实 ``content``，并在其后追加
+    一条只由内建布尔值 ``truncated`` 决定的固定读取状态句。任何路由、结构或
+    工具结果不变量错误都抛出 ``ValueError``；本函数不调用模型、工具或网络，
+    不占 step，不写日志，也不修改传入对象。
+    """
+    if (
+        type(normalized_request) is not dict
+        or set(normalized_request) != {"input_type", "value"}
+        or type(normalized_request.get("input_type")) is not str
+        or type(normalized_request.get("value")) is not str
+        or not normalized_request["value"].strip()
+        or normalized_request["value"] != normalized_request["value"].strip()
+    ):
+        raise ValueError("normalized_request 必须是规范化后的精确两字段请求")
+    if type(tool_name) is not str or not tool_name.strip():
+        raise ValueError("tool_name 必须是非空内建字符串")
+    if type(tool_result) is not dict or tool_result.get("ok") is not True:
+        raise ValueError("必须提供成功的内建字典工具结果")
+
+    input_type = normalized_request["input_type"]
+    if tool_name == "search_web":
+        if input_type != "topic":
+            raise ValueError("工具名与 input_type 路由不一致")
+        results = tool_result.get("results")
+        if type(results) is not list or not results:
+            raise ValueError("搜索工具结果必须包含非空 results 列表")
+        main_result = results[0]
+        if type(main_result) is not dict:
+            raise ValueError("搜索工具主证据必须是内建字典")
+        main_snippet = main_result.get("snippet")
+        if type(main_snippet) is not str or not main_snippet:
+            raise ValueError("搜索工具主证据 snippet 必须是非空内建字符串")
+        if build_complete_search_evidence_snippet(main_snippet) != main_snippet:
+            raise ValueError("搜索工具主证据 snippet 不是客户端批准的完整句前缀")
+        return main_snippet
+
+    if tool_name == "read_material":
+        if input_type != "relative_path":
+            raise ValueError("工具名与 input_type 路由不一致")
+        content = tool_result.get("content")
+        truncated = tool_result.get("truncated")
+        if type(content) is not str:
+            raise ValueError("文件工具 content 必须是内建字符串")
+        if type(truncated) is not bool:
+            raise ValueError("文件工具 truncated 必须是内建布尔值")
+        if len(content) > MAX_MATERIAL_CHARS:
+            raise ValueError("文件工具 content 超过客户端截断上限")
+        if truncated and len(content) != MAX_MATERIAL_CHARS:
+            raise ValueError("truncated=True 时 content 必须达到客户端截断上限")
+
+        read_state = (
+            "读取状态：本次读取已截断。"
+            if truncated
+            else "读取状态：本次读取未截断。"
+        )
+        separator = "" if not content or content.endswith("\n") else "\n"
+        return content + separator + read_state
+
+    raise ValueError(f"未知的工具: {tool_name}")
 
 
 # 把首次 Candidate 响应、至多一次恢复与候选阶段停止组合成一个内部解析器。
@@ -3127,14 +3631,18 @@ def build_reflection_prompt(
             raise ValueError("工具结果缺少 results 字段")
     review_instructions = (
         "请逐项检查候选摘要是否由本轮工具结果支持，"
-        "摘要结论只能依据本轮 read_material.content 或 search_web.results。"
+        "文件摘要正文结论只能依据本轮 read_material.content；"
+        "topic 摘要正文结论只能依据本轮 search_web.results[0].snippet "
+        "中完整明确表达的内容；"
+        "read_material.truncated 只允许支持本次读取是否截断的状态结论。"
         "不得使用模型常识补充工具没有取得的事实。"
         "allowed_sources 只能证明来源来自本轮 Observation，不能替代正文证据。"
+        f"{EVIDENCE_COVERAGE_INSTRUCTIONS}"
         "成功候选的具体合同："
         'status 必须是字符串 "success"；'
         "summary 必须是非空字符串；"
         "sources 必须是非空字符串列表；"
-        "sources 必须是 allowed_sources 的子集。"
+        "sources 必须与单元 allowed_sources 列表逐项精确相等。"
         "有问题时逐项输出“问题、证据、修改建议”。"
         "全部通过时只输出精确短语“无需改进”。"
     )
@@ -3158,25 +3666,34 @@ def build_refinement_prompt(
     tool_result: dict[str, object],
     allowed_sources: list[str],
     feedback: str,
+    approved_summary: str,
 ) -> str:
-    """构造依据 Reflection 反馈生成结构化候选的 Refinement prompt。
+    """构造要求模型复制客户端唯一批准正文的 Refinement prompt。
 
     本函数只返回 prompt 文本，不调用模型或工具，不解析模型输出，
     也不执行最终客户端硬校验。
     """
+    if type(approved_summary) is not str or not approved_summary.strip():
+        raise ValueError("approved_summary 必须是非空内建字符串")
     refinement_instructions = (
         "请根据 Reflection 反馈对候选摘要进行修订，"
-        "修订应严格依据本轮工具结果，不得添加模型常识。"
-        "文件路径分支只能依据 read_material.content；搜索分支只能依据 search_web.results。"
+        "但最终 summary 不再允许自由改写。"
+        "文件路径分支的正文事实只能依据 read_material.content，读取状态只能依据 "
+        "read_material.truncated；搜索分支只能依据 "
+        "search_web.results[0].snippet 中完整明确表达的内容。"
+        f"{EVIDENCE_COVERAGE_INSTRUCTIONS}"
         "只输出一个 JSON 对象；JSON 前后不得有任何解释、标题、提示语或其他文字。"
         "不得使用 Markdown 代码围栏（```）包装 JSON。"
-        "sources 必须从 allowed_sources 中选择，不能扩大白名单。"
+        "sources 必须与单元 allowed_sources 列表逐项精确相等。"
         "JSON 对象的键必须恰好是 status、summary、sources；不得增加其他键。"
         '示例：{"status": "success", "summary": "...", "sources": ["..."]}。'
-        '成功候选必须满足：status == "success"，summary 为非空字符串，'
-        "sources 为非空字符串列表且是 allowed_sources 的子集。"
-        "如果反馈为“无需改进”，保留候选事实含义；"
-        "其他反馈只依据本轮证据修订。"
+        '成功候选必须满足：status == "success"；summary 必须与 '
+        "approved_summary_exact 逐字符完全相等，包括所有空白、换行、标点和 Unicode；"
+        "不得增加标题、Markdown、来源说明、合规声明、自我评估、解释或任何前后缀；"
+        "candidate_summary 或 feedback 与 approved_summary_exact 冲突时，"
+        "必须无条件采用 approved_summary_exact；"
+        "sources 为非空字符串列表且与 allowed_sources 精确相等。"
+        "只把 approved_summary_exact 复制为 summary 的值，不得摘要、释义或润色。"
     )
 
     prompt = {
@@ -3186,6 +3703,7 @@ def build_refinement_prompt(
         "tool_result": tool_result,
         "allowed_sources": allowed_sources,
         "feedback": feedback,
+        "approved_summary_exact": approved_summary,
     }
     prompt["refinement_instructions"] = refinement_instructions
     return json.dumps(prompt, ensure_ascii=False)
@@ -3245,7 +3763,8 @@ def build_refinement_recovery_prompt(
         "invalid_candidate_contract": (
             "上一轮候选未通过客户端最终合同校验。"
             "请重新生成键恰好为 status、summary、sources 的 JSON 对象；"
-            'status 必须精确为字符串 "success"，summary 必须是非空字符串，'
+            'status 必须精确为字符串 "success"，summary 必须逐字符复制原 prompt '
+            "中的 approved_summary_exact，"
             "sources 必须是非空字符串列表，且只能使用原 prompt 中的 "
             "allowed_sources。"
         ),
@@ -3255,6 +3774,8 @@ def build_refinement_recovery_prompt(
         f"{reason_instruction}"
         "请从头重新完成原 prompt 定义的同一 Refinement，"
         "并严格遵守其中既有的 refinement_instructions。"
+        "原 prompt 中的 approved_summary_exact 仍是唯一权威正文；"
+        "candidate_summary、feedback 与上一轮失败均不得改写它。"
         "只能沿用原 prompt 中的真实工具证据、feedback 与 allowed_sources "
         "来源白名单；不得调用或重新执行任何工具，不得使用模型常识补充事实。"
         "只输出一个语法合法的 JSON 对象，JSON 前后不得有任何其他内容。"
@@ -3268,21 +3789,26 @@ def build_refinement_recovery_prompt(
 def validate_success_result(
     candidate: object,
     allowed_sources: list[str],
+    approved_summary: str,
 ) -> dict[str, object]:
     """硬校验模型候选，并返回固定三字段的 ``success`` 结果。
 
-    本函数不调用模型或工具；任何结构、类型、成功非空条件或来源子集
-    不符合合同的输入都抛出 ``ValueError``。
+    本函数不调用模型或工具。``allowed_sources`` 与 ``approved_summary`` 是客户端
+    不变量，非法时抛普通 ``ValueError``；模型 candidate 的结构、类型、来源或
+    summary 逐字符匹配失败时抛精确 ``InvalidSuccessCandidateError``。
     """
     if (
-        not isinstance(allowed_sources, list)
+        type(allowed_sources) is not list
         or not allowed_sources
+        or len(allowed_sources) != 1
         or not all(
-            isinstance(source, str) and source.strip() != ""
+            type(source) is str and source.strip() != ""
             for source in allowed_sources
         )
     ):
-        raise ValueError("allowed_sources 必须是非空字符串列表")
+        raise ValueError("allowed_sources 必须是只含一个非空字符串的列表")
+    if type(approved_summary) is not str or not approved_summary.strip():
+        raise ValueError("approved_summary 必须是非空内建字符串")
     if not isinstance(candidate, dict):
         raise InvalidSuccessCandidateError("候选摘要必须是字典类型")
     expected_keys = {"status", "summary", "sources"}
@@ -3294,6 +3820,10 @@ def validate_success_result(
     summary = candidate.get("summary")
     if not isinstance(summary, str) or summary.strip() == "":
         raise InvalidSuccessCandidateError("summary 必须是非空字符串")
+    if summary != approved_summary:
+        raise InvalidSuccessCandidateError(
+            "summary 必须与 approved_summary 逐字符完全相等"
+        )
     sources = candidate.get("sources")
     if (
         not isinstance(sources, list)
@@ -3303,9 +3833,9 @@ def validate_success_result(
         )
     ):
         raise InvalidSuccessCandidateError("sources 必须是非空字符串列表")
-    if not set(sources).issubset(set(allowed_sources)):
-        raise InvalidSuccessCandidateError("sources 必须是 allowed_sources 的子集")
-    return make_result("success", summary.strip(), list(sources))
+    if sources != allowed_sources:
+        raise InvalidSuccessCandidateError("sources 必须与 allowed_sources 列表精确相等")
+    return make_result("success", approved_summary, list(allowed_sources))
 
 
 # 发起一次 Reflection 模型调用并原样返回不可信响应。
@@ -3826,7 +4356,12 @@ def request_refinement_candidate(
     *,
     run_context: dict[str, object],
 ) -> object:
-    """调用原始请求层，并为旧调用者保留单次解析行为。"""
+    """调用原始请求层，并为旧调用者保留单次解析行为。
+
+    返回值仍是未经过 ``approved_summary`` 逐字符校验的不可信解析 candidate，
+    不能直接当作公开 ``success``；生产主链必须继续使用
+    ``resolve_refinement_stage()`` 完成共享恢复与最终 validator。
+    """
     response = request_refinement_response(
         refinement_prompt,
         client,
@@ -3845,6 +4380,7 @@ def resolve_refinement_stage(
     allowed_sources: list[str],
     client: OpenAI | None = None,
     *,
+    approved_summary: str,
     run_context: dict[str, object],
 ) -> dict[str, object]:
     """编排首次 Refinement、共享的唯一恢复和每份候选的最终硬校验。"""
@@ -3853,12 +4389,15 @@ def resolve_refinement_stage(
     if (
         type(allowed_sources) is not list
         or not allowed_sources
+        or len(allowed_sources) != 1
         or not all(
             type(source) is str and bool(source.strip())
             for source in allowed_sources
         )
     ):
         raise ValueError("allowed_sources 必须是非空真实来源列表")
+    if type(approved_summary) is not str or not approved_summary.strip():
+        raise ValueError("approved_summary 必须是非空内建字符串")
     if type(run_context) is not dict or "step" not in run_context:
         raise ValueError("run_context 必须包含共享 step")
     starting_step = run_context["step"]
@@ -3891,6 +4430,7 @@ def resolve_refinement_stage(
             result = validate_success_result(
                 classification["candidate"],
                 allowed_sources,
+                approved_summary,
             )
         except InvalidSuccessCandidateError as exc:
             if type(exc) is not InvalidSuccessCandidateError:
@@ -4022,6 +4562,11 @@ def reflect_refine_and_validate(
         tool_name,
         tool_result,
     )
+    approved_summary = build_approved_summary(
+        normalized_request,
+        tool_name,
+        tool_result,
+    )
     reflection_prompt = build_reflection_prompt(
         normalized_request,
         candidate_summary,
@@ -4060,11 +4605,13 @@ def reflect_refine_and_validate(
         tool_result,
         allowed_sources,
         feedback,
+        approved_summary,
     )
     return resolve_refinement_stage(
         refinement_prompt,
         allowed_sources,
         client,
+        approved_summary=approved_summary,
         run_context=run_context,
     )
 

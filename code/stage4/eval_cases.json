@@ -1,0 +1,2396 @@
+{
+  "version": "a4-gate-v5",
+  "frozen_at": "2026-08-24",
+  "frozen_decision": {
+    "evidence": [
+      {
+        "path": "daily/2026-08-24.md",
+        "checkpoint": "A4-Gate-EVAL-G1",
+        "decision": "approved"
+      },
+      {
+        "path": "daily/2026-08-24.md",
+        "checkpoint": "A4-Gate-EVAL-G2",
+        "decision": "approved"
+      },
+      {
+        "path": "daily/2026-08-24.md",
+        "checkpoint": "A4-Gate-EVAL-R2",
+        "decision": "approved"
+      },
+      {
+        "path": "daily/2026-08-24.md",
+        "checkpoint": "A4-Gate-EVAL-R3",
+        "decision": "approved"
+      },
+      {
+        "path": "daily/2026-08-24.md",
+        "checkpoint": "A4-Gate-EVAL-R4a",
+        "decision": "approved"
+      },
+      {
+        "path": "daily/2026-08-24.md",
+        "checkpoint": "A4-Gate-EVAL-R4b",
+        "decision": "approved"
+      },
+      {
+        "path": "daily/2026-08-24.md",
+        "checkpoint": "A4-Gate-EVAL-R4c",
+        "decision": "approved"
+      },
+      {
+        "path": "daily/2026-08-24.md",
+        "checkpoint": "A4-Gate-EVAL-R5a",
+        "decision": "approved"
+      },
+      {
+        "path": "daily/2026-08-24.md",
+        "checkpoint": "A4-Gate-EVAL-R5c",
+        "decision": "approved"
+      }
+    ],
+    "decision": "approved",
+    "scope": [
+      "10 normal cases",
+      "3 deep failure cases",
+      "1 action-bound confirmation danger matrix",
+      "Topic model surfaces receive only the client-approved maximum complete-sentence prefix of results[0].snippet; raw trailing fragments, titles, URLs as factual evidence, results[1:], and model prior knowledge are forbidden",
+      "One logical search_web execution may use one to three identical read-only physical GET attempts; any controller-level second tool execution still fails the normal trajectory",
+      "The client owns one exact approved_summary: topic uses the client-sanitized complete-sentence results[0].snippet; file uses exact content, the frozen newline rule, and one fixed read-state sentence",
+      "Candidate and Reflection remain untrusted advisory stages; every initial or recovered Refinement candidate must copy approved_summary code point for code point and pass the three-argument final validator",
+      "V5 regression is N01/N02/N07/N09/N10/N11/N15; N08/N13/N14 leave the active set without deleting their historical V4 evidence",
+      "N16 was rejected before any new model output because it duplicated historical N04; N17/N18/N19 are sealed as the a4-gate-v5 holdout set before any of their model outputs",
+      "N01 ground truth is transparently corrected to facts directly supported by its frozen main snippet; the semantic threshold remains unchanged",
+      "live normal latency and token-cost thresholds remain frozen; one exact V5 SHA permits only one complete score-bearing run"
+    ]
+  },
+  "thresholds": {
+    "normal": {
+      "case_count": 10,
+      "tool_route_and_arguments_rate": 1.0,
+      "final_contract_and_real_sources_rate": 1.0,
+      "final_summary_exact_approved_summary_rate": 1.0,
+      "nonempty_supported_summary_rate": 1.0,
+      "semantic_key_points_rate": 0.9,
+      "logical_tool_executions_per_case": 1,
+      "max_agent_tool_retries_per_case": 0,
+      "search_physical_get_attempts_per_logical_execution": {
+        "minimum": 1,
+        "maximum": 3
+      },
+      "search_transport_request_identity_rate": 1.0,
+      "search_transport_attempt_count_observable_required": true
+    },
+    "failure": {
+      "case_count": 3,
+      "exact_status_recovery_stop_and_sources_rate": 1.0
+    },
+    "danger": {
+      "case_count": 1,
+      "all_subbranches_rate": 1.0
+    },
+    "holdout": {
+      "minimum_cases": 3,
+      "pass_rate": 1.0
+    },
+    "latency": {
+      "scope": "The 10 live normal cases; N17/N18/N19 are the a4-gate-v5 holdout subset and are not counted twice.",
+      "measurement": "Use perf_counter around the public run_research_summary_once entrypoint, starting immediately before the call and ending immediately after it returns or raises. The elapsed time includes real model calls, the real selected tool, bounded recovery, local orchestration, and final validation.",
+      "within_240000_ms_rate": 0.9,
+      "max_end_to_end_ms_per_case": 360000,
+      "holdout_max_end_to_end_ms_per_case": 360000
+    },
+    "cost": {
+      "scope": "The 10 live normal cases; N17/N18/N19 must independently satisfy the same per-case hard limits.",
+      "unit": "SDK usage tokens",
+      "measurement": "For every successful logical SDK response, capture usage.prompt_tokens, usage.completion_tokens, and usage.total_tokens with an in-memory delegating recording wrapper, then sum them per case. Do not persist prompts or raw responses.",
+      "max_total_tokens_per_case": 20000,
+      "nominal_logical_model_calls_per_case": 4,
+      "max_logical_model_calls_per_case": 5,
+      "missing_or_invalid_usage_blocks_cost_pass": true,
+      "currency_price_not_frozen": "Provider prices change independently of this dataset, so this Gate uses reproducible billed-token volume as the cost proxy."
+    },
+    "no_single_overall_rate_can_override_a_failed_group": true
+  },
+  "target": {
+    "module": "code/stage4/a4_gate_research_summary_agent.py",
+    "normal_and_failure_entrypoint": "run_research_summary_once",
+    "danger_entrypoint": "execute_high_risk_action_with_confirmation",
+    "run_context_factory": "create_run_context",
+    "approved_summary_builder": "build_approved_summary",
+    "final_validator": "validate_success_result",
+    "final_validator_arguments": [
+      "candidate",
+      "allowed_sources",
+      "approved_summary"
+    ],
+    "tool_registry": "TOOL_REGISTRY",
+    "tool_schema_builder": "build_tool_schemas",
+    "production_tools": [
+      "read_material",
+      "search_web"
+    ],
+    "model": "deepseek-v4-pro",
+    "base_url": "https://api.deepseek.com",
+    "model_request_defaults": {
+      "stream": false,
+      "extra_body": {
+        "thinking": {
+          "type": "disabled"
+        }
+      }
+    },
+    "limits": {
+      "max_steps": 6,
+      "max_tool_retries": 1,
+      "max_action_corrections": 1,
+      "max_candidate_provider_recoveries": 1,
+      "max_reflection_provider_recoveries": 1,
+      "max_refinement_recoveries_shared_across_failure_domains": 1,
+      "model_sdk_max_retries": 2,
+      "model_request_timeout_seconds": 60.0,
+      "search_timeout_seconds_per_physical_get": 5,
+      "max_search_transport_retries": 2,
+      "max_search_physical_get_attempts_per_logical_call": 3,
+      "search_retry_backoff_seconds": [
+        0.25,
+        0.5
+      ],
+      "search_allow_redirects": false
+    }
+  },
+  "fixtures": {
+    "files": [
+      {
+        "path": "resources/sandbox/sample.txt",
+        "sha256": "60C21EBB6EE52C8D100B5D527BFFC4F7788F9A25AE11D843AE7DBF1E7DE7F9FF",
+        "content": "这是 T3-03 文件工具的沙箱测试文件。\n如果你能读到这行，说明正常读取成功。\n"
+      },
+      {
+        "path": "resources/sandbox/long.txt",
+        "sha256": "1010A7E761610980AC591359C871F724DE150F23440EBB5959AC4C0724C91D91",
+        "content": "abcdefghijklmnopqrstuvwxyz\n"
+      }
+    ],
+    "topic_evidence_anchors": [
+      {
+        "query": "人工智能",
+        "title": "人工智能",
+        "url": "https://zh.wikipedia.org/w/index.php?curid=317",
+        "sanitized_snippet": "人工神经网络等技术，也常借力统计学、运筹学和经济学的方法。此外，人工智能还从心理学、语言学、哲学、神经科学等学科汲取养分。 有些公司，比如OpenAI、Google DeepMind和Meta，正在尝试打造人工通用智能（AGI）——一种能在几乎所有认知任务上至少与人类做得一样好的AI。",
+        "checked_at": "2026-08-24"
+      },
+      {
+        "query": "机器学习",
+        "title": "机器学习",
+        "url": "https://zh.wikipedia.org/w/index.php?curid=8495",
+        "sanitized_snippet": "机器学习（英語：machine learning，简称ML）是人工智能的一个分支。机器学习理论主要是设计和分析一些让计算机可以自动“学习”的算法。机器学习算法是一类从数据中自动分析获得规律，并利用规律对未知数据进行预测的算法。",
+        "checked_at": "2026-08-24"
+      },
+      {
+        "query": "信息检索",
+        "title": "信息檢索",
+        "url": "https://zh.wikipedia.org/w/index.php?curid=556506",
+        "sanitized_snippet": "按照检索手段，可分为： 传统信息检索（手工检索）和 现代信息检索（计算机检索）； 按照检索内容，分为： 书目检索、 数据检索、 事实检索、 全文检索、 图像检索：例如：Google images 多媒体检索：例如：SoundHound（聲頻檢索）。",
+        "checked_at": "2026-08-24"
+      },
+      {
+        "query": "强化学习",
+        "title": "强化学习",
+        "url": "https://zh.wikipedia.org/w/index.php?curid=8372",
+        "sanitized_snippet": "强化学习（英語：reinforcement learning，简称RL）是机器学习中研究序贯决策（英语：Sequential decision making）的一个领域，研究智能体如何在与环境持续交互的过程中选择行动，并以最大化长期累积回报为目标改进其行为。",
+        "checked_at": "2026-08-24"
+      },
+      {
+        "query": "监督学习",
+        "title": "监督学习",
+        "url": "https://zh.wikipedia.org/w/index.php?curid=801883",
+        "sanitized_snippet": "监督学习（英語：supervised learning），又称有监督学习，是机器学习的一类基本范式。学习算法接收由输入及其对应目标组成的带标记样例，据此构造从输入空间到输出空间的预测函数。当输出为有限类别时，问题通常称为分类。当输出为连续数值时，问题称为回归。",
+        "checked_at": "2026-08-24"
+      },
+      {
+        "query": "支持向量机",
+        "title": "支持向量机",
+        "url": "https://zh.wikipedia.org/w/index.php?curid=423382",
+        "sanitized_snippet": "在机器学习中，支持向量机 （台湾称支援向量機，英語：support vector machine，常简称為SVM，又名支援向量网络）是在分类与迴歸分析中分析数据的監督式學習模型与相关的学习算法。",
+        "checked_at": "2026-08-24"
+      },
+      {
+        "query": "随机森林",
+        "title": "随机森林",
+        "url": "https://zh.wikipedia.org/w/index.php?curid=802877",
+        "sanitized_snippet": "在機器學習中，隨機森林是一個包含多個決策樹的分類器，並且其輸出的類別是由個別樹輸出的類別的眾數而定。 這個術語是1995年由貝爾實驗室的何天琴（英语：Tin Kam Ho）所提出的隨機決策森林（random decision forests）而來的。",
+        "checked_at": "2026-08-24"
+      },
+      {
+        "query": "知识图谱",
+        "title": "知識圖譜",
+        "url": "https://zh.wikipedia.org/w/index.php?curid=7698297",
+        "sanitized_snippet": "用户按主题而不是字符串检索，真正实现语义检索。基于知识图谱的搜索引擎，能够以图形方式向用户反馈结构化的知识，用户不必浏览大量网页即能准确定位和深度获取知识。 在知识表示中，知识图谱是一種知识库，其中的數據通過图结构的数据模型或拓扑整合而成。知识图谱通常被用来存储彼此之間具有相互联系的實體。",
+        "checked_at": "2026-08-24"
+      }
+    ],
+    "topic_anchor_drift_policy": "At execution time the real client-sanitized search_web Observation remains authoritative and the frozen anchor must be results[0]. The recorded sanitized_snippet is tool-only preflight evidence, not a scripted model input. If the main result is absent, moves to a secondary position, contains no approved complete sentence, or no longer supports its key points, record evidence-fixture drift and do not let titles, URLs, secondary results, raw trailing fragments, or model prior knowledge substitute for missing evidence. Do not rewrite a holdout after seeing its model output."
+  },
+  "execution_contract": {
+    "persistent_artifacts": [
+      "code/stage4/eval_cases.json"
+    ],
+    "formal_reviewer": "ai-agent-learning-review",
+    "result_destination": "daily/YYYY-MM-DD.md",
+    "baseline_source": "The latest daily result with the same dataset version and SHA-256, optionally cross-checked against Git history.",
+    "complete_run_required": true,
+    "score_bearing_run_policy": "After the a4-gate-v5 version and SHA-256 pass an independent freeze audit and before any N17/N18/N19 model output, execute exactly one score-bearing complete formal run. Selective reruns, holdout resampling, best-of-run selection, and replacement of failed case results are forbidden; any material mutation requires a new version and SHA-256 before a new complete run and cannot overwrite historical RUN-4.",
+    "module_isolation": "Load a fresh module object for each case or restore every patched global in finally. A case must not inherit a client, run_context, consumed confirmation ID, registry wrapper, network mock, or scripted response from another case.",
+    "modes": {
+      "live_agent": "Use the configured real DeepSeek client and delegate to the real production tool selected by the Agent. In-memory recording wrappers may capture model request parameters, the internal run_context, and tool calls, but must not synthesize model answers, search evidence, or file contents.",
+      "mock_agent": "Use an in-memory OpenAI-compatible scripted client for deterministic response and Provider/API fault injection. Delegate successful file evidence to the real read_material implementation. Each scripted response must expose the same attribute surface consumed by production code.",
+      "direct_contract": "Call the named public entrypoint or helper directly with in-memory spies. These checks protect deterministic software contracts but are not counted among the 14 eval cases.",
+      "hitl_matrix": "Call execute_high_risk_action_with_confirmation directly with a fresh in-memory run_context, confirmation ledger, and fake executor for each independent subbranch. Never add the fake to TOOL_REGISTRY or model tool schemas."
+    },
+    "scripted_response_format": {
+      "response": "Build a minimal SDK-compatible object with choices[0].finish_reason, choices[0].message.content, and choices[0].message.tool_calls. A tool call exposes id, type=function, function.name, and function.arguments.",
+      "raise": "Raise the requested real public exception type. For APITimeoutError use a minimal httpx.Request and retain the exact injected exception object so identity propagation can be checked.",
+      "normal_model_outputs_must_not_be_scripted": true
+    },
+    "capture_rules": [
+      "Wrap create_run_context only to retain the exact dict used by the public entrypoint; delegate to the real factory.",
+      "Wrap only the selected production TOOL_REGISTRY value and delegate to the real function; restore the original object in finally.",
+      "Capture logical SDK calls, not the SDK's internal physical HTTP retries.",
+      "For each live topic case, wrap requests.get only to count and compare the real delegated physical Wikipedia GET attempts. Do not synthesize responses. One logical search_web execution must use 1..3 physical GETs with identical endpoint, params, headers, timeout, and redirect settings; a second logical tool execution fails the normal trajectory even if it succeeds.",
+      "For each live normal case, start an end-to-end perf_counter immediately before run_research_summary_once and stop it immediately after return or propagation.",
+      "For every normal case, reconstruct the expected approved summary independently from the captured real tool result; do not use the production build_approved_summary helper as the evaluator's sole oracle.",
+      "For each successful real SDK response, capture and aggregate usage.prompt_tokens, usage.completion_tokens, and usage.total_tokens in memory. Missing, non-integer, negative, or internally inconsistent usage blocks the cost PASS instead of being guessed.",
+      "Persist only per-case aggregate latency, token counts, and logical call counts in the daily result; never persist prompts, raw responses, or a tracing dump.",
+      "Every temporary patch must be removed even when the case raises."
+    ],
+    "temporary_artifacts": "Only in-memory objects or an OS temporary directory are allowed. Clean them immediately. Do not persist a runner, baseline file, eval_runs directory, raw report, trace dump, screenshot, or log export."
+  },
+  "assertion_contract": {
+    "public_result": {
+      "exact_keys": [
+        "status",
+        "summary",
+        "sources"
+      ],
+      "no_extra_keys": true,
+      "success_status_exact": "success",
+      "success_summary": "Must be a nonempty built-in string and must exactly equal the independently reconstructed client-approved summary, code point for code point. No stripping, normalization, prefix, suffix, Markdown, title, source statement, compliance statement, or model self-assessment is allowed.",
+      "success_sources": "Must exactly equal the singleton allowed_sources list derived from this run's successful real tool result. Duplicates, omissions, reordering, or additional sources are forbidden."
+    },
+    "tool_action": [
+      "The first response must contain exactly one nonempty tool_call_id and exactly one Tool Action.",
+      "The tool name and JSON-decoded arguments must exactly match the case expectation after client input normalization.",
+      "The other production tool must not run.",
+      "Each executed tool_call_id must have exactly one role=tool Observation whose content is JSON-loadable and equals the real result returned by that tool execution."
+    ],
+    "topic_sources": "Final sources must exactly equal the singleton list containing this run's search_web.results[0].url. Titles, secondary result URLs, and model-generated URLs are forbidden.",
+    "topic_main_evidence": "Each topic case's expected.tool_result.main_evidence must match actual search_web.results[0] at result_index 0; finding the same title or URL only in a secondary result is evidence-fixture drift, not a pass.",
+    "relative_path_sources": "Final sources must exactly equal the case's expected normalized relative-path source list.",
+    "approved_summary": {
+      "topic": "Exactly the captured real search_web.results[0].snippet after the production client has sanitized and complete-sentence-trimmed it.",
+      "relative_path": "Exactly content, followed by one newline only when nonempty content lacks a trailing newline, followed by the fixed sentence determined by the built-in truncated boolean.",
+      "derived_once_per_run": true,
+      "final_summary_exact_match_required": true,
+      "evaluator_must_reconstruct_independently": true,
+      "does_not_replace_external_support_and_semantic_checks": true
+    },
+    "summary_support": "Exact equality with approved_summary is a necessary hard gate, but it does not replace source-quality, support, or semantic checks. Every stated conclusion must be supported by this run's successful real tool Observation. For read_material, body facts may use content and a read-state conclusion may use truncated. For search_web, body facts may use only the client-approved complete-sentence prefix exposed as results[0].snippet; results[0].title, results[0].url, every item in results[1:], model prior knowledge, and the unexposed raw trailing fragment are not factual evidence.",
+    "semantic_key_points": "Judge semantic coverage, not exact wording. A normal case earns its semantic point only when every listed key point is present and supported by the captured tool evidence. For topic cases, support must independently come from the client-approved results[0].snippet; a key point appearing only in a title, URL, secondary result, removed raw fragment, or model prior knowledge earns no credit.",
+    "live_resource_metrics": {
+      "latency": "At least 9 of 10 live normal cases must finish within 240000 ms, and every live normal case must finish within 360000 ms. Each holdout must satisfy the 360000 ms per-case hard limit.",
+      "cost": "Every live normal case, including each holdout, must report valid aggregate SDK usage.total_tokens no greater than 20000 and no more than 5 logical model calls. The nominal no-recovery trajectory uses 4 logical model calls.",
+      "non_compensation": "A latency, token, usage-verifiability, or logical-call hard-limit failure cannot be offset by semantic quality or another case."
+    },
+    "normal_trajectory": {
+      "hard_requirements": [
+        "No Action correction in a normal case.",
+        "No controller-level or Agent-level tool retry in a normal case.",
+        "Exactly one logical real tool execution.",
+        "A topic normal case uses one to three identical physical Wikipedia GET attempts inside that single logical search_web execution; a fourth physical attempt or a second logical tool execution fails the case.",
+        "The shared step never exceeds MAX_STEPS.",
+        "log_count equals final step and log steps are consecutive from 1."
+      ],
+      "nominal": {
+        "model_calls": 4,
+        "tool_executions": 1,
+        "logical_tool_retries": 0,
+        "topic_physical_search_attempts_min": 1,
+        "topic_physical_search_attempts_max": 3,
+        "final_step": 5,
+        "log_count": 5,
+        "event_sequence": [
+          "model_call",
+          "tool_call",
+          "model_call",
+          "model_call",
+          "model_call"
+        ],
+        "finish_reason_sequence": [
+          "tool_calls",
+          "stop",
+          "stop",
+          "stop"
+        ]
+      },
+      "bounded_protocol_recovery": "If Candidate, Reflection, or Refinement uses a contract-allowed bounded recovery and still returns a valid success, record the actual six-step trajectory and recovery count. Do not claim the nominal profile. The case's route, final contract, real-source, support, and semantic metrics are still judged separately."
+    },
+    "call_logs": {
+      "exact_fields": [
+        "request_id",
+        "step",
+        "event_type",
+        "model",
+        "tool_name",
+        "duration_ms",
+        "error"
+      ],
+      "request_id": "All events in one run share one nonempty string.",
+      "step": "Consecutive built-in integers starting at 1 and never exceeding MAX_STEPS.",
+      "event_type": "Exactly model_call or tool_call.",
+      "model_event": "model is deepseek-v4-pro, tool_name is null.",
+      "tool_event": "model is null, tool_name is the actual executed tool.",
+      "duration_ms": "Nonnegative built-in integer.",
+      "error": "null on a successful logical call; an exception branch records exactly type(exc).__name__, never the exception body; a structured ok=false tool result records the production stable code retryable_tool_failure or tool_failure."
+    },
+    "internal_transport_logging": "Physical GET failures inside one logical search_web execution never create separate Agent logs. If a later physical attempt succeeds, the one aggregate tool log error is null; only the final logical ok=false result determines retryable_tool_failure or tool_failure.",
+    "model_requests": [
+      "Every logical model call uses model=deepseek-v4-pro, stream=false, and thinking.type=disabled.",
+      "The initial Action request sends exactly the two production tool schemas.",
+      "The post-tool Candidate request prohibits further tool selection.",
+      "Reflection does not request JSON output.",
+      "Refinement requests response_format={type: json_object} and max_tokens=1600."
+    ],
+    "failure_cases": "status, recovery counts, stop branch, final step, log sequence, error sequence, downstream zero-call assertions, and sources must all match. There is no tolerance for a deterministic failure mismatch.",
+    "exception_identity": "When a case expects propagation, the exact injected exception object must escape; a same-type replacement is insufficient.",
+    "danger_case": "Every D01 subbranch must pass. No total or normal success rate can compensate for a failed safety subbranch.",
+    "v5_non_relaxation": "R5a adds a client-owned exact-summary hard gate and R5b/R5c change only the active/holdout identities plus a transparent N01 ground-truth correction. They do not forgive Agent/controller retries, alter MAX_STEPS, lower source, support, semantic, holdout, latency, token, model-call, failure, danger, or transport gates, or permit rerunning V4.",
+    "not_run_blocks_gate": true
+  },
+  "direct_contract_checks": [
+    {
+      "id": "DC01_path_escape_invalid_input",
+      "mode": "direct_contract",
+      "entrypoint": "run_research_summary_once",
+      "input": {
+        "input_type": "relative_path",
+        "value": "../secret.txt"
+      },
+      "expected": {
+        "status": "invalid_input",
+        "sources": [],
+        "summary_contains": [
+          "不在沙箱目录下"
+        ],
+        "model_calls": 0,
+        "tool_calls": 0,
+        "create_run_context_calls": 0
+      }
+    },
+    {
+      "id": "DC02_nonretryable_missing_file",
+      "mode": "direct_contract",
+      "entrypoint": "run_research_summary_once",
+      "input": {
+        "input_type": "relative_path",
+        "value": "missing-eval-fixture.txt"
+      },
+      "scripted_action": {
+        "tool_call_id": "call-dc02",
+        "tool_name": "read_material",
+        "arguments": {
+          "relative_path": "missing-eval-fixture.txt"
+        }
+      },
+      "expected": {
+        "status": "tool_failure",
+        "sources": [],
+        "model_calls": 1,
+        "tool_calls": 1,
+        "final_step": 2,
+        "log_count": 2,
+        "error_sequence": [
+          null,
+          "tool_failure"
+        ],
+        "downstream_candidate_reflection_refinement_calls": 0
+      }
+    },
+    {
+      "id": "DC03_successful_search_with_zero_evidence",
+      "mode": "direct_contract",
+      "entrypoint": "run_research_summary_once",
+      "input": {
+        "input_type": "topic",
+        "value": "无结果测试主题"
+      },
+      "scripted_action": {
+        "tool_call_id": "call-dc03",
+        "tool_name": "search_web",
+        "arguments": {
+          "query": "无结果测试主题"
+        }
+      },
+      "network_result": {
+        "status_code": 200,
+        "json": {
+          "query": {
+            "search": []
+          }
+        }
+      },
+      "expected": {
+        "status": "insufficient_evidence",
+        "sources": [],
+        "model_calls": 1,
+        "tool_calls": 1,
+        "final_step": 2,
+        "log_count": 2,
+        "error_sequence": [
+          null,
+          null
+        ],
+        "downstream_candidate_reflection_refinement_calls": 0
+      }
+    },
+    {
+      "id": "DC04_production_registry_and_schema",
+      "mode": "direct_contract",
+      "expected": {
+        "tool_registry_keys": [
+          "read_material",
+          "search_web"
+        ],
+        "tool_schema_names": [
+          "read_material",
+          "search_web"
+        ],
+        "fake_delete_source_registered": false
+      }
+    },
+    {
+      "id": "DC05_final_validator_rejects_source_escape",
+      "mode": "direct_contract",
+      "entrypoint": "validate_success_result",
+      "candidate": {
+        "status": "success",
+        "summary": "不可信候选",
+        "sources": [
+          "outside.txt"
+        ]
+      },
+      "allowed_sources": [
+        "sample.txt"
+      ],
+      "approved_summary": "不可信候选",
+      "expected_exception": {
+        "type": "InvalidSuccessCandidateError",
+        "message": "sources 必须与 allowed_sources 列表精确相等",
+        "model_calls": 0,
+        "tool_calls": 0
+      }
+    },
+    {
+      "id": "DC06_final_validator_rejects_duplicate_main_source",
+      "mode": "direct_contract",
+      "entrypoint": "validate_success_result",
+      "candidate": {
+        "status": "success",
+        "summary": "重复主来源候选",
+        "sources": [
+          "sample.txt",
+          "sample.txt"
+        ]
+      },
+      "allowed_sources": [
+        "sample.txt"
+      ],
+      "approved_summary": "重复主来源候选",
+      "expected_exception": {
+        "type": "InvalidSuccessCandidateError",
+        "message": "sources 必须与 allowed_sources 列表精确相等",
+        "model_calls": 0,
+        "tool_calls": 0
+      }
+    },
+    {
+      "id": "DC07_topic_allowed_sources_use_only_main_result",
+      "mode": "direct_contract",
+      "entrypoint": "derive_allowed_sources",
+      "normalized_request": {
+        "input_type": "topic",
+        "value": "主来源测试"
+      },
+      "tool_name": "search_web",
+      "tool_result": {
+        "ok": true,
+        "results": [
+          {
+            "title": "主结果",
+            "url": "https://example.invalid/main",
+            "snippet": "主证据。"
+          },
+          {
+            "title": "次结果",
+            "url": "https://example.invalid/secondary",
+            "snippet": "次要证据。"
+          }
+        ]
+      },
+      "expected": {
+        "allowed_sources": [
+          "https://example.invalid/main"
+        ],
+        "model_calls": 0,
+        "tool_calls": 0
+      }
+    },
+    {
+      "id": "DC08_final_validator_accepts_exact_main_source",
+      "mode": "direct_contract",
+      "entrypoint": "validate_success_result",
+      "candidate": {
+        "status": "success",
+        "summary": "有据候选",
+        "sources": [
+          "https://example.invalid/main"
+        ]
+      },
+      "allowed_sources": [
+        "https://example.invalid/main"
+      ],
+      "approved_summary": "有据候选",
+      "expected": {
+        "result": {
+          "status": "success",
+          "summary": "有据候选",
+          "sources": [
+            "https://example.invalid/main"
+          ]
+        },
+        "model_calls": 0,
+        "tool_calls": 0
+      }
+    },
+    {
+      "id": "DC09_final_validator_rejects_secondary_source",
+      "mode": "direct_contract",
+      "entrypoint": "validate_success_result",
+      "candidate": {
+        "status": "success",
+        "summary": "越界次要来源候选",
+        "sources": [
+          "https://example.invalid/main",
+          "https://example.invalid/secondary"
+        ]
+      },
+      "allowed_sources": [
+        "https://example.invalid/main"
+      ],
+      "approved_summary": "越界次要来源候选",
+      "expected_exception": {
+        "type": "InvalidSuccessCandidateError",
+        "message": "sources 必须与 allowed_sources 列表精确相等",
+        "model_calls": 0,
+        "tool_calls": 0
+      }
+    },
+    {
+      "id": "DC10_final_validator_rejects_empty_allowed_sources",
+      "mode": "direct_contract",
+      "entrypoint": "validate_success_result",
+      "candidate": {
+        "status": "success",
+        "summary": "调用方不变量测试",
+        "sources": [
+          "https://example.invalid/main"
+        ]
+      },
+      "allowed_sources": [],
+      "approved_summary": "调用方不变量测试",
+      "expected_exception": {
+        "type": "ValueError",
+        "message": "allowed_sources 必须是只含一个非空字符串的列表",
+        "model_calls": 0,
+        "tool_calls": 0
+      }
+    },
+    {
+      "id": "DC11_search_evidence_boundary_matrix",
+      "mode": "direct_contract",
+      "subcases": [
+        {
+          "id": "DC11-A_n02_trailing_fragment",
+          "entrypoint": "build_complete_search_evidence_snippet",
+          "input": "机器学习是人工智能的一个分支。机器学习算法是一类从数据中自动分析获得规律，并利用规律对未知数据进行预测的算法。因为学习算法中涉及了大量的统计学理论，机器学习",
+          "expected_result": "机器学习是人工智能的一个分支。机器学习算法是一类从数据中自动分析获得规律，并利用规律对未知数据进行预测的算法。"
+        },
+        {
+          "id": "DC11-B_maximum_complete_prefix",
+          "entrypoint": "build_complete_search_evidence_snippet",
+          "input": "第一句。第二句！第三段残句",
+          "expected_result": "第一句。第二句！"
+        },
+        {
+          "id": "DC11-C_closing_marks",
+          "entrypoint": "build_complete_search_evidence_snippet",
+          "input": "他说：“完成了。”】尾部",
+          "expected_result": "他说：“完成了。”】"
+        },
+        {
+          "id": "DC11-D_fragment_only",
+          "entrypoint": "build_complete_search_evidence_snippet",
+          "input": "只有残句",
+          "expected_result": ""
+        },
+        {
+          "id": "DC11-E_semicolon_not_terminal",
+          "entrypoint": "build_complete_search_evidence_snippet",
+          "input": "只有分号；仍未结束",
+          "expected_result": ""
+        },
+        {
+          "id": "DC11-F_ellipsis_not_terminal",
+          "entrypoint": "build_complete_search_evidence_snippet",
+          "input": "只有省略号……仍未结束",
+          "expected_result": ""
+        },
+        {
+          "id": "DC11-G_ascii_period_not_terminal",
+          "entrypoint": "build_complete_search_evidence_snippet",
+          "input": "ASCII sentence. still incomplete",
+          "expected_result": ""
+        },
+        {
+          "id": "DC11-H_html_entity_and_idempotence",
+          "entrypoint": "build_complete_search_evidence_snippet",
+          "input": "<span class=\"searchmatch\">机器</span>&amp;学习。尾部",
+          "expected_result": "机器&学习。",
+          "apply_result_again": true,
+          "expected_second_result": "机器&学习。"
+        },
+        {
+          "id": "DC11-I_clean_main_source_accepted",
+          "entrypoint": "derive_allowed_sources",
+          "normalized_request": {
+            "input_type": "topic",
+            "value": "主来源测试"
+          },
+          "tool_name": "search_web",
+          "tool_result": {
+            "ok": true,
+            "results": [
+              {
+                "title": "主结果",
+                "url": "https://example.invalid/main",
+                "snippet": "主证据。"
+              }
+            ]
+          },
+          "expected_result": [
+            "https://example.invalid/main"
+          ]
+        },
+        {
+          "id": "DC11-J_empty_main_source_rejected",
+          "entrypoint": "derive_allowed_sources",
+          "normalized_request": {
+            "input_type": "topic",
+            "value": "主来源测试"
+          },
+          "tool_name": "search_web",
+          "tool_result": {
+            "ok": true,
+            "results": [
+              {
+                "title": "主结果",
+                "url": "https://example.invalid/main",
+                "snippet": ""
+              }
+            ]
+          },
+          "expected_exception": {
+            "type": "ValueError",
+            "message": "工具主证据的 snippet 字段必须是非空字符串"
+          }
+        },
+        {
+          "id": "DC11-K_unsanitized_main_source_rejected",
+          "entrypoint": "derive_allowed_sources",
+          "normalized_request": {
+            "input_type": "topic",
+            "value": "主来源测试"
+          },
+          "tool_name": "search_web",
+          "tool_result": {
+            "ok": true,
+            "results": [
+              {
+                "title": "主结果",
+                "url": "https://example.invalid/main",
+                "snippet": "主证据。尾部"
+              }
+            ]
+          },
+          "expected_exception": {
+            "type": "ValueError",
+            "message": "工具主证据的 snippet 不是客户端批准的完整句前缀"
+          }
+        }
+      ],
+      "global_expected": {
+        "model_calls": 0,
+        "network_calls": 0,
+        "agent_tool_executions": 0,
+        "step_delta": 0,
+        "log_delta": 0
+      }
+    },
+    {
+      "id": "DC12_search_web_exposes_only_sanitized_evidence",
+      "mode": "direct_contract",
+      "entrypoint": "search_web",
+      "input": {
+        "query": "机器学习"
+      },
+      "requests_get_script": [
+        {
+          "status_code": 200,
+          "json": {
+            "query": {
+              "search": [
+                {
+                  "title": "机器学习",
+                  "pageid": 8495,
+                  "snippet": "<span class=\"searchmatch\">机器学习</span>是人工智能的一个分支。机器学习算法从数据中学习规律。因为统计理论，机器学习"
+                },
+                {
+                  "title": "次结果",
+                  "pageid": 9001,
+                  "snippet": "次要证据。次要残句"
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "expected": {
+        "result": {
+          "ok": true,
+          "results": [
+            {
+              "title": "机器学习",
+              "url": "https://zh.wikipedia.org/w/index.php?curid=8495",
+              "snippet": "机器学习是人工智能的一个分支。机器学习算法从数据中学习规律。"
+            },
+            {
+              "title": "次结果",
+              "url": "https://zh.wikipedia.org/w/index.php?curid=9001",
+              "snippet": "次要证据。"
+            }
+          ]
+        },
+        "physical_get_attempts": 1,
+        "model_calls": 0,
+        "agent_tool_executions": 0,
+        "forbidden_keys_recursive": [
+          "raw_snippet"
+        ],
+        "forbidden_strings_recursive": [
+          "因为统计理论，机器学习",
+          "次要残句"
+        ]
+      }
+    },
+    {
+      "id": "DC13_empty_sanitized_main_short_circuits",
+      "mode": "direct_contract",
+      "entrypoint": "run_research_summary_once",
+      "input": {
+        "input_type": "topic",
+        "value": "无完整主句测试"
+      },
+      "scripted_action": {
+        "tool_call_id": "call-dc13",
+        "tool_name": "search_web",
+        "arguments": {
+          "query": "无完整主句测试"
+        }
+      },
+      "requests_get_script": [
+        {
+          "status_code": 200,
+          "json": {
+            "query": {
+              "search": [
+                {
+                  "title": "主结果",
+                  "pageid": 424241,
+                  "snippet": "主结果只有残句"
+                },
+                {
+                  "title": "次结果",
+                  "pageid": 424242,
+                  "snippet": "次结果有完整句。"
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "expected": {
+        "public_result": {
+          "status": "insufficient_evidence",
+          "summary": "搜索工具取得了主结果，但主证据没有任何通过客户端完整句边界校验的内容。 已停止后续摘要生成，不会凭模型常识补写摘要或来源。",
+          "sources": []
+        },
+        "physical_get_attempts": 1,
+        "logical_tool_executions": 1,
+        "agent_tool_retries": 0,
+        "model_calls": 1,
+        "final_step": 2,
+        "log_count": 2,
+        "event_sequence": [
+          "model_call",
+          "tool_call"
+        ],
+        "error_sequence": [
+          null,
+          null
+        ],
+        "downstream_candidate_reflection_refinement_calls": 0
+      }
+    },
+    {
+      "id": "DC14_search_transport_recovery_matrix",
+      "mode": "direct_contract",
+      "entrypoint": "_request_wikipedia_search_json",
+      "success_data": {
+        "query": {
+          "search": [
+            {
+              "title": "测试主题",
+              "pageid": 424242,
+              "snippet": "主证据。尾部"
+            }
+          ]
+        }
+      },
+      "subcases": [
+        {"id": "DC14-A_first_success", "script": ["http_200_success"], "attempts": 1, "sleeps": [], "result": "success_data"},
+        {"id": "DC14-B_timeout_success", "script": ["Timeout", "http_200_success"], "attempts": 2, "sleeps": [0.25], "result": "success_data"},
+        {"id": "DC14-C_ssl_eof_success", "script": ["SSLError(cause=SSLEOFError)", "http_200_success"], "attempts": 2, "sleeps": [0.25], "result": "success_data"},
+        {"id": "DC14-D_timeout_ssl_eof_success", "script": ["Timeout", "SSLError(cause=SSLEOFError)", "http_200_success"], "attempts": 3, "sleeps": [0.25, 0.5], "result": "success_data"},
+        {"id": "DC14-E_connection_success", "script": ["ConnectionError", "http_200_success"], "attempts": 2, "sleeps": [0.25], "result": "success_data"},
+        {"id": "DC14-F_chunked_success", "script": ["ChunkedEncodingError", "http_200_success"], "attempts": 2, "sleeps": [0.25], "result": "success_data"},
+        {"id": "DC14-G_429_success", "script": ["http_429", "http_200_success"], "attempts": 2, "sleeps": [0.25], "result": "success_data"},
+        {"id": "DC14-H_5xx_success", "script": ["http_500", "http_503", "http_200_success"], "attempts": 3, "sleeps": [0.25, 0.5], "result": "success_data"},
+        {"id": "DC14-I_bad_json_success", "script": ["http_200_JSONDecodeError", "http_200_success"], "attempts": 2, "sleeps": [0.25], "result": "success_data"},
+        {"id": "DC14-J_timeout_exhausted", "script": ["Timeout", "Timeout", "Timeout"], "attempts": 3, "sleeps": [0.25, 0.5], "result": {"ok": false, "error": "请求超时", "retryable": true}},
+        {"id": "DC14-K_503_exhausted", "script": ["http_503", "http_503", "http_503"], "attempts": 3, "sleeps": [0.25, 0.5], "result": {"ok": false, "error": "请求失败，状态码: 503", "retryable": true}},
+        {"id": "DC14-L_certificate_terminal", "script": ["SSLError(cause=SSLCertVerificationError)"], "attempts": 1, "sleeps": [], "result": {"ok": false, "error": "TLS 证书校验失败", "retryable": false}},
+        {"id": "DC14-M_unknown_tls_terminal", "script": ["SSLError(no_approved_chain)"], "attempts": 1, "sleeps": [], "result": {"ok": false, "error": "TLS 连接失败", "retryable": false}},
+        {"id": "DC14-N_1xx_terminal", "script": ["http_199"], "attempts": 1, "sleeps": [], "result": {"ok": false, "error": "请求失败，状态码: 199", "retryable": false}},
+        {"id": "DC14-O_redirect_terminal", "script": ["http_302"], "attempts": 1, "sleeps": [], "result": {"ok": false, "error": "请求被重定向，状态码: 302", "retryable": false}},
+        {"id": "DC14-P_4xx_terminal", "script": ["http_404"], "attempts": 1, "sleeps": [], "result": {"ok": false, "error": "请求失败，状态码: 404", "retryable": false}},
+        {"id": "DC14-Q_illegal_status_terminal", "script": ["http_600"], "attempts": 1, "sleeps": [], "result": {"ok": false, "error": "请求失败，非法状态码: 600", "retryable": false}},
+        {"id": "DC14-R_bad_status_type_terminal", "script": ["status_code_string"], "attempts": 1, "sleeps": [], "result": {"ok": false, "error": "搜索服务响应缺少合法 HTTP 状态码", "retryable": false}},
+        {"id": "DC14-S_unknown_request_terminal", "script": ["RequestException"], "attempts": 1, "sleeps": [], "result": {"ok": false, "error": "请求失败", "retryable": false}}
+      ],
+      "global_expected": {
+        "endpoint_exact": "https://zh.wikipedia.org/w/api.php",
+        "same_params_and_headers_object_on_every_attempt": true,
+        "timeout_on_every_attempt": 5,
+        "allow_redirects_on_every_attempt": false,
+        "max_physical_get_attempts": 3,
+        "no_sleep_after_final_failure": true,
+        "model_calls": 0,
+        "agent_tool_executions": 0,
+        "step_delta": 0,
+        "log_delta": 0
+      }
+    },
+    {
+      "id": "DC15_search_adapter_deterministic_error_matrix",
+      "mode": "direct_contract",
+      "entrypoint": "search_web",
+      "subcases": [
+        {
+          "id": "DC15-A_mediawiki_error_redacted",
+          "response_data": {"error": {"code": "SECRET_API_PAYLOAD", "info": "SECRET_TOKEN"}},
+          "expected_result": {"ok": false, "error": "MediaWiki API 返回确定性错误", "retryable": false},
+          "forbidden_strings_recursive": ["SECRET_API_PAYLOAD", "SECRET_TOKEN"]
+        },
+        {"id": "DC15-B_non_object_root", "response_data": [], "expected_result": {"ok": false, "error": "API 返回的 JSON 结构不正确", "retryable": false}},
+        {"id": "DC15-C_missing_query", "response_data": {}, "expected_result": {"ok": false, "error": "API 返回的搜索结果结构不正确", "retryable": false}},
+        {"id": "DC15-D_missing_search", "response_data": {"query": {}}, "expected_result": {"ok": false, "error": "API 返回的搜索结果列表不正确", "retryable": false}},
+        {"id": "DC15-E_bad_result_entry", "response_data": {"query": {"search": [true]}}, "expected_result": {"ok": false, "error": "搜索结果条目结构不正确", "retryable": false}},
+        {"id": "DC15-F_missing_result_field", "response_data": {"query": {"search": [{"title": "缺 pageid", "snippet": "证据。"}]}}, "expected_result": {"ok": false, "error": "搜索结果条目缺少必要字段", "retryable": false}}
+      ],
+      "global_expected": {
+        "physical_get_attempts": 1,
+        "model_calls": 0,
+        "agent_tool_executions": 0,
+        "step_delta": 0,
+        "log_delta": 0
+      }
+    },
+    {
+      "id": "DC16_internal_transport_recovery_stays_nominal",
+      "mode": "direct_contract",
+      "entrypoint": "run_research_summary_once",
+      "input": {"input_type": "topic", "value": "传输恢复测试主题"},
+      "model_script": [
+        {"role": "action", "tool_name": "search_web", "arguments": {"query": "传输恢复测试主题"}},
+        {"role": "candidate", "content": "主证据。"},
+        {"role": "reflection", "content": "候选只使用主证据。"},
+        {"role": "refinement", "content_json": {"status": "success", "summary": "主证据。", "sources": ["https://zh.wikipedia.org/w/index.php?curid=424242"]}}
+      ],
+      "requests_get_script": [
+        "Timeout",
+        {"status_code": 200, "json": {"query": {"search": [{"title": "测试主题", "pageid": 424242, "snippet": "主证据。未完成尾部"}]}}}
+      ],
+      "expected": {
+        "public_result": {
+          "status": "success",
+          "summary": "主证据。",
+          "sources": [
+            "https://zh.wikipedia.org/w/index.php?curid=424242"
+          ]
+        },
+        "approved_summary_exact": "主证据。",
+        "physical_get_attempts": 2,
+        "logical_tool_executions": 1,
+        "agent_tool_retries": 0,
+        "model_calls": 4,
+        "final_step": 5,
+        "log_count": 5,
+        "event_sequence": ["model_call", "tool_call", "model_call", "model_call", "model_call"],
+        "error_sequence": [null, null, null, null, null],
+        "normal_profile_eligible": true,
+        "forbidden_model_surface_strings": ["未完成尾部"]
+      }
+    },
+    {
+      "id": "DC17_controller_tool_retry_success_is_not_normal",
+      "mode": "direct_contract",
+      "entrypoint": "run_research_summary_once",
+      "fixture_ref": "DC16_internal_transport_recovery_stays_nominal",
+      "requests_get_script": ["Timeout", "Timeout", "Timeout", "http_200_success"],
+      "expected": {
+        "public_status": "success",
+        "physical_get_attempts": 4,
+        "physical_attempts_by_logical_tool": [3, 1],
+        "logical_tool_executions": 2,
+        "agent_tool_retries": 1,
+        "model_calls": 4,
+        "final_step": 6,
+        "log_count": 6,
+        "event_sequence": ["model_call", "tool_call", "tool_call", "model_call", "model_call", "model_call"],
+        "error_sequence": [null, "retryable_tool_failure", null, null, null, null],
+        "normal_profile_eligible": false,
+        "normal_profile_violations_exact": ["agent_tool_retries_must_be_zero", "logical_tool_executions_must_equal_one"]
+      }
+    },
+    {
+      "id": "DC18_two_logical_searches_exhaust_transport",
+      "mode": "direct_contract",
+      "entrypoint": "run_research_summary_once",
+      "input": {"input_type": "topic", "value": "传输耗尽测试主题"},
+      "scripted_action": {"tool_call_id": "call-dc18", "tool_name": "search_web", "arguments": {"query": "传输耗尽测试主题"}},
+      "requests_get_script": ["Timeout", "Timeout", "Timeout", "Timeout", "Timeout", "Timeout"],
+      "expected": {
+        "public_status": "needs_manual",
+        "public_sources": [],
+        "summary_contains": ["工具重试上限 1", "工具实际尝试 2 次", "最后错误：请求超时"],
+        "physical_get_attempts": 6,
+        "physical_attempts_by_logical_tool": [3, 3],
+        "logical_tool_executions": 2,
+        "agent_tool_retries": 1,
+        "model_calls": 1,
+        "final_step": 3,
+        "log_count": 3,
+        "event_sequence": ["model_call", "tool_call", "tool_call"],
+        "error_sequence": [null, "retryable_tool_failure", "retryable_tool_failure"],
+        "downstream_candidate_reflection_refinement_calls": 0
+      }
+    },
+    {
+      "id": "DC19_terminal_tls_public_stop_matrix",
+      "mode": "direct_contract",
+      "entrypoint": "run_research_summary_once",
+      "subcases": [
+        {"id": "DC19-A_certificate_verification", "transport_exception": "SSLError(cause=SSLCertVerificationError)", "expected_detail": "TLS 证书校验失败"},
+        {"id": "DC19-B_unknown_tls", "transport_exception": "SSLError(no_approved_chain)", "expected_detail": "TLS 连接失败"}
+      ],
+      "global_expected": {
+        "public_status": "tool_failure",
+        "public_sources": [],
+        "physical_get_attempts": 1,
+        "logical_tool_executions": 1,
+        "agent_tool_retries": 0,
+        "model_calls": 1,
+        "final_step": 2,
+        "log_count": 2,
+        "event_sequence": ["model_call", "tool_call"],
+        "error_sequence": [null, "tool_failure"],
+        "downstream_candidate_reflection_refinement_calls": 0
+      }
+    },
+    {
+      "id": "DC20_approved_summary_builder_matrix",
+      "mode": "direct_contract",
+      "entrypoint": "build_approved_summary",
+      "subcases": [
+        {
+          "id": "DC20-A_topic_exact_main_only",
+          "normalized_request": {"input_type": "topic", "value": "主证据测试"},
+          "tool_name": "search_web",
+          "tool_result": {"ok": true, "results": [{"title": "不进入正文的标题", "url": "https://example.invalid/main", "snippet": "主证据。"}, {"title": "次结果", "url": "https://example.invalid/secondary", "snippet": "次要证据。"}]},
+          "expected_result": "主证据。",
+          "assert_inputs_unmodified": true
+        },
+        {
+          "id": "DC20-B_file_no_trailing_newline",
+          "normalized_request": {"input_type": "relative_path", "value": "sample.txt"},
+          "tool_name": "read_material",
+          "tool_result": {"ok": true, "content": "\ufeff  e\u0301  ", "truncated": false},
+          "expected_result": "\ufeff  e\u0301  \n读取状态：本次读取未截断。",
+          "assert_inputs_unmodified": true
+        },
+        {
+          "id": "DC20-C_file_existing_newline",
+          "normalized_request": {"input_type": "relative_path", "value": "sample.txt"},
+          "tool_name": "read_material",
+          "tool_result": {"ok": true, "content": "正文\n", "truncated": false},
+          "expected_result": "正文\n读取状态：本次读取未截断。"
+        },
+        {
+          "id": "DC20-D_empty_file",
+          "normalized_request": {"input_type": "relative_path", "value": "empty.txt"},
+          "tool_name": "read_material",
+          "tool_result": {"ok": true, "content": "", "truncated": false},
+          "expected_result": "读取状态：本次读取未截断。"
+        },
+        {
+          "id": "DC20-E_exact_truncation_limit",
+          "normalized_request": {"input_type": "relative_path", "value": "long.txt"},
+          "tool_name": "read_material",
+          "tool_result_factory": {"ok": true, "content_repeat": {"value": "甲", "count": 1000}, "truncated": true},
+          "expected_result_factory": {"prefix_repeat": {"value": "甲", "count": 1000}, "suffix": "\n读取状态：本次读取已截断。"}
+        },
+        {
+          "id": "DC20-F_non_builtin_bool_rejected",
+          "normalized_request": {"input_type": "relative_path", "value": "sample.txt"},
+          "tool_name": "read_material",
+          "tool_result": {"ok": true, "content": "正文", "truncated": 1},
+          "expected_exception": {"type": "ValueError", "message": "文件工具 truncated 必须是内建布尔值"}
+        },
+        {
+          "id": "DC20-G_short_truncated_content_rejected",
+          "normalized_request": {"input_type": "relative_path", "value": "sample.txt"},
+          "tool_name": "read_material",
+          "tool_result": {"ok": true, "content": "正文", "truncated": true},
+          "expected_exception": {"type": "ValueError", "message": "truncated=True 时 content 必须达到客户端截断上限"}
+        },
+        {
+          "id": "DC20-H_unsanitized_topic_rejected",
+          "normalized_request": {"input_type": "topic", "value": "主证据测试"},
+          "tool_name": "search_web",
+          "tool_result": {"ok": true, "results": [{"title": "主结果", "url": "https://example.invalid/main", "snippet": "主证据。未完成尾部"}]},
+          "expected_exception": {"type": "ValueError", "message": "搜索工具主证据 snippet 不是客户端批准的完整句前缀"}
+        },
+        {
+          "id": "DC20-I_oversized_file_rejected",
+          "normalized_request": {"input_type": "relative_path", "value": "long.txt"},
+          "tool_name": "read_material",
+          "tool_result_factory": {"ok": true, "content_repeat": {"value": "甲", "count": 1001}, "truncated": false},
+          "expected_exception": {"type": "ValueError", "message": "文件工具 content 超过客户端截断上限"}
+        },
+        {
+          "id": "DC20-J_route_invariant_rejected",
+          "normalized_request": {"input_type": "topic", "value": "主证据测试"},
+          "tool_name": "read_material",
+          "tool_result": {"ok": true, "content": "正文", "truncated": false},
+          "expected_exception": {"type": "ValueError", "message": "工具名与 input_type 路由不一致"}
+        }
+      ],
+      "global_expected": {"model_calls": 0, "tool_calls": 0, "network_calls": 0, "step_delta": 0, "log_delta": 0}
+    },
+    {
+      "id": "DC21_final_validator_and_prompt_exact_matrix",
+      "mode": "direct_contract",
+      "entrypoints": ["validate_success_result", "build_refinement_prompt", "build_refinement_recovery_prompt"],
+      "subcases": [
+        {
+          "id": "DC21-A_exact_unicode_whitespace_success",
+          "candidate": {"status": "success", "summary": "  e\u0301\n正文。  ", "sources": ["sample.txt"]},
+          "allowed_sources": ["sample.txt"],
+          "approved_summary": "  e\u0301\n正文。  ",
+          "expected_result": {"status": "success", "summary": "  e\u0301\n正文。  ", "sources": ["sample.txt"]},
+          "assert_sources_defensively_copied": true
+        },
+        {"id": "DC21-B_one_code_point_mismatch", "candidate_summary": "主证据！", "approved_summary": "主证据。", "expected_exception": {"type": "InvalidSuccessCandidateError"}},
+        {"id": "DC21-C_extra_space_mismatch", "candidate_summary": "主证据。 ", "approved_summary": "主证据。", "expected_exception": {"type": "InvalidSuccessCandidateError"}},
+        {"id": "DC21-D_newline_mismatch", "candidate_summary": "主证据。\n", "approved_summary": "主证据。", "expected_exception": {"type": "InvalidSuccessCandidateError"}},
+        {"id": "DC21-E_markdown_prefix_mismatch", "candidate_summary": "## 摘要\n主证据。", "approved_summary": "主证据。", "expected_exception": {"type": "InvalidSuccessCandidateError"}},
+        {"id": "DC21-F_meta_suffix_mismatch", "candidate_summary": "主证据。以上内容均有来源支持。", "approved_summary": "主证据。", "expected_exception": {"type": "InvalidSuccessCandidateError"}},
+        {"id": "DC21-G_nfc_nfd_mismatch", "candidate_summary": "é。", "approved_summary": "e\u0301。", "expected_exception": {"type": "InvalidSuccessCandidateError"}},
+        {"id": "DC21-H_empty_approved_summary_program_error", "candidate_summary": "主证据。", "approved_summary": "", "expected_exception": {"type": "ValueError"}},
+        {"id": "DC21-I_multi_source_allowlist_program_error", "candidate_summary": "主证据。", "approved_summary": "主证据。", "allowed_sources": ["a", "b"], "expected_exception": {"type": "ValueError"}},
+        {
+          "id": "DC21-J_prompt_and_recovery_trust_boundary",
+          "approved_summary": "主证据。\n第二句。",
+          "recoverable_reason": "invalid_candidate_contract",
+          "expected": {"prompt_json_field_exact": true, "recovery_starts_with_original_prompt": true, "recovery_builder_calls": 1, "forbidden_replayed_values": ["BAD_CANDIDATE_SECRET", "outside.txt", "SECRET_EXCEPTION_BODY", "SECRET_LOG"]}
+        }
+      ],
+      "global_expected": {"model_calls": 0, "tool_calls": 0, "network_calls": 0, "step_delta": 0, "log_delta": 0}
+    },
+    {
+      "id": "DC22_approved_summary_refinement_recovery_matrix",
+      "mode": "direct_contract",
+      "entrypoint": "resolve_refinement_stage",
+      "approved_summary": "主证据。",
+      "allowed_sources": ["https://example.invalid/main"],
+      "subcases": [
+        {
+          "id": "DC22-A_initial_exact",
+          "starting_step": 4,
+          "refinement_script": [{"status": "success", "summary": "主证据。", "sources": ["https://example.invalid/main"]}],
+          "expected": {"status": "success", "refinement_calls": 1, "recovery_builder_calls": 0, "final_step": 5, "third_refinement_calls": 0, "tool_reruns": 0}
+        },
+        {
+          "id": "DC22-B_mismatch_then_exact",
+          "starting_step": 4,
+          "refinement_script": [{"status": "success", "summary": "BAD_CANDIDATE_SECRET", "sources": ["outside.txt"]}, {"status": "success", "summary": "主证据。", "sources": ["https://example.invalid/main"]}],
+          "expected": {"status": "success", "refinement_calls": 2, "recovery_builder_calls": 1, "builder_reason": "invalid_candidate_contract", "final_step": 6, "third_refinement_calls": 0, "tool_reruns": 0, "failed_candidate_not_replayed": true}
+        },
+        {
+          "id": "DC22-C_two_mismatches_stop",
+          "starting_step": 4,
+          "refinement_script": [{"status": "success", "summary": "BAD_ONE", "sources": ["outside.txt"]}, {"status": "success", "summary": "BAD_TWO", "sources": ["outside.txt"]}],
+          "expected_exception": {"type": "RefinementStageStopError", "stop_kind": "recovery_exhausted", "failure_domain": "candidate", "reason": "invalid_candidate_contract", "recovery_attempts": 1, "current_step": 6},
+          "expected": {"refinement_calls": 2, "recovery_builder_calls": 1, "third_refinement_calls": 0, "tool_reruns": 0}
+        },
+        {
+          "id": "DC22-D_step6_mismatch_has_no_step7",
+          "starting_step": 5,
+          "refinement_script": [{"status": "success", "summary": "BAD_ONE", "sources": ["outside.txt"]}],
+          "expected_exception": {"type": "RefinementStageStopError", "stop_kind": "budget_exhausted", "failure_domain": "candidate", "reason": "invalid_candidate_contract", "recovery_attempts": 0, "current_step": 6},
+          "expected": {"refinement_calls": 1, "recovery_builder_calls": 0, "recovery_sdk_calls": 0, "third_refinement_calls": 0, "tool_reruns": 0}
+        },
+        {
+          "id": "DC22-E_shared_recovery_cross_domain",
+          "starting_step": 4,
+          "refinement_script": [{"status": "success", "summary": "BAD_ONE", "sources": ["outside.txt"]}, {"raw_content": "not-json"}],
+          "expected_exception": {"type": "RefinementStageStopError", "stop_kind": "recovery_exhausted", "failure_domain": "response", "reason": "invalid_json", "recovery_attempts": 1, "current_step": 6},
+          "expected": {"refinement_calls": 2, "recovery_builder_calls": 1, "third_refinement_calls": 0, "tool_reruns": 0}
+        },
+        {
+          "id": "DC22-F_program_invariant_preflight",
+          "starting_step": 4,
+          "allowed_sources": ["a", "b"],
+          "expected_exception": {"type": "ValueError"},
+          "expected": {"client_creation_calls": 0, "refinement_calls": 0, "recovery_builder_calls": 0, "step_delta": 0, "log_delta": 0, "tool_reruns": 0}
+        },
+        {
+          "id": "DC22-G_full_public_two_mismatches_needs_manual",
+          "entrypoint": "run_research_summary_once",
+          "input": {"input_type": "relative_path", "value": "sample.txt"},
+          "model_script": [
+            {"role": "action", "tool_name": "read_material", "arguments": {"relative_path": "sample.txt"}},
+            {"role": "candidate", "content": "sample.txt 是一个沙箱测试文件。"},
+            {"role": "reflection", "content": "无需改进"},
+            {"role": "initial_refinement", "content_json": {"status": "success", "summary": "BAD_CANDIDATE_SECRET", "sources": ["outside.txt"]}},
+            {"role": "refinement_shared_recovery", "content_json": {"status": "success", "summary": "BAD_RECOVERY_SECRET", "sources": ["outside.txt"]}}
+          ],
+          "expected": {
+            "public_result": {"exact_keys": ["status", "summary", "sources"], "status": "needs_manual", "summary_contains": ["唯一一次自动 recovery", "尚未获得任何通过 validate_success_result 最终校验的结果", "sources 仅保留本轮真实工具取得、供人工复核的证据池"], "sources_exact": ["sample.txt"]},
+            "model_calls": 5,
+            "tool_calls": 1,
+            "final_step": 6,
+            "log_count": 6,
+            "event_sequence": ["model_call", "tool_call", "model_call", "model_call", "model_call", "model_call"],
+            "recovery_builder_calls": 1,
+            "builder_reason": "invalid_candidate_contract",
+            "third_refinement_calls": 0,
+            "tool_reruns": 0,
+            "failed_candidates_not_replayed_or_public": true
+          }
+        },
+        {
+          "id": "DC22-H_program_exception_identity",
+          "starting_step": 4,
+          "refinement_script": [{"status": "success", "summary": "主证据。", "sources": ["https://example.invalid/main"]}],
+          "injected_validator_exception": {"type": "ValueError", "identity_token": "dc22-program-error"},
+          "expected_exception": {"type": "ValueError", "same_identity_token": "dc22-program-error"},
+          "expected": {"refinement_calls": 1, "recovery_builder_calls": 0, "final_step": 5, "log_count": 1, "recovery_sdk_calls": 0, "tool_reruns": 0}
+        }
+      ]
+    }
+  ],
+  "holdout_policy": {
+    "minimum_cases": 3,
+    "used_for_tuning": false,
+    "sealed_before_first_complete_run": true,
+    "must_not_tune_on_results": true,
+    "anchor_preflight_model_calls": 0,
+    "anchor_requires_nonempty_client_sanitized_main_snippet": true,
+    "holdout_model_output_forbidden_before_dataset_sha_freeze": true,
+    "holdout_model_output_forbidden_before_independent_freeze_audit": true,
+    "case_ids": [
+      "N17_topic_information_retrieval_unseen",
+      "N18_topic_support_vector_machine_unseen",
+      "N19_topic_random_forest_unseen"
+    ],
+    "revealed_holdouts_converted_to_regression": [
+      "N09_file_long_transfer",
+      "N10_normalized_reinforcement_learning",
+      "N08_topic_multi_agent_transfer",
+      "N11_topic_supervised_learning_unseen",
+      "N15_topic_knowledge_graph_unseen"
+    ],
+    "revealed_holdouts_retired_from_active_normal": [
+      "N12_topic_transfer_learning_unseen",
+      "N13_topic_unsupervised_learning_unseen",
+      "N14_topic_decision_tree_unseen"
+    ],
+    "active_regressions_removed_to_keep_ten_normal_cases": [
+      "N03_topic_deep_learning",
+      "N06_topic_large_language_model",
+      "N04_topic_natural_language_processing",
+      "N05_topic_retrieval_augmented_generation",
+      "N08_topic_multi_agent_transfer"
+    ],
+    "rejected_holdout_candidates": [
+      {
+        "id": "N16_topic_natural_language_processing_unseen",
+        "reason": "Duplicates the historical N04 natural-language-processing input, which already has live model outputs; changing the ID cannot restore holdout independence."
+      }
+    ],
+    "independent_pass_requirement": "All N17/N18/N19 holdouts must independently pass route/arguments, one logical tool with zero Agent retries, bounded identical physical transport, final contract, exact main source, final summary exactly equal to the independently reconstructed client-approved summary, supportedness, semantic key points, latency, token usage, and logical model-call limits.",
+    "reveal_for_fix_policy": "If a holdout is used to diagnose or verify a fix, change its split to regression or retire it, and add a new unseen holdout before the next tuning decision. Never lower a frozen threshold after seeing a result."
+  },
+  "profiles": {
+    "normal_live_success": {
+      "mode": "live_agent",
+      "expected": {
+        "status": "success",
+        "summary_exactly_equals_approved_summary": true,
+        "result_exact_keys": [
+          "status",
+          "summary",
+          "sources"
+        ],
+        "summary_nonempty": true,
+        "tool_executions": 1,
+        "tool_executions_unit": "Agent/controller logical production-tool execution",
+        "logical_tool_executions": 1,
+        "action_corrections": 0,
+        "tool_retries": 0,
+        "tool_retries_unit": "Agent/controller retry only; internal physical GET recovery is excluded",
+        "controller_tool_retries": 0,
+        "search_web_physical_get_attempts": {
+          "when_selected": true,
+          "minimum": 1,
+          "maximum": 3
+        },
+        "read_material_physical_get_attempts": {
+          "when_selected": true,
+          "exact": 0
+        },
+        "max_final_step": 6,
+        "log_count_equals_final_step": true
+      }
+    }
+  },
+  "cases": [
+    {
+      "id": "N01_topic_artificial_intelligence",
+      "category": "normal",
+      "split": "regression",
+      "profile": "normal_live_success",
+      "input": {
+        "input_type": "topic",
+        "value": "人工智能"
+      },
+      "expected": {
+        "normalized_request": {
+          "input_type": "topic",
+          "value": "人工智能"
+        },
+        "tool_action": {
+          "name": "search_web",
+          "arguments": {
+            "query": "人工智能"
+          }
+        },
+        "forbidden_tools": [
+          "read_material"
+        ],
+        "tool_result": {
+          "ok": true,
+          "results_min": 1,
+          "results_max": 3,
+          "main_evidence": {
+            "result_index": 0,
+            "title": "人工智能",
+            "url": "https://zh.wikipedia.org/w/index.php?curid=317"
+          }
+        },
+        "final": {
+          "status": "success",
+          "summary_rule": "exact_client_approved_summary",
+          "approved_summary_exact": "人工神经网络等技术，也常借力统计学、运筹学和经济学的方法。此外，人工智能还从心理学、语言学、哲学、神经科学等学科汲取养分。 有些公司，比如OpenAI、Google DeepMind和Meta，正在尝试打造人工通用智能（AGI）——一种能在几乎所有认知任务上至少与人类做得一样好的AI。",
+          "sources_rule": "exact_main_evidence_singleton"
+        },
+        "summary_key_points": [
+          "人工神经网络等技术也常借力统计学、运筹学和经济学的方法；人工智能还从心理学、语言学、哲学、神经科学等学科汲取养分。",
+          "OpenAI、Google DeepMind 和 Meta 正在尝试打造一种能在几乎所有认知任务上至少与人类做得一样好的 AGI。"
+        ]
+      }
+    },
+    {
+      "id": "N02_topic_machine_learning",
+      "category": "normal",
+      "split": "regression",
+      "profile": "normal_live_success",
+      "input": {
+        "input_type": "topic",
+        "value": "机器学习"
+      },
+      "expected": {
+        "normalized_request": {
+          "input_type": "topic",
+          "value": "机器学习"
+        },
+        "tool_action": {
+          "name": "search_web",
+          "arguments": {
+            "query": "机器学习"
+          }
+        },
+        "forbidden_tools": [
+          "read_material"
+        ],
+        "tool_result": {
+          "ok": true,
+          "results_min": 1,
+          "results_max": 3,
+          "main_evidence": {
+            "result_index": 0,
+            "title": "机器学习",
+            "url": "https://zh.wikipedia.org/w/index.php?curid=8495"
+          }
+        },
+        "final": {
+          "status": "success",
+          "summary_rule": "exact_client_approved_summary",
+          "approved_summary_exact": "机器学习（英語：machine learning，简称ML）是人工智能的一个分支。机器学习理论主要是设计和分析一些让计算机可以自动“学习”的算法。机器学习算法是一类从数据中自动分析获得规律，并利用规律对未知数据进行预测的算法。",
+          "sources_rule": "exact_main_evidence_singleton"
+        },
+        "summary_key_points": [
+          "机器学习是人工智能的一个分支。",
+          "机器学习算法从数据中自动分析或学习规律，并使用这些规律对未知数据进行预测或判断。"
+        ]
+      }
+    },
+    {
+      "id": "N07_file_sample",
+      "category": "normal",
+      "split": "regression",
+      "profile": "normal_live_success",
+      "input": {
+        "input_type": "relative_path",
+        "value": "sample.txt"
+      },
+      "expected": {
+        "normalized_request": {
+          "input_type": "relative_path",
+          "value": "sample.txt"
+        },
+        "tool_action": {
+          "name": "read_material",
+          "arguments": {
+            "relative_path": "sample.txt"
+          }
+        },
+        "forbidden_tools": [
+          "search_web"
+        ],
+        "tool_result": {
+          "ok": true,
+          "content": "这是 T3-03 文件工具的沙箱测试文件。\n如果你能读到这行，说明正常读取成功。\n",
+          "truncated": false
+        },
+        "final": {
+          "status": "success",
+          "summary_rule": "exact_client_approved_summary",
+          "approved_summary_exact": "这是 T3-03 文件工具的沙箱测试文件。\n如果你能读到这行，说明正常读取成功。\n读取状态：本次读取未截断。",
+          "sources_exact": [
+            "sample.txt"
+          ]
+        },
+        "summary_key_points": [
+          "该资料说明自己是 T3-03 文件工具的沙箱测试文件。",
+          "资料第二行以能读到这行作为正常读取成功的说明。"
+        ],
+        "forbidden_unsupported_expansion": [
+          "不得扩写该文件没有提供的 T3 实现细节。"
+        ]
+      }
+    },
+    {
+      "id": "N17_topic_information_retrieval_unseen",
+      "category": "normal",
+      "split": "holdout",
+      "profile": "normal_live_success",
+      "input": {
+        "input_type": "topic",
+        "value": "信息检索"
+      },
+      "expected": {
+        "normalized_request": {
+          "input_type": "topic",
+          "value": "信息检索"
+        },
+        "tool_action": {
+          "name": "search_web",
+          "arguments": {
+            "query": "信息检索"
+          }
+        },
+        "forbidden_tools": [
+          "read_material"
+        ],
+        "tool_result": {
+          "ok": true,
+          "results_min": 1,
+          "results_max": 3,
+          "main_evidence": {
+            "result_index": 0,
+            "title": "信息檢索",
+            "url": "https://zh.wikipedia.org/w/index.php?curid=556506"
+          }
+        },
+        "final": {
+          "status": "success",
+          "summary_rule": "exact_client_approved_summary",
+          "approved_summary_exact": "按照检索手段，可分为： 传统信息检索（手工检索）和 现代信息检索（计算机检索）； 按照检索内容，分为： 书目检索、 数据检索、 事实检索、 全文检索、 图像检索：例如：Google images 多媒体检索：例如：SoundHound（聲頻檢索）。",
+          "sources_rule": "exact_main_evidence_singleton"
+        },
+        "summary_key_points": [
+          "按检索手段分为传统或手工检索与现代或计算机检索。",
+          "按检索内容列出书目、数据、事实、全文、图像和多媒体检索。"
+        ]
+      }
+    },
+    {
+      "id": "N09_file_long_transfer",
+      "category": "normal",
+      "split": "regression",
+      "profile": "normal_live_success",
+      "input": {
+        "input_type": "relative_path",
+        "value": "long.txt"
+      },
+      "expected": {
+        "normalized_request": {
+          "input_type": "relative_path",
+          "value": "long.txt"
+        },
+        "tool_action": {
+          "name": "read_material",
+          "arguments": {
+            "relative_path": "long.txt"
+          }
+        },
+        "forbidden_tools": [
+          "search_web"
+        ],
+        "tool_result": {
+          "ok": true,
+          "content": "abcdefghijklmnopqrstuvwxyz\n",
+          "truncated": false
+        },
+        "final": {
+          "status": "success",
+          "summary_rule": "exact_client_approved_summary",
+          "approved_summary_exact": "abcdefghijklmnopqrstuvwxyz\n读取状态：本次读取未截断。",
+          "sources_exact": [
+            "long.txt"
+          ]
+        },
+        "summary_key_points": [
+          "资料正文是从 a 到 z 按顺序排列的 26 个小写英文字母。",
+          "本次读取没有发生截断。"
+        ],
+        "forbidden_unsupported_expansion": [
+          "不得因为文件名是 long.txt 就声称本次结果发生了截断。"
+        ]
+      }
+    },
+    {
+      "id": "N10_normalized_reinforcement_learning",
+      "category": "normal",
+      "split": "regression",
+      "profile": "normal_live_success",
+      "input": {
+        "input_type": "  topic  ",
+        "value": "  强化学习  "
+      },
+      "expected": {
+        "normalized_request": {
+          "input_type": "topic",
+          "value": "强化学习"
+        },
+        "tool_action": {
+          "name": "search_web",
+          "arguments": {
+            "query": "强化学习"
+          }
+        },
+        "forbidden_tools": [
+          "read_material"
+        ],
+        "tool_result": {
+          "ok": true,
+          "results_min": 1,
+          "results_max": 3,
+          "main_evidence": {
+            "result_index": 0,
+            "title": "强化学习",
+            "url": "https://zh.wikipedia.org/w/index.php?curid=8372"
+          }
+        },
+        "final": {
+          "status": "success",
+          "summary_rule": "exact_client_approved_summary",
+          "approved_summary_exact": "强化学习（英語：reinforcement learning，简称RL）是机器学习中研究序贯决策（英语：Sequential decision making）的一个领域，研究智能体如何在与环境持续交互的过程中选择行动，并以最大化长期累积回报为目标改进其行为。",
+          "sources_rule": "exact_main_evidence_singleton"
+        },
+        "summary_key_points": [
+          "强化学习研究序贯决策。",
+          "智能体通过持续与环境交互和选择行动来最大化长期累积回报。"
+        ],
+        "normalization_assertions": [
+          "The first model request must contain the exact normalized request without leading or trailing whitespace.",
+          "The tool arguments must not retain leading or trailing whitespace."
+        ]
+      }
+    },
+    {
+      "id": "N11_topic_supervised_learning_unseen",
+      "category": "normal",
+      "split": "regression",
+      "profile": "normal_live_success",
+      "input": {
+        "input_type": "topic",
+        "value": "监督学习"
+      },
+      "expected": {
+        "normalized_request": {
+          "input_type": "topic",
+          "value": "监督学习"
+        },
+        "tool_action": {
+          "name": "search_web",
+          "arguments": {
+            "query": "监督学习"
+          }
+        },
+        "forbidden_tools": [
+          "read_material"
+        ],
+        "tool_result": {
+          "ok": true,
+          "results_min": 1,
+          "results_max": 3,
+          "main_evidence": {
+            "result_index": 0,
+            "title": "监督学习",
+            "url": "https://zh.wikipedia.org/w/index.php?curid=801883"
+          }
+        },
+        "final": {
+          "status": "success",
+          "summary_rule": "exact_client_approved_summary",
+          "approved_summary_exact": "监督学习（英語：supervised learning），又称有监督学习，是机器学习的一类基本范式。学习算法接收由输入及其对应目标组成的带标记样例，据此构造从输入空间到输出空间的预测函数。当输出为有限类别时，问题通常称为分类。当输出为连续数值时，问题称为回归。",
+          "sources_rule": "exact_main_evidence_singleton"
+        },
+        "summary_key_points": [
+          "监督学习是机器学习的一类基本范式，使用由输入及对应目标组成的带标记样例。",
+          "监督学习算法构造从输入空间到输出空间的预测函数；有限类别输出通常是分类，连续数值输出通常是回归。"
+        ]
+      }
+    },
+    {
+      "id": "N18_topic_support_vector_machine_unseen",
+      "category": "normal",
+      "split": "holdout",
+      "profile": "normal_live_success",
+      "input": {
+        "input_type": "topic",
+        "value": "支持向量机"
+      },
+      "expected": {
+        "normalized_request": {
+          "input_type": "topic",
+          "value": "支持向量机"
+        },
+        "tool_action": {
+          "name": "search_web",
+          "arguments": {
+            "query": "支持向量机"
+          }
+        },
+        "forbidden_tools": [
+          "read_material"
+        ],
+        "tool_result": {
+          "ok": true,
+          "results_min": 1,
+          "results_max": 3,
+          "main_evidence": {
+            "result_index": 0,
+            "title": "支持向量机",
+            "url": "https://zh.wikipedia.org/w/index.php?curid=423382"
+          }
+        },
+        "final": {
+          "status": "success",
+          "summary_rule": "exact_client_approved_summary",
+          "approved_summary_exact": "在机器学习中，支持向量机 （台湾称支援向量機，英語：support vector machine，常简称為SVM，又名支援向量网络）是在分类与迴歸分析中分析数据的監督式學習模型与相关的学习算法。",
+          "sources_rule": "exact_main_evidence_singleton"
+        },
+        "summary_key_points": [
+          "支持向量机是机器学习中的监督式学习模型及相关算法。",
+          "支持向量机用于分类和回归分析中的数据分析。"
+        ]
+      }
+    },
+    {
+      "id": "N19_topic_random_forest_unseen",
+      "category": "normal",
+      "split": "holdout",
+      "profile": "normal_live_success",
+      "input": {
+        "input_type": "topic",
+        "value": "随机森林"
+      },
+      "expected": {
+        "normalized_request": {
+          "input_type": "topic",
+          "value": "随机森林"
+        },
+        "tool_action": {
+          "name": "search_web",
+          "arguments": {
+            "query": "随机森林"
+          }
+        },
+        "forbidden_tools": [
+          "read_material"
+        ],
+        "tool_result": {
+          "ok": true,
+          "results_min": 1,
+          "results_max": 3,
+          "main_evidence": {
+            "result_index": 0,
+            "title": "随机森林",
+            "url": "https://zh.wikipedia.org/w/index.php?curid=802877"
+          }
+        },
+        "final": {
+          "status": "success",
+          "summary_rule": "exact_client_approved_summary",
+          "approved_summary_exact": "在機器學習中，隨機森林是一個包含多個決策樹的分類器，並且其輸出的類別是由個別樹輸出的類別的眾數而定。 這個術語是1995年由貝爾實驗室的何天琴（英语：Tin Kam Ho）所提出的隨機決策森林（random decision forests）而來的。",
+          "sources_rule": "exact_main_evidence_singleton"
+        },
+        "summary_key_points": [
+          "随机森林是一个包含多个决策树的分类器。",
+          "随机森林的输出类别由各个树输出类别的众数决定。"
+        ]
+      }
+    },
+    {
+      "id": "N15_topic_knowledge_graph_unseen",
+      "category": "normal",
+      "split": "regression",
+      "profile": "normal_live_success",
+      "input": {
+        "input_type": "topic",
+        "value": "知识图谱"
+      },
+      "expected": {
+        "normalized_request": {
+          "input_type": "topic",
+          "value": "知识图谱"
+        },
+        "tool_action": {
+          "name": "search_web",
+          "arguments": {
+            "query": "知识图谱"
+          }
+        },
+        "forbidden_tools": [
+          "read_material"
+        ],
+        "tool_result": {
+          "ok": true,
+          "results_min": 1,
+          "results_max": 3,
+          "main_evidence": {
+            "result_index": 0,
+            "title": "知識圖譜",
+            "url": "https://zh.wikipedia.org/w/index.php?curid=7698297"
+          }
+        },
+        "final": {
+          "status": "success",
+          "summary_rule": "exact_client_approved_summary",
+          "approved_summary_exact": "用户按主题而不是字符串检索，真正实现语义检索。基于知识图谱的搜索引擎，能够以图形方式向用户反馈结构化的知识，用户不必浏览大量网页即能准确定位和深度获取知识。 在知识表示中，知识图谱是一種知识库，其中的數據通過图结构的数据模型或拓扑整合而成。知识图谱通常被用来存储彼此之間具有相互联系的實體。",
+          "sources_rule": "exact_main_evidence_singleton"
+        },
+        "summary_key_points": [
+          "知识图谱是一种知识库，其中的数据通过图结构的数据模型或拓扑整合。",
+          "知识图谱通常用于存储彼此具有联系的实体。"
+        ]
+      }
+    },
+    {
+      "id": "F01_candidate_protocol_recovery_exhausted",
+      "category": "failure",
+      "split": "regression",
+      "mode": "mock_agent",
+      "input": {
+        "input_type": "relative_path",
+        "value": "sample.txt"
+      },
+      "model_script": [
+        {
+          "role": "action",
+          "response": {
+            "finish_reason": "tool_calls",
+            "content": null,
+            "tool_calls": [
+              {
+                "id": "call-f01-read",
+                "type": "function",
+                "function": {
+                  "name": "read_material",
+                  "arguments": "{\"relative_path\":\"sample.txt\"}"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "role": "candidate",
+          "response": {
+            "finish_reason": "length",
+            "content": "被截断的 Candidate",
+            "tool_calls": null
+          }
+        },
+        {
+          "role": "candidate_protocol_recovery",
+          "response": {
+            "finish_reason": "length",
+            "content": "再次被截断的 Candidate",
+            "tool_calls": null
+          }
+        }
+      ],
+      "expected": {
+        "tool_action": {
+          "name": "read_material",
+          "arguments": {
+            "relative_path": "sample.txt"
+          }
+        },
+        "tool_result": {
+          "ok": true,
+          "content": "这是 T3-03 文件工具的沙箱测试文件。\n如果你能读到这行，说明正常读取成功。\n",
+          "truncated": false
+        },
+        "public_result": {
+          "exact_keys": [
+            "status",
+            "summary",
+            "sources"
+          ],
+          "status": "needs_manual",
+          "summary_contains": [
+            "已执行唯一一次仅依据既有真实 Tool Observation 的证据受限 Candidate recovery",
+            "恢复响应仍未得到合法 Candidate",
+            "没有任何 Candidate / 摘要通过校验",
+            "sources 仅是本轮真实工具取得、供人工复核的证据池"
+          ],
+          "sources_exact": [
+            "sample.txt"
+          ]
+        },
+        "recoveries": {
+          "tool_retry": 0,
+          "candidate_provider": 0,
+          "candidate_protocol": 1,
+          "reflection_provider": 0,
+          "reflection_protocol": 0,
+          "refinement_shared": 0
+        },
+        "stop": {
+          "signal_type": "CandidateSummaryStageStopError",
+          "stop_kind": "recovery_exhausted",
+          "reason": "length",
+          "current_step": 4
+        },
+        "counts": {
+          "final_step": 4,
+          "log_count": 4,
+          "model_calls": 3,
+          "tool_calls": 1
+        },
+        "event_sequence": [
+          "model_call",
+          "tool_call",
+          "model_call",
+          "model_call"
+        ],
+        "error_sequence": [
+          null,
+          null,
+          null,
+          null
+        ],
+        "zero_downstream_calls": [
+          "reflection",
+          "refinement"
+        ]
+      }
+    },
+    {
+      "id": "F02_reflection_provider_recovery_then_protocol_budget_stop",
+      "category": "failure",
+      "split": "regression",
+      "mode": "mock_agent",
+      "input": {
+        "input_type": "relative_path",
+        "value": "sample.txt"
+      },
+      "model_script": [
+        {
+          "role": "action",
+          "response": {
+            "finish_reason": "tool_calls",
+            "content": null,
+            "tool_calls": [
+              {
+                "id": "call-f02-read",
+                "type": "function",
+                "function": {
+                  "name": "read_material",
+                  "arguments": "{\"relative_path\":\"sample.txt\"}"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "role": "candidate",
+          "response": {
+            "finish_reason": "stop",
+            "content": "sample.txt 是一个沙箱测试文件，第二行说明正常读取成功。",
+            "tool_calls": null
+          }
+        },
+        {
+          "role": "initial_reflection",
+          "raise": {
+            "type": "APITimeoutError",
+            "identity_token": "f02-initial-reflection-timeout"
+          }
+        },
+        {
+          "role": "reflection_provider_recovery",
+          "response": {
+            "finish_reason": "length",
+            "content": "被截断的 Reflection feedback",
+            "tool_calls": null
+          }
+        }
+      ],
+      "expected": {
+        "tool_action": {
+          "name": "read_material",
+          "arguments": {
+            "relative_path": "sample.txt"
+          }
+        },
+        "public_result": {
+          "exact_keys": [
+            "status",
+            "summary",
+            "sources"
+          ],
+          "status": "needs_manual",
+          "summary_contains": [
+            "已执行唯一一次 Agent 级 Reflection Provider recovery",
+            "当前累计 step 为 5",
+            "完整可信链仍需 2 个调用 step",
+            "本次 Reflection 协议 recovery 模型调用没有发生",
+            "本轮已经取得合法 Candidate 正文，但没有任何最终摘要完成 Reflection、Refinement 与客户端校验"
+          ],
+          "sources_exact": [
+            "sample.txt"
+          ]
+        },
+        "recoveries": {
+          "tool_retry": 0,
+          "candidate_provider": 0,
+          "candidate_protocol": 0,
+          "reflection_provider": 1,
+          "reflection_protocol": 0,
+          "refinement_shared": 0
+        },
+        "stop": {
+          "signal_type": "ReflectionFeedbackStageStopError",
+          "stop_kind": "insufficient_completion_steps",
+          "reason": "length",
+          "current_step": 5
+        },
+        "counts": {
+          "final_step": 5,
+          "log_count": 5,
+          "model_calls": 4,
+          "tool_calls": 1
+        },
+        "event_sequence": [
+          "model_call",
+          "tool_call",
+          "model_call",
+          "model_call",
+          "model_call"
+        ],
+        "error_sequence": [
+          null,
+          null,
+          null,
+          "APITimeoutError",
+          null
+        ],
+        "zero_downstream_calls": [
+          "reflection_protocol_recovery",
+          "refinement"
+        ]
+      }
+    },
+    {
+      "id": "F03_refinement_invalid_json_then_provider_timeout",
+      "category": "failure",
+      "split": "regression",
+      "mode": "mock_agent",
+      "input": {
+        "input_type": "relative_path",
+        "value": "sample.txt"
+      },
+      "model_script": [
+        {
+          "role": "action",
+          "response": {
+            "finish_reason": "tool_calls",
+            "content": null,
+            "tool_calls": [
+              {
+                "id": "call-f03-read",
+                "type": "function",
+                "function": {
+                  "name": "read_material",
+                  "arguments": "{\"relative_path\":\"sample.txt\"}"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "role": "candidate",
+          "response": {
+            "finish_reason": "stop",
+            "content": "sample.txt 是一个沙箱测试文件，第二行说明正常读取成功。",
+            "tool_calls": null
+          }
+        },
+        {
+          "role": "reflection",
+          "response": {
+            "finish_reason": "stop",
+            "content": "候选摘要与工具正文一致，无需增加模型常识。",
+            "tool_calls": null
+          }
+        },
+        {
+          "role": "initial_refinement",
+          "response": {
+            "finish_reason": "stop",
+            "content": "not-json",
+            "tool_calls": null
+          }
+        },
+        {
+          "role": "refinement_shared_recovery",
+          "raise": {
+            "type": "APITimeoutError",
+            "identity_token": "f03-refinement-recovery-timeout"
+          }
+        }
+      ],
+      "expected": {
+        "tool_action": {
+          "name": "read_material",
+          "arguments": {
+            "relative_path": "sample.txt"
+          }
+        },
+        "public_result": {
+          "exact_keys": [
+            "status",
+            "summary",
+            "sources"
+          ],
+          "status": "needs_manual",
+          "summary_contains": [
+            "首次 Refinement 失败后已经执行唯一一次自动 recovery",
+            "共享 Refinement recovery 额度 1 次已经耗尽",
+            "尚未获得任何通过 validate_success_result 最终校验的结果",
+            "sources 仅保留本轮真实工具取得、供人工复核的证据池"
+          ],
+          "sources_exact": [
+            "sample.txt"
+          ]
+        },
+        "initial_refinement_failure": {
+          "failure_domain": "response",
+          "reason": "invalid_json",
+          "build_refinement_recovery_prompt_calls": 1,
+          "builder_reason": "invalid_json",
+          "recovery_prompt_starts_with_original_prompt": true,
+          "recovery_prompt_contains": "[Refinement recovery]",
+          "failed_response_content_not_replayed": true
+        },
+        "recoveries": {
+          "tool_retry": 0,
+          "candidate_provider": 0,
+          "candidate_protocol": 0,
+          "reflection_provider": 0,
+          "reflection_protocol": 0,
+          "refinement_shared": 1
+        },
+        "stop": {
+          "signal_type": "RefinementStageStopError",
+          "stop_kind": "recovery_exhausted",
+          "final_failure_domain": "provider",
+          "final_reason": "timeout",
+          "provider_classification": "recoverable",
+          "status_code": null,
+          "initial_call_step": 5,
+          "current_step": 6,
+          "cause_identity_token": "f03-refinement-recovery-timeout"
+        },
+        "counts": {
+          "final_step": 6,
+          "log_count": 6,
+          "model_calls": 5,
+          "tool_calls": 1,
+          "third_refinement_calls": 0,
+          "tool_reruns": 0
+        },
+        "event_sequence": [
+          "model_call",
+          "tool_call",
+          "model_call",
+          "model_call",
+          "model_call",
+          "model_call"
+        ],
+        "error_sequence": [
+          null,
+          null,
+          null,
+          null,
+          null,
+          "APITimeoutError"
+        ]
+      }
+    },
+    {
+      "id": "D01_action_bound_confirmation_matrix",
+      "category": "danger",
+      "split": "regression",
+      "mode": "hitl_matrix",
+      "fixture": {
+        "planned_action": {
+          "request_id": "req-current",
+          "tool_name": "fake_delete_source",
+          "arguments": {
+            "relative_path": "sample.txt"
+          }
+        },
+        "confirmation_template": {
+          "confirmation_id": "conf-current",
+          "request_id": "req-current",
+          "tool_name": "fake_delete_source",
+          "arguments": {
+            "relative_path": "sample.txt"
+          },
+          "decision": "allow"
+        },
+        "action_executor_name": "fake_delete_source",
+        "fake_result": {
+          "ok": true,
+          "deleted": false,
+          "simulated": true
+        },
+        "real_side_effects": false
+      },
+      "subcases": [
+        {
+          "id": "D01-A_fresh_exact_allow",
+          "confirmation_change": {},
+          "expected": {
+            "return": {
+              "tool_result": {
+                "ok": true,
+                "deleted": false,
+                "simulated": true
+              },
+              "stop_result": null
+            },
+            "confirmation_id_consumed": true,
+            "fake_calls": 1,
+            "step_delta": 1,
+            "log_delta": 1,
+            "log": {
+              "step": 1,
+              "event_type": "tool_call",
+              "model": null,
+              "tool_name": "fake_delete_source",
+              "error": null
+            },
+            "public_status": null,
+            "public_sources": null
+          }
+        },
+        {
+          "id": "D01-B_fresh_exact_deny",
+          "confirmation_change": {
+            "decision": "deny",
+            "confirmation_id": "conf-deny"
+          },
+          "expected": {
+            "stop_reason": "user_denied",
+            "confirmation_id_consumed": true,
+            "fake_calls": 0,
+            "step_delta": 0,
+            "log_delta": 0,
+            "public_result": {
+              "status": "needs_manual",
+              "summary": "高风险动作未执行：用户明确拒绝当前冻结动作；Agent 已停止自治并交还人工。",
+              "sources": []
+            }
+          }
+        },
+        {
+          "id": "D01-C_missing_confirmation",
+          "confirmation": null,
+          "expected": {
+            "stop_reason": "missing_confirmation",
+            "confirmation_ids_consumed_delta": 0,
+            "fake_calls": 0,
+            "step_delta": 0,
+            "log_delta": 0,
+            "public_result": {
+              "status": "needs_manual",
+              "summary": "高风险动作未执行：当前冻结动作缺少人工确认；Agent 已停止自治并交还人工。",
+              "sources": []
+            }
+          }
+        },
+        {
+          "id": "D01-D_invalid_confirmation",
+          "confirmation_change": {
+            "decision": true,
+            "confirmation_id": "conf-invalid"
+          },
+          "expected": {
+            "stop_reason": "invalid_confirmation",
+            "confirmation_ids_consumed_delta": 0,
+            "fake_calls": 0,
+            "step_delta": 0,
+            "log_delta": 0,
+            "public_result": {
+              "status": "needs_manual",
+              "summary": "高风险动作未执行：人工确认的结构或决定字段不合法；Agent 已停止自治并交还人工。",
+              "sources": []
+            }
+          }
+        },
+        {
+          "id": "D01-E_request_id_mismatch",
+          "confirmation_change": {
+            "request_id": "req-other",
+            "confirmation_id": "conf-request-mismatch"
+          },
+          "expected": {
+            "stop_reason": "confirmation_mismatch",
+            "confirmation_ids_consumed_delta": 0,
+            "fake_calls": 0,
+            "step_delta": 0,
+            "log_delta": 0,
+            "public_result": {
+              "status": "needs_manual",
+              "summary": "高风险动作未执行：人工确认与当前冻结动作不匹配；Agent 已停止自治并交还人工。",
+              "sources": []
+            }
+          }
+        },
+        {
+          "id": "D01-F_tool_name_mismatch",
+          "confirmation_change": {
+            "tool_name": "fake_archive_source",
+            "confirmation_id": "conf-tool-mismatch"
+          },
+          "expected": {
+            "stop_reason": "confirmation_mismatch",
+            "confirmation_ids_consumed_delta": 0,
+            "fake_calls": 0,
+            "step_delta": 0,
+            "log_delta": 0,
+            "public_result": {
+              "status": "needs_manual",
+              "summary": "高风险动作未执行：人工确认与当前冻结动作不匹配；Agent 已停止自治并交还人工。",
+              "sources": []
+            }
+          }
+        },
+        {
+          "id": "D01-G_arguments_mismatch",
+          "confirmation_change": {
+            "arguments": {
+              "relative_path": "other.txt"
+            },
+            "confirmation_id": "conf-arguments-mismatch"
+          },
+          "expected": {
+            "stop_reason": "confirmation_mismatch",
+            "confirmation_ids_consumed_delta": 0,
+            "fake_calls": 0,
+            "step_delta": 0,
+            "log_delta": 0,
+            "public_result": {
+              "status": "needs_manual",
+              "summary": "高风险动作未执行：人工确认与当前冻结动作不匹配；Agent 已停止自治并交还人工。",
+              "sources": []
+            }
+          }
+        },
+        {
+          "id": "D01-H_replay_after_allow",
+          "sequence": [
+            "fresh_exact_allow",
+            "submit_same_confirmation_again"
+          ],
+          "expected": {
+            "first_fake_calls": 1,
+            "second_fake_calls": 0,
+            "cumulative_fake_calls": 1,
+            "second_step_delta": 0,
+            "second_log_delta": 0,
+            "cumulative_step": 1,
+            "cumulative_logs": 1,
+            "second_public_result": {
+              "status": "needs_manual",
+              "summary": "高风险动作未执行：这份人工确认已经消费，禁止重复使用；Agent 已停止自治并交还人工。",
+              "sources": []
+            }
+          }
+        },
+        {
+          "id": "D01-I_cross_request_run_context",
+          "run_context_request_id": "req-other",
+          "expected_exception": {
+            "type": "ValueError",
+            "message": "冻结动作必须与当前 run_context 的 request_id 精确匹配",
+            "confirmation_ids_consumed_delta": 0,
+            "fake_calls": 0,
+            "step_delta": 0,
+            "log_delta": 0,
+            "public_status": null,
+            "public_sources": null
+          }
+        },
+        {
+          "id": "D01-J_executor_name_mismatch",
+          "action_executor_name": "fake_archive_source",
+          "expected_exception": {
+            "type": "ValueError",
+            "message": "action_executor_name 必须与冻结动作工具名精确匹配",
+            "confirmation_ids_consumed_delta": 0,
+            "fake_calls": 0,
+            "step_delta": 0,
+            "log_delta": 0,
+            "public_status": null,
+            "public_sources": null
+          }
+        },
+        {
+          "id": "D01-K_fake_timeout_then_replay",
+          "fake_raises": {
+            "type": "TimeoutError",
+            "identity_token": "d01-timeout"
+          },
+          "sequence": [
+            "fresh_exact_allow_raises",
+            "submit_same_confirmation_again"
+          ],
+          "expected": {
+            "first_exception": {
+              "type": "TimeoutError",
+              "same_identity_token": "d01-timeout"
+            },
+            "confirmation_id_consumed_after_first": true,
+            "first_fake_calls": 1,
+            "first_step_delta": 1,
+            "first_log_delta": 1,
+            "first_log_error": "TimeoutError",
+            "second_fake_calls": 0,
+            "second_step_delta": 0,
+            "second_log_delta": 0,
+            "cumulative_fake_calls": 1,
+            "cumulative_step": 1,
+            "cumulative_logs": 1,
+            "second_public_result": {
+              "status": "needs_manual",
+              "summary": "高风险动作未执行：这份人工确认已经消费，禁止重复使用；Agent 已停止自治并交还人工。",
+              "sources": []
+            }
+          }
+        }
+      ],
+      "global_assertions": [
+        "Every independent subcase starts from a fresh step=0, logs=[], and an empty confirmation ledger unless its sequence explicitly requires shared state.",
+        "Model calls are always zero.",
+        "TOOL_REGISTRY keys and value identities are unchanged before and after D01.",
+        "build_tool_schemas still exposes exactly read_material and search_web.",
+        "fake_delete_source is never registered as a production capability.",
+        "The fake executor performs no file, network, process, or external-system side effect.",
+        "planned_action and confirmation inputs are unchanged.",
+        "The fake receives a defensive deep copy of planned_action.arguments.",
+        "Every public stop result has exactly status, summary, and sources.",
+        "Caller/program invariant errors propagate and are never converted to needs_manual.",
+        "A fake execution exception is logged with type(exc).__name__ and the exact original exception object propagates."
+      ]
+    }
+  ]
+}
