@@ -2,7 +2,7 @@
 
 根目录：`C:\Users\26823\Desktop\AI-Agent-Learning`
 
-本清单用于每天记录学习、提交代码、回答检查题，并由批改者（Claude / codex 均可）判定是否通过。以后所有代码、笔记、源码阅读、完成情况都放在这个文件夹里。
+本清单用于按知识单元与 Session 记录学习、提交代码、回答检查题，并由批改者（Claude / Codex 均可）判定是否通过。日期只用于原始证据归档，不构成每日课表。
 
 ## 文件夹约定
 
@@ -12,13 +12,13 @@
 | `tracker/progress.md`                  | 总进度表，只记录每项状态       |
 | `tracker/job-readiness.md`             | 岗位能力、作品证据与 JD 差距   |
 | `tracker/work-scenario-coverage.md`    | 工作场景、复合故障与实跑证据   |
-| `daily/`                               | 每天一份学习打卡               |
+| `daily/`                               | 按日期保存 Session 原始证据    |
 | `code/`                                | 你自己写的练习代码             |
 | `notes/`                               | 视频、文档、源码阅读笔记       |
 | `repos/`                               | 参考仓库源码                   |
 | `resources/`                           | 补充资料、截图、PDF、运行记录  |
 
-代码文件采用“即时建骨架”：未来任务只在本清单中预留目标路径，不提前批量生成 `code/` 文件。真正开始动手或 Gate 设计准备时，先核对当天资料和官方 API，再创建只含 TODO 的当前任务骨架；PASS 后保留用户完成的代码。
+代码文件采用“即时建骨架”：未来任务只在本清单中预留目标路径，不提前批量生成 `code/` 文件。真正启动当前任务的动手/设计 Session 时，先核对本单元资料、当前官方 API 和已 PASS 代码，再创建只含 TODO 的当前任务骨架；PASS 后保留用户完成的代码。
 
 已放入 `repos/` 的参考仓库：
 
@@ -50,7 +50,7 @@
 
 从 `T3-Gate` 起，需要评估集的 Gate 通过标准额外包含固定评估集、分项结果与失败案例：`T3/A4-Gate` 至少 14 条，`R6/G8/M9-Gate` 至少 20 条，`FINAL-Gate` 至少 30 条。这里的最低条数是**回归/调试集与未揭示 holdout 的总数**。不能只报一句总通过率；按任务拆分检索、答案、工具选择、参数、轨迹、安全、延迟或成本等指标。
 
-所有 Gate 都使用“最小但充分”的证据：确定性软件契约优先进入项目现有 pytest/接口/集成/安全测试，非确定性模型质量才使用 eval cases；一次性核验使用直接执行、内存 mock/spy 或清理后的系统临时文件，结果写当天 `daily`。只有会持续保护真实代码、支持领域对照实验，或 task rubric 明确要求的测试、fixture、指标脚本、CI 和评估工程才长期保留。E10 前不得仅因案例数量创建通用 runner、独立 baseline 管理、报告归档或 tracing 平台；但本原则不得删除 BE5 以后真实软件所需的自动测试，也不得替代 E10/J11/FINAL 明确要求的 eval、CI、负载和恢复证据。
+所有 Gate 都使用“最小但充分”的证据：接口接收什么、返回什么以及状态怎样变化的确定性规则，优先进入项目现有 pytest/接口/集成/安全测试；非确定性模型质量才使用 eval cases。一次性核验使用直接执行、内存 mock/spy 或清理后的系统临时文件，结果写当天 `daily`。只有会持续保护真实代码、支持领域对照实验，或 task rubric 明确要求的测试、fixture、指标脚本、CI 和评估工程才长期保留。E10 前不得仅因案例数量创建通用 runner、独立 baseline 管理、报告归档或 tracing 平台；但本原则不得删除 BE5 以后真实软件所需的自动测试，也不得替代 E10、J11 产品化与 FINAL-Gate 明确要求的 eval、CI、负载和恢复证据。
 
 `T3-Gate` 只长期保留自包含的 `code/stage3/eval_cases.json`，正式复核者直接执行全部案例并把数据集版本/SHA、逐类/逐组件结果、holdout、失败 ID、安全证据和精确命令写入当天 `daily`；不保留专用 runner、独立 baseline 或原始运行报告。重要修改与上一次同版本 daily 结果或 Git 历史比较。
 
@@ -60,24 +60,65 @@ Gate 不能只有“题数”，还必须在第一次调参前写清验收阈值
 
 从 A4-Gate 开始记录最小结构化日志（模型/工具/耗时/错误/步数），危险或不可逆工具必须有人为确认点；完整 tracing、离线/在线评估与回归门禁留到 E10/J11-05。进入作品集的 Gate 还必须满足：无真实密钥、依赖可复现、README 可从零运行、自动测试通过、至少有 lint/type-check 中一项、保留架构图和失败复盘。
 
-从 `BE5-Gate` 起，每个旗舰 Gate 还要维护一份逐步演化的系统设计包：API/事件契约、数据模型、请求/数据流、容量假设、2–4 个可测 SLI/SLO、缓存/队列/同步异步取舍、关键 ADR、失败/降级路径和成本边界。不要等到 W19 才第一次练系统设计。
+从 `BE5-Gate` 起，每个旗舰 Gate 还要维护一份逐步演化的系统设计包：API/事件接收什么、返回什么以及必须遵守的规则，数据模型，请求/数据流，容量假设，2–4 个可测 SLI/SLO，缓存/队列/同步异步取舍，关键 ADR，失败/降级路径和成本边界。不要等到 W19 才第一次练系统设计。
 
 工程基础不再作为进入阶段 1 的整块前置。`B0-01` 到 `B0-04` 改为穿插补课项：P0-Gate 通过后可以先进入 `L1` 大模型 API；后续遇到环境、HTTP、数据库、Docker、Memory、RAG、本地服务部署时，再补对应 B0 项。
 
 `B0-Gate` 改为项目化整合关卡：在需要本地多服务、数据库持久化、Docker Compose、长期 Memory/RAG 或可部署 Agent 项目前完成，不再卡住第一次进入 L1/API。
 
-## 每日打卡格式
+## Session 证据格式
 
 `daily/TEMPLATE.md` 是唯一字段模板，本文件不复制第二套 schema。新建或续写 `daily/YYYY-MM-DD.md` 时必须遵守：
 
-- 只记录 ≤180 分钟的计划学习预算，不记录实际学习时长；助手读取/处理/等待和自动写回不计入预算。
-- 同日多任务先维护 Session/任务索引；跨日续学链接并读取该任务全部前序 daily，按任务级覆盖接力。
+- 不记录计划或实际学习时长；daily 是按日期归档的证据日志，不是课表。
+- 同日多任务先维护 Session/任务索引；跨日续学链接并读取该任务全部前序 daily，按“本 Session 已覆盖/未覆盖、任务总剩余、下次 Session 起点”接力。
 - 即时与正式证据 ID 使用 `<任务ID>-G1`、`<任务ID>-F1` 等任务命名空间。
 - 通用批改、工程验证、复习、算法与岗位候选字段均以模板为准。
 
 说明：批改者检查时会根据代码/产物位置实际运行代码并验证结果。只有当代码不是默认入口、需要特殊参数、需要先启动服务或配置环境变量时，才填写“运行提示”。
 
-`当天进度小结`、`总进度小结`、`对问题/不确定点的解释`、`问答点评与补充`、`超前内容提示` 由批改者（Claude / Codex 均可）检查后填写。普通任务的 `复核判定` 留空；Gate 可抽样复核，但任何 `JOB_EVIDENCE` 升级、`FINAL/J11-Gate` 结论和正式投递前检查都必须由**另一个**工具交叉复核（Claude 主审 → Codex 复核，反之亦然），未复核只能记录“候选证据”，不能升级岗位等级。固定口令 **「交叉复核 <任务/Gate ID>」** 启动复核；复核工具必须独立读取该 ID 的 rubric、全部关联 daily 与真实产物，再填写 `复核判定`，不能只接受主审摘要。遇到的问题如果属于后续阶段内容，不要求当天掌握，只标注应该学到哪个任务或阶段再深入。
+`本 Session 进度小结`、`任务总进度小结`、`对问题/不确定点的解释`、`问答点评与补充` 由批改者（Claude / Codex 均可）检查后填写。普通任务的 `复核判定` 留空；任何 `JOB_EVIDENCE` 升级、`FINAL-Gate`、`J11-Gate` 结论和正式投递前检查都必须由**另一个**工具交叉复核（Claude 主审 → Codex 复核，反之亦然），未复核只能记录“候选证据”。固定口令 **「交叉复核 <任务/Gate ID>」** 启动复核；复核者必须先独立读取 rubric、全部关联 daily 与真实产物并形成临时结论，之后才能读取主审结论。主审与复核者的同意项、分歧项、各自证据和处理必须记录；分歧未解决不得升级岗位证据或正式投递就绪。
+
+---
+
+## Loop / Harness 术语与既有任务映射
+
+本节只给既有能力建立共同语言，不新增任务 ID、课程阶段、顺序关卡或 PASS rubric。“Loop Engineering”仍是较新的术语，不同来源会与 Agent Engineering、Harness Engineering 或 Durable Workflow 重叠；术语新不代表底层能力新。
+
+```text
+一次运行内部
+Agent Loop
+  └─ Inner Loop Engineering
+     state → decide → act/tool → observe → retry/recover → stop
+                       │
+一次可靠运行的外部环境 │
+Agent Harness ─────────┘
+model/tool adapters · permissions/sandbox · context/state
+budgets/retries · logging/tracing · tests · human control
+        │
+        ├─ Harness Engineering：构建、测试、演化上述环境
+        └─ Eval Harness：dataset + evaluator + baseline/candidate + regression
+
+跨多次运行
+Outer Loop Engineering
+discover → schedule → execute → independent verify
+   → persist/escalate → stop
+        │
+        └─ Improvement Loop
+           trace/failure → eval → change → regression → deploy
+```
+
+| 术语 | 本路线中的含义 | 已有承载位置 | 边界 |
+| --- | --- | --- | --- |
+| Agent Loop | 一次运行内部的“判断—行动—观察—停止”控制循环 | A4 已 PASS；G8 只把它显式图化 | 不换名重教，不因使用框架重复判 PASS |
+| Agent Harness | 支撑一次可靠运行的外部环境，而非单一框架名 | A4 工具/安全/预算；BE5 服务环境；G8 persistence/HITL；M9 connector；J11 产品化与 FINAL-Gate 部署/协作 | LangChain 可提供高层 Agent Harness，但会用 `create_agent` 不自动证明理解底层 StateGraph |
+| Harness Engineering | 构建、测试、迭代 Harness 的工程工作 | BE5、G8、E10、J11、FINAL | 不新增“完整无人值守编码工厂”主线 |
+| Inner Loop Engineering | 一次运行内的 state、action、route、stop、retry、recovery | A4、G8-00、G8-01~03 | 已 PASS 的 Agent Loop 原理只迁移，不重复定义教学 |
+| Outer Loop Engineering | 跨运行的发现、调度、执行、独立验证、持久状态、升级和停止 | G8 durable state、S-04 handoff、J11 CI/automation、FINAL 恢复演练 | worktree/subagent/automation 只在真实项目需要时使用，不另开平台课程 |
+| Eval Harness | 为质量判断和回归提供专门证据的子系统 | T3/A4/R6/G8 的局部 eval；E10 系统化；J11 产品化与 FINAL-Gate 接 CI | 早期紧凑评估不能冒充 E10 的版本化 harness |
+| Improvement Loop | 生产 trace/故障进入 eval，再改进、回归和部署 | E10、J11-05、J11-04、FINAL | 必须有失败样例回灌和门禁证据，不以“持续优化”口号代替 |
+
+术语准入规则：若新词只是上述组合关系或别名，优先映射到 A4、G8、BE5、E10、J11、FINAL；只有现有任务无法承载、存在明确岗位/生产价值且能形成可执行证据时，才考虑新增任务。
 
 ---
 
@@ -426,8 +467,8 @@ Gate 不能只有“题数”，还必须在第一次调参前写清验收阈值
 
 - 写 `code/stage0_5/b0_03_learning_db.py`。
 - 使用 Python 内置 `sqlite3` 创建 `resources/stage0_5/learning.db`。
-- 建表 `learning_logs`，字段至少包含：`id`、`date`、`topic`、`minutes`、`status`、`note`。
-- 支持新增、查询最近 7 条、按 topic 统计总时长、更新状态、删除一条测试数据。
+- 建表 `learning_logs`，字段至少包含：`id`、`date`、`session_id`、`topic`、`status`、`evidence_ref`、`note`。
+- 支持新增、查询最近 7 条、按 topic/status 统计记录、更新状态、删除一条测试数据。
 
 问答：
 
@@ -480,11 +521,13 @@ Gate 不能只有“题数”，还必须在第一次调参前写清验收阈值
 - 建议在完成 `L1-Gate` 和基础 Tool Calling 后，或准备做 Memory/RAG/本地部署时再完成。
 - 如果某个 Agent 项目提前需要数据库或 Docker，可以提前做本关。
 
+前置：正式验收前完成 `B0-01`、`B0-02`、`B0-03`、`B0-04`，或由正式复核给出逐项等价的可执行证据；不能只因最终栈能启动就默认为 Linux/网络/数据库/Docker 都已掌握。
+
 任务：
 
 - 做 `code/stage0_5/b0_gate_local_stack/`。
 - 用 Docker Compose 启动 PostgreSQL 和一个 Python CLI 程序。
-- Python 程序支持写入学习记录、查询最近记录、按主题统计时长。
+- Python 程序支持写入学习记录、查询最近记录、按主题与状态统计记录。
 - README 写清楚启动、停止、查看日志、进入容器、清理 volume 的命令。
 - 在 `notes/stage0_5/b0_gate_engineering_basics.md` 画出：终端命令 -> Docker Compose -> Python 容器 -> Compose 网络 -> PostgreSQL 容器 -> volume。
 
@@ -946,7 +989,7 @@ Gate 不能只有“题数”，还必须在第一次调参前写清验收阈值
 
 - Hello-Agents 第 2、3 章其余历史、完整 Transformer 推导、模型调用与选型小节，后续遇到对应任务再读。
 
-多日学习单元：
+可跨日期的知识单元：
 
 1. LLM 机制：Token/Tokenizer、自回归预测、参数容量、Encoder/Decoder、注意力。
 2. 输入表示：System/User/Assistant、Special Token、Chat Template、Prompt 与指令微调。
@@ -955,7 +998,7 @@ Gate 不能只有“题数”，还必须在第一次调参前写清验收阈值
 要做：
 
 - 由助手根据实际资料、用户原始回答和订正过程自动整理 `notes/stage4/a4_02_llm_agent_basics.md`；带读中标 `DRAFT`，正式检查时定稿。用户不需要共写，除非明确要求。
-- 每个学习日只推进能在 3 小时总预算内完成的单元；未完成时保持 `DOING` 并记录下次起点。
+- 按知识单元与 Session 逐步推进；未完成时保持 `DOING`，记录已覆盖范围、任务总剩余和下次 Session 起点。
 
 问答：
 
@@ -1057,9 +1100,9 @@ Gate 不能只有“题数”，还必须在第一次调参前写清验收阈值
 
 ---
 
-# 阶段 4.5：LangGraph Lite（阶段 8 前置）
+# 阶段 4.5：LangGraph 基础工作流（A4 后当前入口）
 
-目标：在已经独立写过 Agent 循环后，尽早获得一个主流编排框架的可执行基础；理解框架如何表达控制流，而不是用框架遮住 ReAct、停止条件和工具边界。
+目标：在已经独立写过并通过 A4 Agent 循环后，尽早获得 LangGraph 的可执行基础；把已证明的控制原则迁移到新的“故障诊断与变更评审”业务问题，而不是复制 A4 研究摘要 Agent 或重新教学 Agent Loop。
 
 资料（执行当天重新核对当前官方 API）：
 
@@ -1071,29 +1114,31 @@ Gate 不能只有“题数”，还必须在第一次调参前写清验收阈值
 
 范围边界：
 
-- 安排在 `A4-Gate` 之后，复用其一条真实工具调用路径，不另建聊天机器人玩具项目。
+- 安排在 `A4-Gate` 之后；A4 的状态/停止/工具边界与测试思想只作前置证据，业务输入、工具和项目目录均使用新的故障诊断场景。
 - 只覆盖 `StateGraph`、state schema、node、`START/END`、固定/条件边、工具节点或等价工具分支、compile、invoke/stream 和节点/路由测试。
 - persistence/checkpointer、thread、interrupt/resume、durable execution、长期 Memory 和恢复幂等全部留到正式 G8，不提前扩课。
+- 直接使用 `StateGraph` 等显式编排能力；只调用 LangChain `create_agent` 不算本任务证据。
 
-## G8-00 最小迁移
+## G8-00 LangGraph 基础工作流
 
 要做：
 
-- 写 `code/stage8/g8_00_langgraph_lite.py`，把 A4-Gate 的一条手写控制流迁移为 Graph；state 必须有明确 schema，路由必须保留停止条件和步数/递归上限。
+- 在实际动手 Session 才创建 `code/stage8/incident_change_review_agent/`，实现项目 v1：输入合成或脱敏的告警、日志、配置与变更请求；state 必须有明确 schema。
+- 至少包含事实整理、只读诊断工具、证据审查和最终结论节点；条件边必须覆盖正常、证据不足、工具失败、最大步数和明确停止原因。
 - 输出至少一种 state/node 更新流，并按执行时的官方文档记录所用 LangGraph 版本和 streaming API，避免把过时教程写法固化进课程。
-- 测试单节点、条件路由、工具失败和终止边界；对比迁移前后同一批固定案例，确认没有关键行为回归。
-- 在 README 或 daily 写一张“手写循环 ↔ Graph”的职责映射，并说明何时不值得引入 LangGraph。
+- 对正常、路由、工具失败、证据不足和停止边界做确定性测试，并保留至少一次真实 DeepSeek 调用；mock 只用于稳定测试和故障注入。
+- 在 daily 写一张“A4 手写循环职责 ↔ Graph 职责”的映射，并说明本项目为什么值得或不值得引入 LangGraph；不要求复刻 A4 的输入与输出。
 
 必须回答：
 
-1. state、node、edge 分别承载原手写 Agent 的哪部分职责？
+1. state、node、edge 分别承载手写 Agent Loop 的哪部分职责？
 2. 条件边为什么必须有明确终止分支？
 3. 框架迁移后，哪些安全和工具执行责任仍属于应用代码？
 4. 什么简单任务继续使用普通函数/循环更合适？
 
 通过标准：
 
-- 同一条 Agent 路径可运行、可流式观察、可测试，固定正常/失败案例没有关键回归。
+- 故障诊断 v1 可运行、可流式观察、可测试；固定正常/失败案例与至少一次真实模型路径均有可定位证据。
 - 能脱离代码解释控制流映射和框架边界；不能只会照抄 quickstart。
 - 本任务不创建持久化或恢复证据，也不冒充 G8-Gate 的可恢复 Agent 能力。
 
@@ -1103,7 +1148,7 @@ Gate 不能只有“题数”，还必须在第一次调参前写清验收阈值
 
 目标：证明能够从真实入口追到 Agent、LLM 和 Tool，并安全修改一处；它不是求职主框架课程，也不阻塞 BE5。
 
-时间与优先级：最多 1–2 个学习日；W6/W7 容量不足时顺延到补坑块。只做一条链路，不按 Core/Agents/Tools/Memory/Protocol 目录分别建任务和 notes。
+优先级：保持可选。只有理解当前 LangChain/LangGraph 行为或排查真实问题需要时，才追一条入口到核心行为的源码路径；不按 Core/Agents/Tools/Memory/Protocol 目录分别建任务和 notes，也不阻塞主线。
 
 主资料：
 
@@ -1126,26 +1171,27 @@ Gate 不能只有“题数”，还必须在第一次调参前写清验收阈值
 
 # 阶段 5.5：Python 工程化与 Agent 后端
 
-目标：把“能写 Agent 脚本”升级为“能交付可维护、可测试、可并发、可持久化的 Agent 服务”。本阶段是 RAG 旗舰、LangGraph 持久化和公网部署的工程前置，不再把 async/FastAPI 压缩成半天顺带补。
+目标：把两个已经出现真实需求的 Python core 升级为可维护、可测试、可并发、可持久化、可交付的服务。BE5 不再整段挡在 RAG 前面：BE5-01/04 在工程文档 RAG 中即时学习，BE5-02/03 在两个 core 都可运行后统一学习，BE5-05/Gate 再验证通用生产后端能力。
 
 主资料：
 
 - Python 官方：typing、dataclasses、asyncio、logging。
 - pytest、Ruff、mypy/pyright 官方文档。
-- FastAPI、Pydantic v2、SQLAlchemy 2、Alembic、Redis 官方文档。
-- 已 PASS 的 T3/A4 代码：作为待服务化的真实业务逻辑，不另写无关 Todo demo。
+- FastAPI、Pydantic v2、SQLAlchemy 2、Alembic、PostgreSQL/pgvector、Redis 官方文档。
+- `code/stage6/engineering_docs_rag/` 与 `code/stage8/incident_change_review_agent/`：作为真实业务核心，不另写无关 Todo/chat demo。
 
 学习边界：
 
 - 不把 Python 重新从零学一遍；重点补和生产后端直接相关的类型、分层、测试、异步、配置、日志和持久化。
 - 不在本阶段堆微服务、Kubernetes 或复杂分布式理论；先做单体但边界清晰、可测、可部署的服务。
-- Redis 先覆盖缓存、限流/幂等键和任务状态；Celery/RQ/ARQ 任选其一做最小后台任务，不要求全部学习。
+- FastAPI 只作 application adapter；核心 RAG/Graph 必须可脱离 HTTP 独立运行和测试。
+- Redis 放在 BE5-05，覆盖缓存、限流/幂等键和任务状态；Celery/RQ/ARQ 任选其一做最小后台任务，不要求全部学习。
 
 ## BE5-01 Python 工程化基础
 
 要做：
 
-- 把一个已 PASS 的 T3/A4 模块重构为 `src/` + `tests/` 结构，使用 `pyproject.toml` 管依赖和工具配置。
+- 在 R6-01 的 `code/stage6/engineering_docs_rag/` 中建立 `src/` + `tests/` 结构，使用 `pyproject.toml` 管依赖和工具配置；真实 LangGraph 项目随后复用同样边界。
 - 为核心数据结构和边界补 type hints、`dataclass` 或 Pydantic model；用明确异常代替含糊的 `None`。
 - 使用 pytest 写单元测试和 mock 外部模型/API；配置 Ruff，并至少跑一次类型检查。
 - 使用 `logging` 输出结构化字段，配置由环境变量/Settings 读取，不散落在业务代码中。
@@ -1160,7 +1206,7 @@ Gate 不能只有“题数”，还必须在第一次调参前写清验收阈值
 
 要做：
 
-- 写 `code/stage5_5/be5_02_async_io.py`，对多个模拟模型/工具请求比较串行与并发耗时。
+- 在两个旗舰项目的现有 Python core 中选择真实并发调用链，比较串行与并发行为；不另建脱离项目的 async 教学脚本。
 - 使用 `asyncio.gather`/`TaskGroup`、Semaphore、timeout 和 cancellation；识别会阻塞事件循环的同步调用，并用异步客户端或线程池隔离。
 - 覆盖部分失败、整体超时、用户取消和限流四类场景；对 429 读取 `Retry-After`，实现有上限的指数退避 + jitter，并区分可重试与不可重试错误。
 - 用 fault injection 组合 provider 429/超时、SSE 客户端断开和部分工具成功，验证取消传播、并发槽位释放、重试次数、fallback/降级与成本上限；重试不得复制有副作用的操作。
@@ -1176,7 +1222,8 @@ Gate 不能只有“题数”，还必须在第一次调参前写清验收阈值
 
 要做：
 
-- 在 `code/stage5_5/be5_03_agent_api/` 复用 A4-Gate/G8-00 的真实 Agent 逻辑，用分层结构暴露普通 JSON 与 SSE `/chat` 接口；不另写无关聊天玩具。
+- 分别为 `engineering_docs_rag` 与 `incident_change_review_agent` 增加薄 FastAPI adapter；RAG 提供导入、查询、流式查询与任务状态，Graph 先提供运行、流式状态/工具轨迹和统一错误返回；不另写无关聊天玩具。
+- `approve/edit/reject` 属于 `G8-03` 的持久化 interrupt 增量：G8-03 在同一 Graph adapter 中补决策接口及重启恢复测试，`BE5-Gate` 再统一验收完整 REST/SSE/HITL 链路。BE5-03 不能提前要求尚未实现的 HITL。
 - 使用 Pydantic v2 校验请求/响应，统一错误结构，区分 4xx 与 5xx；API Key 只在服务端读取。
 - 加 request ID、health/readiness endpoint、超时与客户端断开处理；用 FastAPI TestClient/httpx 写接口测试。
 
@@ -1186,26 +1233,27 @@ Gate 不能只有“题数”，还必须在第一次调参前写清验收阈值
 - 路由层不直接堆 Agent 主循环，核心服务可脱离 HTTP 独立测试。
 - 能解释普通 JSON、SSE、WebSocket 的取舍，本项目主线选择 SSE 的理由明确。
 
-## BE5-04 PostgreSQL、迁移与 Redis
+## BE5-04 PostgreSQL、Alembic 与 pgvector
 
-前置：完成 `B0-03`，并能启动 PostgreSQL/Redis（本机或 Compose）。
+前置：完成 `B0-01`、`B0-03`、`B0-04` 与 `B0-Gate`，并能启动 PostgreSQL + pgvector（本机或 Compose）。
 
 要做：
 
-- 使用 SQLAlchemy 2 + Alembic 保存会话、运行记录、工具调用和任务状态；禁止用建表脚本代替迁移历史。
-- 使用 async driver，演示事务回滚、唯一约束或幂等键，避免重复提交。
-- 使用 Redis 实现缓存、简单限流/幂等或后台任务状态中的至少两项；说明缓存失效策略。
+- 在工程文档 RAG 项目中使用 SQLAlchemy 2 + Alembic 管理文档、chunk、embedding/index 版本、导入任务与审计；禁止用一次性建表脚本代替迁移历史。
+- 使用当前 `langchain-postgres` / pgvector 集成，覆盖 exact baseline、HNSW、metadata/tenant filter、增量更新、删除和版本迁移；执行时核对当前包版本与迁移说明。
+- 使用 async driver，演示事务回滚、唯一约束和幂等导入，避免重复 chunk 或关系数据/向量状态漂移。
 
 通过标准：
 
-- 数据库迁移可从空库执行，服务重启后会话/任务状态仍在。
+- 数据库迁移可从空库执行，服务重启后文档、索引版本与任务状态仍在。
 - 有 repository/service 边界和数据库集成测试。
-- 能解释 PostgreSQL 与 Redis 各自保存什么，不能把 Redis 当永久事实源。
+- 能解释 PostgreSQL 关系数据、向量列与索引的职责，以及 filter 与近似索引的取舍。
 
-## BE5-05 后台任务、认证与负载测试
+## BE5-05 Redis、后台任务、认证与负载测试
 
 要做：
 
+- 在真实项目中给 Redis 一个可验证用途：缓存、限流、幂等键或任务状态至少两项；明确 TTL、失效、一致性和为什么 Redis 不是永久事实源。
 - 对长文档导入或长 Agent 运行使用 Celery、RQ、ARQ 或等价后台任务机制，提供提交、查询状态、失败重试和取消入口。
 - 实现最小认证/授权边界（开发阶段可用 API key），并对用户/会话资源做归属校验。
 - 使用 Locust、k6 或等价工具做小规模负载测试，记录吞吐、p50/p95 延迟、错误率、模型调用并发和瓶颈。
@@ -1218,16 +1266,16 @@ Gate 不能只有“题数”，还必须在第一次调参前写清验收阈值
 
 ## BE5-Gate Agent 后端工程闯关
 
-前置：完成 `B0-03`、`B0-04` 与 `B0-Gate`；最小部署不能绕过数据库迁移、Docker 和可复现启动。
+前置：完成 `B0-01`、`B0-03`、`B0-04` 与 `B0-Gate`；最小部署不能绕过命令行/日志排错、数据库迁移、Docker 和可复现启动。
 
 任务：
 
-- 把 A4-Gate 或当前最完整 Agent 包成一个可复现后端服务，而不是新写玩具业务。
-- 提供 REST + SSE、Pydantic v2 schema、分层结构、PostgreSQL 持久化、Redis 的实际用途、后台任务、最小认证、结构化日志和 health endpoint。
+- 对工程文档 RAG 与故障诊断 Graph 的共同后端能力做一次 Gate；复用两个既有项目，不创建第三个教学业务。
+- 两个项目分别提供可运行 REST + SSE adapter、Pydantic v2 schema、分层结构、PostgreSQL 持久化；共用一次 Redis、后台任务、最小认证、结构化日志和 health/readiness 的通用能力验证。
 - `pytest` 覆盖单元/接口/数据库集成测试；Ruff + 类型检查通过。执行小规模负载测试，并在 README 或 daily 用紧凑表格保存命令、负载参数、吞吐、p50/p95、错误率、瓶颈和结论，不另建报告系统。
 - 配最小 CI 门禁（pytest、Ruff、类型检查、Docker build），部署一个临时或公开可访问的后端测试环境并执行 health/API smoke；这是求职反馈用的薄纵切，不提前建设完整告警、备份和回滚平台。
 - README 包含架构图、环境变量、迁移、启动、测试、负载验证和常见排错；依赖可锁定，陌生人能从空环境运行。
-- 写 `system-design.md`：定义主要 API 契约、ER/状态模型、请求与数据流、预期并发/数据量、可测 SLI/SLO、缓存与后台任务取舍、前三类失败/降级路径和至少 2 条 ADR；做一次 30 分钟限时复述。
+- 写 `system-design.md`：定义主要 API 接收什么、返回什么以及错误时怎样处理，ER/状态模型、请求与数据流、预期并发/数据量、可测 SLI/SLO、缓存与后台任务取舍、前三类失败/降级路径和至少 2 条 ADR；做一次 30 分钟限时复述。
 - 从 `work-scenario-coverage.md` 选择至少两个复合事故：每个同时包含 2–4 类当前已引入问题；至少一个完成进程/依赖故障下的止损、恢复与无重复副作用验证。
 
 必须回答：
@@ -1235,7 +1283,7 @@ Gate 不能只有“题数”，还必须在第一次调参前写清验收阈值
 1. 一次 SSE 请求从路由到模型/工具再到前端经过哪些层？
 2. 哪些 I/O 可以并发，如何限制模型和外部 API 并发？
 3. 请求中断、后台任务失败、重复提交时如何恢复且不重复副作用？
-4. PostgreSQL、Redis、进程内状态分别保存什么，为什么？
+4. PostgreSQL/pgvector、Redis、Graph checkpoint 与进程内状态分别保存什么，为什么？
 5. 压测中 p95、错误率和吞吐反映了什么？
 
 通过标准：
@@ -1249,19 +1297,25 @@ Gate 不能只有“题数”，还必须在第一次调参前写清验收阈值
 
 ---
 
-# 阶段 6：RAG / 知识库
+# 阶段 6：LangChain 工程文档 RAG
 
-目标：让 Agent 基于资料回答问题，并给出引用来源。
+目标：为开发/运维团队构建“工程文档 RAG 助手”，检索公开或脱敏的 API 文档、README、ADR、runbook 与排障文档；回答必须给出可定位引用，资料不足、无权限或引用不支持结论时明确拒答。
 
 主资料：
 
-- Datawhale Hello-Agents 第 8 章
-- Hugging Face Agents Course：Unit 3 Agentic RAG
-- LangChain / LlamaIndex RAG 官方文档
-- pgvector 官方文档；Qdrant/Milvus 官方文档按目标 JD 选一个对照
+- [LangChain Retrieval 官方文档](https://docs.langchain.com/oss/python/langchain/retrieval)：区分固定两步、Agentic 与 Hybrid RAG。
+- [LangChain overview](https://docs.langchain.com/oss/python/langchain/overview) 与当前 Document Loader、Text Splitter、Retriever、Tools/Agents 文档。
+- Datawhale Hello-Agents 第 8 章、Hugging Face Agents Course Unit 3：只用于原理和 Agentic RAG 辅助解释。
+- pgvector 与 langchain-postgres 官方仓库；Qdrant/Milvus 只在当前 JD 或架构取舍需要时短对照。
 - RAGAS、LangSmith Evaluation 或等价官方评估资料
 
-## R6-01 文档读取与切分
+框架边界：
+
+- 项目主角是 LangChain 的 Document、Loader/Splitter、Retriever、Tool、Agent Harness 与组合接口。
+- 当前 LangChain `create_agent` 底层建立在 LangGraph 上；使用该高层接口必须说明依赖关系，但隐藏 runtime 不算已经掌握显式 StateGraph。
+- 固定两步 RAG 是可预测 baseline；在完成 chunk、retrieval、引用和失败分层前，不用 Agentic RAG 跳过基础。
+
+## R6-01 LangChain 文档导入与切分
 
 资料：
 
@@ -1271,8 +1325,9 @@ Gate 不能只有“题数”，还必须在第一次调参前写清验收阈值
 
 要做：
 
-- 写 `code/stage6/r6_01_chunking.py`。
-- 至少读取 Markdown/TXT 和 PDF 两类资料；保留 `document_id`、来源、标题、页码/段落、内容 hash 等 metadata。
+- 在实际动手 Session 创建 `code/stage6/engineering_docs_rag/`，用 LangChain Loader、Text Splitter 与 Document 对象/metadata 字段建立可运行的导入切片；本任务只做 Loader、Splitter、Document/chunk 生命周期与轻量确定性测试。
+- `BE5-01` 紧接着在同一目录补 `src/tests/pyproject`、分层、配置、结构化日志、pytest、Ruff 与类型检查，两个任务分别正式验收；R6-01 不能把“已经顺手工程化”当作 BE5-01 自动 PASS。
+- 至少读取 Markdown、TXT 和 PDF；保留 `document_id`、来源、标题、页码/段落、内容 hash、版本与 tenant 等 metadata。
 - 记录解析失败、空页、超长段落、重复文件和编码异常；设计增量导入、更新、删除的文档状态，不把“启动时全量重建”当最终方案。
 
 问答：
@@ -1284,10 +1339,10 @@ Gate 不能只有“题数”，还必须在第一次调参前写清验收阈值
 通过标准：
 
 - 能展示切分结果。
-- 同一文档重复导入不产生重复 chunk；更新/删除后旧向量不会残留。
+- 同一文档重复导入不产生重复 Document/chunk；更新/删除后旧 Document、chunk 和导入状态不会残留，并能展示将来删除向量所需的稳定 `document_id/chunk_id` 边界。
 - 能解释固定长度、递归/结构感知切分各自的适用场景。
 
-## R6-02 Embedding 与检索
+## R6-02 Embedding、pgvector 与检索
 
 资料：
 
@@ -1296,9 +1351,9 @@ Gate 不能只有“题数”，还必须在第一次调参前写清验收阈值
 
 要做：
 
-- 写 `code/stage6/r6_02_retrieval.py`。
-- 先用小样例理解向量检索，再把主线数据写入 pgvector；Chroma/FAISS 只能作为热身或对照，不能作为旗舰项目唯一存储。
-- 实现向量检索与关键词/BM25 的 hybrid search，并接一个 rerank；记录不同 chunk、top-k、filter、rerank 配置的对照。
+- 在 `engineering_docs_rag` 中先用可解释的小样例/轻量本地索引理解 embedding、top-k 与相似度，再迁移 PostgreSQL + pgvector；本地索引只能作热身或 baseline。
+- 覆盖 exact baseline、HNSW、metadata/tenant filter、增量更新、删除和 migration；说明近似索引与 filter 可能如何影响召回。
+- 实现向量检索与 PostgreSQL 全文/关键词检索的 hybrid search，并接一个 rerank；记录不同 chunk、top-k、filter、索引、融合与 rerank 配置的对照。
 
 问答：
 
@@ -1311,8 +1366,10 @@ Gate 不能只有“题数”，还必须在第一次调参前写清验收阈值
 - 能返回相关片段。
 - 在带 reference chunk 的小数据集上计算 Recall@k 或 MRR 中至少一个检索指标；把只向量检索作为 baseline 对照配置，只保留数据集、配置和紧凑指标快照，不建设通用评估平台。
 - metadata filter 能阻止跨知识库/跨用户取回无权限资料。
+- 更新/删除文档后，PostgreSQL 中对应旧向量和索引版本不会残留；迁移、增量写入与删除有可重复测试。
+- 本任务正式检查时同时核验 `S-02` 的独立通过标准并分别写回状态；若 S-02 仍有缺口，不能只把它称作“已隐含覆盖”。
 
-## R6-03 带引用问答
+## R6-03 固定两步 RAG、Agentic RAG 与引用
 
 资料：
 
@@ -1321,34 +1378,37 @@ Gate 不能只有“题数”，还必须在第一次调参前写清验收阈值
 
 要做：
 
-- 写 `code/stage6/r6_03_cited_qa.py`。
-- 支持查询改写/拆分中的至少一种，但必须保留原始问题用于 trace。
-- 引用必须可定位到原文页码/段落；回答、引用和“资料不足拒答”分别评估。
+- 先实现固定两步 RAG：检索完成后再生成，作为可预测 baseline；支持查询改写/拆分中的至少一种，但必须保留原始问题用于 trace。
+- 再把 Retriever 作为 LangChain Tool，让 Agent 决定是否以及如何检索；与固定两步 RAG 使用同一数据集、模型、引用必须满足的规则和预算比较，不以“更智能”代替指标。
+- 引用必须可定位到原文页码/段落；回答、引用、无答案拒答和越权拒绝分别评估。
 
 问答：
 
 1. RAG 如何减少幻觉？
 2. 为什么必须返回引用？
 3. 资料里没有答案时怎么回答？
+4. 固定两步 RAG 与 Agentic RAG 的控制权、延迟、可预测性和失败面有什么不同？
 
 通过标准：
 
 - 有引用。
 - 不对资料外问题胡编。
 - 能区分“检索没找到”“找到但模型答错”“引用与答案不一致”三类失败。
+- 同一评估集上给出两种架构的质量、延迟、token/成本与失败分组对照，并据证据选择默认方案。
 
-## R6-Gate 领域 RAG 闯关
+## R6-Gate LangChain 工程文档 RAG 闯关
 
 任务：
 
-- 做 `code/stage6/r6_gate_domain_kb/`。在 W6/W10 岗位校准与用户既有领域经验的交集中选一个具体场景，使用公开、脱敏或可授权资料；默认不做没有目标用户和业务流程的通用个人知识库。
-- 先写 `problem-contract.md`：目标用户、原工作流程、要缩短/减少的人工步骤、输入/输出、权限边界、验收条件、失败时如何人工接管，以及至少 1 个可测业务/操作指标（如任务成功率、人工纠错率、单次处理时间或每题成本）。
+- 继续演化 `code/stage6/engineering_docs_rag/`，不另建 Gate 仓库。资料只使用公开、脱敏或明确授权的 API 文档、README、ADR、runbook 与排障材料，不默认读取个人知识库或公司未授权资料。
+- `problem-contract.md` 固定开发/运维用户、查找工程事实和排障依据的原流程、输入/输出、权限、引用必须满足的规则、验收、人工接管，以及至少 1 个可测业务/操作指标。
 - 功能 Gate 导入至少 20 篇或 50 页、多种长度/格式资料，支持增量导入、更新、删除、去重、问答、可定位引用和无答案拒答；不得只证明 3 篇玩具样例能跑。
 - 主线使用 pgvector；实现 metadata/权限 filter、hybrid search 和 rerank，并保留只做向量检索的 baseline 对照。
+- 保留固定两步 RAG 与 Agentic RAG 的同集对照；根据指标选择默认路径，不能默认叠加所有架构。
 - 每个 chunk 保留 `document_id`、来源、标题、页码/段落、hash、知识库/用户归属；重复导入不重复，更新/删除不残留旧向量。
 - 记录数据血缘与版本：解析器、chunk 配置、embedding/index 版本、导入任务、更新时间和删除审计；敏感文档/metadata 进入日志、trace、评估集前先脱敏。
 - 配版本化评估集至少 20 条，覆盖正常、跨文档、多跳/改写、无答案、解析失败、越权和注入输入；复用项目 tests 和一个小型领域指标脚本，分别记录 Recall@k/MRR、答案正确/忠实、引用正确、拒答、安全、延迟和成本，结果保存为设计笔记/daily 的紧凑快照，E10 前不另建通用 evaluator 或报告归档。
-- 接入 BE5-Gate 的 FastAPI/SSE、PostgreSQL/Redis、认证和后台导入任务，形成旗舰一 v1；复用并更新 BE5-Gate 已建立的 CI/Docker/测试部署/smoke，不把 R6 当第一次上线。
+- 接入项目自己的 FastAPI/SSE adapter、PostgreSQL/pgvector、认证和后台导入任务；复用并更新 BE5-Gate 的 Redis/CI/Docker/测试部署/smoke，不把 R6 当第一次上线。
 - 注入至少一个复合事故，例如 embedding/index 版本混用 + ACL filter 顺序错误 + 缓存 key 漏 tenant + 文档间接注入；要求根据检索/引用/trace/审计证据找齐根因并回归。
 - 扩展系统设计包：分别画导入与查询数据流，估算文档/chunk/并发规模，定义检索质量与 p95 延迟 SLO，说明索引更新一致性、成本、ACL 和降级策略，并记录关键 ADR。
 
@@ -1399,35 +1459,50 @@ Gate 不能只有“题数”，还必须在第一次调参前写清验收阈值
 
 - `notes/stage7/d7_01_orchestration_patterns.md`
 
-## D7-02 Agent 核心模式
+通过标准：
+
+- 能把 chaining、routing、parallelization 映射到至少一个已运行旗舰的真实节点/调用链，并用一条 trace 或测试说明选择的模式确实怎样工作。
+- 至少明确拒绝一个不合适的模式并说明代价；用户能独立解释三种模式的适用条件，不只复述章节定义。
+
+## D7-02 Agent 核心模式与协作边界
 
 资料：
 
-- Chapter 4 Reflection
+- Chapter 4 Reflection（只复用 A4 已 PASS 的概念，不重新教学）
 - Chapter 5 Tool Use
-- Chapter 6 Planning
+- Chapter 6 Planning（只讨论新项目中的模式取舍）
 - Chapter 7 Multi-Agent Collaboration
 
 问答：
 
 1. Tool Use 和 RAG 的区别是什么？
 2. Planning 适合所有任务吗？
-3. 多 Agent 最大风险是什么？
+3. 什么证据能证明当前问题确实需要多 Agent，而不是一个 Agent 加确定性工具/节点？
+
+要做：
+
+- 先用现有单 Agent 版本建立质量、延迟、成本和失败类型 baseline；没有可定位瓶颈时不升级多 Agent。
+- 本任务只负责定位单 Agent 的可测瓶颈、判断是否准入多 Agent，并冻结角色职责、带类型约束的交接字段、共享/私有 state、停止/预算/升级和对照方案。
+- `S-04` 紧接着把获准的最小协作增量落到 LangGraph“故障诊断与变更评审 Agent”，不另起 supervisor 玩具项目；两项分别验收，若不准入多 Agent，也必须由 S-04 记录保留单 Agent 的对照决定。
 
 产出：
 
 - `notes/stage7/d7_02_core_agent_patterns.md`
+
+通过标准：
+
+- 单 Agent baseline 的问题和证据可定位；能说明为什么选确定性节点、单 Agent 或受控多 Agent，而不是按热词选架构。
+- 取舍笔记、实验问题、指标、预算、停止与回退条件在 S-04 实现前冻结；本任务 PASS 不冒充 S-04 的代码/同集对照 PASS。
 
 ## D7-03 可靠性、长期 Memory 与工程模式
 
 资料：
 
 - Chapter 8 Memory Management
-- Chapter 10 MCP
-- Chapter 12 Exception Handling and Recovery
-- Chapter 14 RAG
-- Chapter 18 Guardrails/Safety Patterns
-- Chapter 19 Evaluation and Monitoring
+- Chapter 12 Exception Handling and Recovery（只读与 Memory 失败/恢复相关切片）
+- Chapter 18 Guardrails/Safety Patterns（只读 PII、隔离与 poisoning 相关切片）
+- Chapter 19 Evaluation and Monitoring（只读 Memory A/B 所需指标切片）
+- R6 的 RAG 证据直接复用，MCP 留到 M9；本任务不重复读完整 RAG 或提前展开 MCP。
 
 要做：
 
@@ -1445,7 +1520,7 @@ Gate 不能只有“题数”，还必须在第一次调参前写清验收阈值
 产出：
 
 - `notes/stage7/d7_03_reliability_patterns.md`
-- `code/stage7/d7_03_agent_memory/`
+- 在 `code/stage6/engineering_docs_rag/` 或 `code/stage8/incident_change_review_agent/` 中选择更需要长期事实的一项做增量，不另建 Memory 玩具目录
 
 通过标准：
 
@@ -1470,7 +1545,9 @@ Gate 不能只有“题数”，还必须在第一次调参前写清验收阈值
 
 # 阶段 8：LangGraph / 可控工作流
 
-目标：在 G8-00 已验证的基础 Graph 上，做可持久化、可暂停恢复、可安全重放的 Agent 工作流；本阶段重点是 durable execution，不重复教授 node/edge 入门。
+目标：在 G8-00 的“故障诊断与变更评审 Agent”基础上，做可持久化、可暂停恢复、可安全重放的 Agent 工作流；本阶段重点是 durable execution，不重复教授 node/edge 入门。
+
+依赖边界：G8-01~03 不再等待 D7。它们只需能区分 checkpoint/thread state 与跨 thread 的长期 Memory；真正的用户/业务长期事实、TTL、provenance、删除和 poisoning 由 D7-03 在项目可运行后系统承担。
 
 主资料：
 
@@ -1496,19 +1573,24 @@ Gate 不能只有“题数”，还必须在第一次调参前写清验收阈值
 
 - `notes/stage8/g8_01_durable_boundary.md`
 
-## G8-02 持久化 Graph
+通过标准：
+
+- 笔记能逐项映射 G8-00 的 state、节点、副作用与停止点，明确哪些状态进入 checkpoint、哪些事实必须留在长期 Memory/业务数据库。
+- 用户能针对“工具执行前崩溃”和“副作用已发生但 checkpoint 未写入”两个窗口，独立判断 replay 风险与幂等要求；不能只背概念差异。
+
+## G8-02 持久化 Graph 增量
 
 资料：
 
-- Hugging Face：`unit2/langgraph/first_graph.mdx`
-- Hugging Face：`unit2/langgraph/building_blocks.mdx`
+- LangGraph 官方：persistence、checkpointer 实现、thread 配置、fault tolerance 与 testing。
+- Hugging Face 的 `first_graph.mdx` / `building_blocks.mdx` 仅作 G8-00 基础查漏，不重新带读或重考。
 
 要做：
 
-- 写 `code/stage8/g8_02_first_graph.py`。
-- 为 state 定义明确 schema，配置 thread_id 与持久化 checkpointer；先用 SQLite/PostgreSQL 开发实现，不用仅进程内 saver 作为最终交付。
+- 在 `code/stage8/incident_change_review_agent/` 的 G8-00 核心上增量实现，不另建脱离业务的 first-graph 玩具。
+- 为 state 定义明确 schema，配置 `thread_id` 与持久化 checkpointer；可用 SQLite 做短暂开发验证，但本任务 PASS 前迁移到 PostgreSQL saver，并验证从空库初始化、进程重启恢复和 thread 隔离；仅进程内 saver 或最终停在 SQLite 都不满足当前生产主线。
 - 演示运行中断后重新启动进程，并从 checkpoint 继续。
-- 明确边界：checkpoint/thread state 保存单个执行线程的控制流状态，不等于跨 thread 的长期 Memory；需要跨会话用户事实时复用 D7-03 的持久化 Memory，并保持 owner/tenant 隔离。
+- 明确边界：checkpoint/thread state 保存单个执行线程的控制流状态，不等于跨 thread 的长期 Memory；本任务只记录未来接入 D7-03 的接口边界，不提前实现或冒充长期 Memory。
 
 问答：
 
@@ -1522,23 +1604,25 @@ Gate 不能只有“题数”，还必须在第一次调参前写清验收阈值
 - 同一 thread 能续接，不同 thread 状态隔离；进程重启后仍能恢复。
 - 能用代码和存储记录区分 state/checkpoint 与长期 Memory，不把二者混称。
 
-## G8-03 文档分析 Agent
+## G8-03 HITL、错误恢复与幂等
 
 资料：
 
-- Hugging Face：`unit2/langgraph/document_analysis_agent.mdx`
+- LangGraph 官方：interrupts、persistence、fault tolerance、streaming。
+- Hugging Face `unit2/langgraph/document_analysis_agent.mdx` 只用于观察控制流模式，不复制其业务题目。
 
 要做：
 
-- 写 `code/stage8/g8_03_document_analysis_agent.py`。
-- 加 transient error retry、不可恢复错误、用户可修复错误三类分支；危险工具使用 interrupt 做 approve/edit/reject。
+- 在 `code/stage8/incident_change_review_agent/` 增量实现，不另建文档分析 Agent。
+- 加 transient error retry、不可恢复错误、用户可修复错误三类分支；任何有副作用的变更只允许在 sandbox/测试环境执行，并使用持久化 interrupt 做 approve/edit/reject。
 - 对 interrupt 前后的外部副作用设计幂等键，避免 resume/replay 重复写入或重复发送。
 
 问答：
 
-1. 条件边如何决定下一步？
-2. 工具结果如何写回 state？
-3. 如何防止无限执行？
+1. transient、non-retryable、user-fixable 三类错误怎样划分，分错会造成什么后果？
+2. interrupt 前、外部副作用执行中、以及副作用成功但 checkpoint 尚未写入时分别崩溃，恢复策略有什么不同？
+3. 幂等键由谁生成、绑定哪些业务字段、保存在哪里、何时算已消费？
+4. approve/edit/reject 恢复后哪些 state 可以修改，哪些原始证据和审计记录不能被覆盖？
 
 通过标准：
 
@@ -1551,12 +1635,14 @@ Gate 不能只有“题数”，还必须在第一次调参前写清验收阈值
 
 任务：
 
-- 做 `code/stage8/g8_gate_research_graph.py`。
-- 输入主题，检索/整理/生成报告，过程可追踪。
+- 完成 `code/stage8/incident_change_review_agent/`，不再创建研究型 Graph 或重复 A4 的 research-agent 题目。
+- 输入脱敏/合成的告警、日志、配置、runbook 与变更请求；先区分事实和假设，再调用只读诊断工具收集证据，覆盖主要根因、止损方案、修复建议和可追踪执行过程。
 - 使用持久化 checkpointer、thread_id、结构化 state、timeout/retry/cancel、checkpoint resume 和 HITL approve/edit/reject；至少一次在进程退出后恢复未完成任务。
 - 需要写文件、更新数据库或调用有副作用工具时使用幂等键；用故障注入验证恢复不会重复副作用。
 - 配版本化评估集至少 20 条，分别评估任务完成、节点/工具轨迹、恢复、HITL、安全、延迟和成本；对影响控制流、恢复、HITL、安全或成本的关键修改，复用同一数据集和项目 tests 做对比并把结果写 daily/设计笔记，E10 前不另建通用评估平台。
-- 接入旗舰二的 FastAPI/SSE 与 Vue 工具/状态可视化，不把 Graph 留在单文件脚本。
+- 接入旗舰二的 FastAPI/SSE，并提供可观察的工具/状态界面，不把 Graph 留在单文件脚本。界面可以是 curl/API 客户端/极薄调试页；也允许助手在真正进入本任务时，从 GitHub 选择许可证兼容、维护状态可接受且依赖可审计的 Vue 开源骨架后组合成薄界面。若采用第三方 Vue，本 Gate 当场保留来源/版本/许可证/维护状态/依赖风险和采用理由，用户审核关键 diff，并能说明数据流与密钥不进前端等最小安全边界；这只是第三方代码准入审核，不冒充完整 Vue 掌握。J11-03 再做独立 Vue 能力复核、用户亲自解释/修改和产品化演进。
+- 在单 Agent baseline 通过后，按 `S-04` 做一次受控多 Agent 对照：只拆分能被独立验证的诊断/风险审查职责，使用带类型约束的交接格式、共享/私有 state、最大 handoff 次数、预算、停止和人工升级；若质量没有提高或成本/延迟明显恶化，保留单 Agent 为默认并记录回退决定。
+- 正式运行前冻结分组阈值与至少 20% 且不少于 5 条 holdout；恢复、HITL、关键越权/泄漏和重复副作用固定案例必须 100% 通过。正常任务成功、轨迹、延迟和成本分别按预设门槛判定，不能用总平均掩盖关键失败。
 - 扩展系统设计包：明确 state/checkpoint 的存储与生命周期、恢复目标、幂等边界、超时/人工等待 SLO、成本上限和至少 2 条控制流 ADR。
 
 必须回答：
@@ -1566,6 +1652,12 @@ Gate 不能只有“题数”，还必须在第一次调参前写清验收阈值
 3. 进程在工具执行前后崩溃，各自如何恢复且不重复副作用？
 4. 为什么 HITL 需要持久化而不只是 `input()`？
 5. 如何用 trace 判断是路由、工具、模型还是恢复逻辑出错？
+
+通过标准：
+
+- 从空环境可启动 API 与持久化 Graph；自动测试、固定评估、进程重启恢复、HITL 三分支、取消/错误分类和无重复副作用验证可重复运行。
+- WS-02/04/08/11 达到 `work-scenario-coverage.md` 要求的对应切片等级；每个复合事故的全部根因、修复、全量回归和再次故障注入都有定位证据。
+- 用户能独立解释 state/checkpoint/thread、崩溃窗口、幂等边界、单/多 Agent 取舍和界面/API 边界；若使用第三方 Vue，最小准入审核齐全。由助手组合的前端代码不计作独立 Vue 掌握证据，完整组件状态/SSE/认证/错误处理能力仍由 J11-03 验收。
 
 ---
 
@@ -1597,6 +1689,11 @@ Gate 不能只有“题数”，还必须在第一次调参前写清验收阈值
 产出：
 
 - `notes/stage9/m9_01_mcp_concepts.md`
+
+通过标准：
+
+- 笔记基于任务开始当天核验的官方 specification/SDK，标明 revision 或检查日期；能画清 host、client、server、能力发现、transport 与授权边界。
+- 用户能在新场景中区分 MCP、普通函数调用、Agent 编排框架，并说明 MCP server 失败/越权时由哪一层处理。
 
 ## M9-02 本地 MCP Server
 
@@ -1650,12 +1747,19 @@ Gate 不能只有“题数”，还必须在第一次调参前写清验收阈值
 - 工具发现、schema、超时、断连、重连、权限拒绝、审计日志和长结果裁剪都有测试；恶意/未知 MCP server 不得默认获得本机敏感权限。
 - 配版本化评估集至少 20 条，分别记录工具发现、参数、权限、安全、最终答案、延迟和失败案例；优先把确定性部分写成长期维护的 MCP 集成/权限/断连测试，模型质量使用紧凑案例表，E10 前不为 M9 单独建设评估平台。
 - 写一页生产授权说明：resource server、authorization server、client、用户分别是谁，token 能发给谁；不得把 access token 写进 trace 或模型上下文。
+- 正式运行前冻结分组阈值与至少 20% 且不少于 5 条 holdout；权限拒绝、越权/泄漏、未知或恶意 server、token 错 audience/scope 和断连恢复固定案例必须 100% 通过，不能被总通过率稀释。
+
+通过标准：
+
+- STDIO 真实主链与受保护 HTTP 最小样例都可重复运行；工具发现、正常调用、超时/断连/重连、权限拒绝、审计和长结果裁剪有自动测试。
+- WS-02/06/07/12 达到 `work-scenario-coverage.md` 要求的对应切片等级；凭据不进入模型上下文、日志或 trace，恶意 server 没有默认本机权限。
+- 用户能独立解释 transport、capability、授权各方、scope/audience、失败反馈和最小权限取舍。
 
 ---
 
 # 阶段 10：评估、监控与综合项目
 
-目标：做一个可展示、可复盘、可评估的 Agent 项目。
+目标：把两个已经存在的旗舰接入一套可复用、可追溯的评估基础设施，并形成能映射到真实代码和部署的系统设计包；不新建第三个综合项目。
 
 主资料：
 
@@ -1680,31 +1784,26 @@ Gate 不能只有“题数”，还必须在第一次调参前写清验收阈值
 
 产出：
 
-- `notes/stage10/e10_01_evaluation_plan.md`
+- `notes/stage10/e10_01_agent_evaluation.md`
 - `code/stage10/e10_01_eval_harness/`：版本化 dataset、target、代码 evaluator、LLM-as-judge、实验 metadata 和对比报告。
 
 要做：
 
-- 把系统拆成至少两个组件指标和一个端到端指标：RAG 示例为 retrieval、answer/citation、end-to-end；Agent 示例为 tool/arguments、trajectory/task-success、end-to-end。
+- 建一套共享 runner/实验 metadata/报告格式，但为两个旗舰分别保留领域 dataset、target adapter 和 evaluator；不得复制成两套平行评估平台。
+- 两个旗舰都拆成至少两个组件指标和一个端到端指标：RAG 使用 retrieval、answer/citation、end-to-end；LangGraph Agent 使用 tool/arguments、trajectory/task-success、end-to-end。一个项目的高分不能替另一个项目过关。
 - 同时使用确定性代码规则与 LLM-as-judge；人工抽查一部分 judge 结果，记录误判，不能把 judge 当绝对真值。
-- 运行 baseline 与候选版本，比较质量、延迟、token/成本和失败分组；设置最低回归阈值并接入 CI。
+- 两个旗舰都运行各自的 baseline 与候选版本，比较质量、延迟、token/成本和失败分组；分别冻结最低回归阈值并通过共享入口接入 CI。
 - 区分 offline eval 与 online monitoring：把真实失败 trace 脱敏后回灌离线 dataset，形成闭环。
 
 通过标准：
 
-- 数据、prompt/model/tool 配置和实验结果可追溯到版本。
-- 至少一次改动因为回归门禁失败而被拦下，或用故障注入证明门禁有效。
+- 两个旗舰的数据、prompt/model/tool 配置和实验结果都可追溯到版本；共享基础设施没有抹平两者不同的指标和失败分组。
+- 每个旗舰的 adapter 都用故障注入证明门禁有效；整个任务至少有一次真实候选改动因回归门禁失败被拦下。
 - 能解释正确率平均值为什么会掩盖危险输入、长文档、无答案等分组失败。
 
 ## E10-02 综合项目设计
 
-候选项目：
-
-- 面向具体领域与工作流程的知识问答/决策辅助 Agent
-- 文件整理与总结 Agent
-- Deep Research 简化版
-- 旅行规划 Agent
-- 编程学习助教 Agent
+设计对象固定为两个现有旗舰：`code/stage6/engineering_docs_rag/` 与 `code/stage8/incident_change_review_agent/`。不得从通用候选清单再起第三个旅行、研究、文件整理或助教项目。
 
 必须回答：
 
@@ -1716,8 +1815,9 @@ Gate 不能只有“题数”，还必须在第一次调参前写清验收阈值
 
 系统设计任务：
 
-- 在 30 分钟内完成一版不看原笔记的设计，再与真实项目对照订正。
-- 明确用户/业务目标、功能与非功能需求、API/事件契约、数据模型、请求/数据流和信任边界。
+- 用户从两个旗舰中选择一个代表对象，在 30 分钟内完成一版不看原笔记的设计，再与真实项目对照订正；这道代表性任务用于证明独立设计能力，不要求机械重写第二份全文。
+- 助手根据已 PASS 的 Gate、E10-01 指标和用户关键决策整理两个旗舰的系统设计包：共享能力只写一次，每个项目分别写清业务目标、数据/状态、失败、安全、容量、SLO、成本与采用/拒绝的方案；用户最终审核。
+- 明确用户/业务目标、功能与非功能需求、API/事件接收什么、返回什么及失败怎样表示的规则、数据模型、请求/数据流和信任边界。
 - 给出初始容量假设、2–4 个可测 SLI/SLO、成本预算，以及缓存、队列/后台任务、同步/异步和降级取舍。
 - 写至少 3 条 ADR，说明选择、备选方案、理由和代价；用现有测试、压测、eval 或 trace 校验关键假设。
 
@@ -1728,16 +1828,18 @@ Gate 不能只有“题数”，还必须在第一次调参前写清验收阈值
 
 通过标准：
 
-- 设计内容能映射到现有代码和部署，不是脱离项目的通用八股图。
+- 两个旗舰的设计内容都能映射到现有代码、评估和部署，不是脱离项目的通用八股图；共享部分与项目专属部分边界清楚。
 - 能在追问下解释容量、SLO、数据一致性、失败恢复、安全、成本和扩展顺序。
-- 至少一条设计假设被真实指标证实或推翻，并形成 ADR 更新。
+- 每个旗舰至少一条设计假设被真实指标证实或推翻，并形成 ADR 更新。
 
 ## FINAL-Gate 综合项目答辩
 
+执行位置：本节在文件中归属阶段 10，但不是按章节位置立刻执行。必须先完成 `S-01`、`J11-02`～`J11-06` 与 `S-05` 正式收口，再做 `FINAL-Gate`；之后才进入 `J11-07 → J11-08 → J11-Gate`。不能用含糊的“J11/FINAL”倒置依赖。
+
 产出：
 
-- `code/final_project/`
-- `code/final_project/README.md`
+- 使用 J11-02 已冻结并完成产品化的 `product_flagship` 作为综合答辩对象，不在 FINAL 临时换项目或新建第三个综合项目目录；若确需改选，必须先按 J11-02 的改选规则补齐前端、部署、观测和回归证据。
+- 所选旗舰项目的 README、架构/数据流/信任边界、版本化评估和部署证据
 - `notes/stage10/final_defense.md`
 
 通过标准：
@@ -1779,9 +1881,11 @@ Gate 不能只有“题数”，还必须在第一次调参前写清验收阈值
 
 - 不要等阶段 10 学完才开始。从阶段 3/4（能调 API、能做最小 Agent）起就并行启动：每做出一个能跑的东西，就往作品集里沉淀一次。
 - 容器化（J11-04）依赖工程基础 `B0-04 Docker`；做这一步前先把 B0-04 补掉。
-- W6/W12/W16/W19 按 `tracker/job-readiness.md` 做双轨审计：核验 4–6 条京东/腾讯等大厂能力标杆，并另抽样 10 条当前在招岗位（至少 7 条 `HARD_ELIGIBLE`）计算真实可投匹配率；不要到最后才发现课程标题、标杆深度和岗位资格不是一回事。
+- W6/W12/W16/W19 按 `tracker/job-readiness.md` 做双轨审计：核验 4–6 条京东/腾讯等大厂能力标杆，并另抽样恰好 10 条当前在招且已核清硬门槛的 `HARD_ELIGIBLE` 岗位计算真实可投匹配率；不要到最后才发现课程标题、标杆深度和岗位资格不是一回事。
 
 ## J11-01 GitHub 与工程习惯
+
+执行边界：W6 起随两个旗舰逐步累计，不要求在还没有真实旗舰改动时一次写完；最晚在 `J11-06` 作品集组合前，用真实 README、分支/PR/CI/review/revert 与 AI 协作审查证据正式收口。
 
 要做：
 
@@ -1810,7 +1914,8 @@ Gate 不能只有“题数”，还必须在第一次调参前写清验收阈值
 
 要做：
 
-- 复用 `BE5-Gate` 的工程骨架，把阶段 6 RAG 旗舰或阶段 8 可控 Agent 接入正式服务；此任务不再负责第一次学习 async/FastAPI。
+- 先读取 R6-Gate、G8-Gate 与 E10 的质量、风险、演示价值和维护成本证据，由用户冻结唯一 `product_flagship`（阶段 6 RAG 或阶段 8 可控 Agent）并写一条 ADR；J11-03、J11-04、J11-05、J11-06 与 FINAL-Gate 都复用这个选择。若后续改选，必须新增 ADR 并补齐新对象缺失的前端、部署、观测和回归证据，不能静默切换。
+- 复用 `BE5-Gate` 的工程骨架，把 `product_flagship` 强化为正式产品服务；此任务不再负责第一次学习 async/FastAPI。另一个旗舰保留其 Gate 已通过的可复现 API/demo 和 E10 评估 adapter，不再做第二套产品前端。
 - 补齐产品接口：知识库/会话/任务资源、SSE、后台导入、认证授权、限流、request ID、health/readiness、统一错误和 API 文档。
 - 处理并发、超时、取消、幂等和错误恢复；区分 4xx（用户/权限问题）和 5xx（服务内部问题）。
 
@@ -1829,9 +1934,11 @@ Gate 不能只有“题数”，还必须在第一次调参前写清验收阈值
 
 要做：
 
-- 先复核组件、props/emit、响应式状态、异步请求、错误/加载状态和浏览器网络调试；未独立验证前不按“已经会 Vue”处理。
-- 用 Vue 写一个对话 / 工具调用可视化界面，接 J11-02 的接口。
-- 支持：流式显示、展示工具调用过程、展示引用来源（呼应阶段 6 RAG）。
+- 用户已说明自己会一些 Vue；先用一个最小诊断切片复核组件、props/emit、响应式状态、异步请求、错误/加载状态和浏览器网络调试。通过的部分不重复上完整入门课，未独立验证的部分仍按零基础补齐。
+- 助手可以在本任务真正启动时，从 GitHub 选择许可证兼容、维护状态可接受、依赖与安全边界可审计的 Vue 开源项目/组件作为骨架并负责机械组合；不得提前克隆或把未知许可证/过时依赖直接并入旗舰。
+- 用户负责审核采用/拒绝的组件、关键 diff 与依赖，亲自完成或解释状态流、SSE、认证、错误/加载状态和前后端安全边界；“开源项目能跑”本身不算用户学习证据。
+- 只为 J11-02 冻结的 `product_flagship` 建正式前端：若选择 G8 且 G8-Gate 已有薄界面就复用演化；其他情况在已审计骨架上组合。不得同时为另一个旗舰重建第二套前端。
+- 两类产品都支持流式显示；选择 G8 时重点展示工具/状态/HITL，选择 RAG 时重点展示引用来源、无答案和文档权限。界面只实现当前产品真实存在的能力。
 
 问答：
 
@@ -1851,8 +1958,8 @@ Gate 不能只有“题数”，还必须在第一次调参前写清验收阈值
 
 要做：
 
-- 用 `Dockerfile` + `compose.yaml` 把前端、后端、（可选）向量库 / 数据库打包。
-- 把 BE5-Gate 的后端测试部署和 R6-Gate 的领域 RAG v1 演化为公网产品 demo（便宜云主机 / Railway / Render 等任一），补齐前端、域名/HTTPS、负载、备份、告警和回滚；不重建第三套部署工程。
+- 用 `Dockerfile` + `compose.yaml` 把 `product_flagship` 的前端、后端、（可选）向量库 / 数据库打包。
+- 把 BE5-Gate 与对应旗舰 Gate 的测试部署演化为唯一公网产品 demo（便宜云主机 / Railway / Render 等任一），补齐前端、域名/HTTPS、负载、备份、告警和回滚；另一个旗舰只维持可复现 API/demo、容器和评估证据，不建设第二套公网产品工程。
 - 配置 CI/CD：测试、Ruff、类型检查、eval regression、Docker build、部署后 smoke test；失败不得发布。
 - 加 health/readiness、非 root 用户、secret 注入、持久化 volume、日志与备份/恢复说明；使用 HTTPS，记录一次部署失败或回滚演练。
 - 用 k6/Locust 做部署前后小规模负载测试，记录 p50/p95、错误率、吞吐和资源瓶颈。Kubernetes 只作可选加分，不作为主线门槛。
@@ -1878,7 +1985,7 @@ Gate 不能只有“题数”，还必须在第一次调参前写清验收阈值
 
 要做：
 
-- 给你的 Agent 接入 tracing：能看到每一步 LLM / 工具调用、token 消耗、耗时。
+- 给 `product_flagship` 接入产品级 tracing：能看到每一步 LLM / 工具调用、token 消耗、耗时；另一个旗舰继续通过 E10 adapter 与 Gate trace 保留回归证据，不复制完整线上观测栈。
 - 接 E10 的版本化评估集与 baseline，记录组件/端到端质量、token/成本、p50/p95、错误率和安全分组；配置离线回归门禁。
 - 对线上 trace 做脱敏、采样和异常分组；把真实失败样例回灌离线 dataset，并演示一次“发现问题 → 修复 → 回归 → 上线”的闭环。
 - 建立 logs/metrics/traces 的 request/run 关联与最小 dashboard/告警；演练一次 provider 429、DB/Redis 下线、队列积压、SSE 中断或成本突增引发的复合事故。
@@ -1902,22 +2009,22 @@ Gate 不能只有“题数”，还必须在第一次调参前写清验收阈值
 
 - 整理成“1 个小而完整 + 2 个旗舰”而不是 3–5 个都重做：
   1. 小项目：结构化信息抽取工具（阶段 2，轻量 README + 测试）。
-  2. 旗舰一：面向明确用户和业务流程的领域 RAG 应用（阶段 6，FastAPI + Vue + 引用 + 技术/业务指标 + 部署）；只有能证明真实使用流程和验收价值时，个人知识库才可作为具体领域，而不是默认题目。
-  3. 旗舰二：从 A4-Gate 持续演化到 LangGraph/FINAL 的可控 Agent（工具、安全确认、trace、失败恢复）；不要把 A4、G8、FINAL 拆成三个互不复用的新仓库。
+  2. 旗舰一：`code/stage6/engineering_docs_rag/` 工程文档 RAG 助手（LangChain 主项目，FastAPI、引用、技术/业务指标、可复现部署；只有被选为 `product_flagship` 时才要求 Vue 与公网产品）；默认使用公开或脱敏的 API 文档、README、ADR、runbook 和排障资料，不以个人知识库作为业务题目。
+  3. 旗舰二：`code/stage8/incident_change_review_agent/` 故障诊断与变更评审 Agent（LangGraph 主项目，持久工作流、HITL、受控多 Agent 对照、trace、失败恢复与可复现 API/demo；只有被选为 `product_flagship` 时才要求正式 Vue 与公网产品）；A4 只作为已 PASS 的手写 Agent Loop 参照，不复制为新研究 Agent。
 - 每个项目写清楚：为谁解决什么流程问题、基线是什么、用了哪些技术、难点、取舍和指标结果；没有改善的指标也要解释原因和下一实验。
 - 每个旗舰附：架构/数据流/信任边界图、版本化评估报告、负载报告、威胁模型、失败复盘、CI 状态和可复现部署说明；至少记录一次真实迭代前后对比。
-- 旗舰项目中至少一个在完成基础复核后，展示 Python/FastAPI Agent 后端与 Vue 前端的真实集成边界（SSE/HTTP、认证、错误契约、任务状态）；只把项目中已经验证的部分写成差异化，不引入第二套后端技术栈。
+- 冻结的 `product_flagship` 展示 Python/FastAPI Agent 后端与 Vue 前端的真实集成边界（SSE/HTTP、认证、系统出错时怎样返回结果、任务状态）；另一个旗舰保留可复现 API/demo、完整评估和部署说明。只把项目中已经验证的部分写成差异化，不引入第二套后端技术栈。
 
 通过标准：
 
-- 两个旗舰项目至少一个「带前端 + 部署上线」，另一个至少有可复现 API/demo 和完整评估，不是只能在终端跑的脚本。
+- `product_flagship` 必须「带前端 + 部署上线」，另一个至少有可复现 API/demo、容器启动方式和完整评估，不是只能在终端跑的脚本；两个项目不得各建一套正式前端/公网发布链。
 
 ## J11-07 简历与岗位匹配
 
 要做：
 
 - 按目标 JD（大模型应用 / Agent 应用开发）写一版简历；既往工作经历如实保留，项目主线突出 `Python/FastAPI + Vue + Agent/RAG` 的完整应用落地证据。
-- 按 `tracker/job-readiness.md` 做双轨样本：4–6 条京东/腾讯等大厂岗位校准工程上限；另收集 10 条当前在招岗位、至少 7 条满足硬门槛，用于计算真实匹配率和差距。
+- 按 `tracker/job-readiness.md` 做双轨样本：4–6 条京东/腾讯等大厂岗位校准工程上限；另收集恰好 10 条当前在招且满足硬门槛的岗位，用于计算真实匹配率和差距。
 - 这不是 W19 才第一次做：W6、W12、W16、W19 都更新双轨审计；W19 负责把累计证据收束进简历。Java/C++、学历或年限不匹配的大厂岗位只能作为标杆，不能写成“已满足”。
 - BE5-Gate/W10 完成最小部署后做一次轻量求职材料校准：把新证据写成项目描述，并拿 2–3 条 `HARD_ELIGIBLE` 岗位检查缺口；它不替代 W12 正式双轨审计，也不要求证据不足时强行投递。
 
@@ -1968,7 +2075,10 @@ Gate 不能只有“题数”，还必须在第一次调参前写清验收阈值
 - 作品集里至少有一个可上线访问的 demo。
 - 简历项目与目标 JD 对得上。
 - 能完整、自信地讲清至少一个项目的端到端实现。
-- `tracker/job-readiness.md` 的核心能力至少达到 `JOB_EVIDENCE`，并通过一次不看原笔记的模拟面试；仍未到 `INTERVIEW_READY` 的项必须在差距清单中如实保留。
+- 两个旗舰中至少一个达到 `JOB_EVIDENCE`；另一个至少达到 `COURSE_PASS` 且把未形成岗位证据的缺口写清。
+- Python 后端/API、测试与评估、部署与运维、安全与权限这四个必达能力域都达到 `JOB_EVIDENCE`，并由另一工具完成交叉复核；不能因一个项目或一个能力域很强就代表整体通过。
+- 至少一个主旗舰的 Agent/workflow 能力达到 `JOB_EVIDENCE`；若主投 RAG 岗，RAG 也必须达到 `JOB_EVIDENCE`，若主投 durable Agent 岗，则 LangGraph/恢复能力必须达到 `JOB_EVIDENCE`。
+- 通过一次不看原笔记的模拟面试后，才把对应能力升级为 `INTERVIEW_READY`；其他未到该级别的项必须在差距清单中如实保留。
 
 ---
 
@@ -1978,7 +2088,7 @@ Gate 不能只有“题数”，还必须在第一次调参前写清验收阈值
 
 ## S-01 多厂商模型切换
 
-挂载：A4-Gate 后、J11-02 前；不再和 T3-Gate 挤在同一个周末。
+挂载：A4-Gate 后、J11-02 前；按真实项目依赖选择接入点，不阻塞当前 G8/R6。
 
 要做：
 
@@ -1994,7 +2104,7 @@ Gate 不能只有“题数”，还必须在第一次调参前写清验收阈值
 
 ## S-02 生产向量检索
 
-挂载：阶段 6（R6-02）。
+挂载：阶段 6（R6-02/R6-Gate）。与 R6 共用真实产物，但保留独立任务状态；正式检查必须分别对照本节标准写回，不能永久停在 TODO 或被“隐含覆盖”。
 
 要做：
 
@@ -2019,21 +2129,24 @@ Gate 不能只有“题数”，还必须在第一次调参前写清验收阈值
 
 通过标准：能解释上下文窗口的取舍，能给出一种压缩 / 筛选上下文的做法。
 
-## S-04 多 Agent 动手
+## S-04 受控多 Agent 协作
 
-挂载：阶段 7（D7-02）。
+挂载：阶段 7（D7-02）定义取舍，阶段 8 的 `code/stage8/incident_change_review_agent/` 提供真实实现与 Gate 证据。
 
 要做：
 
-- 做一个最小多 Agent 协作 demo：例如一个 supervisor 分派任务给两个 worker，再汇总结果。不要只停在看概念。
+- 先保留同一业务、同一数据集和同一指标的单 Agent baseline；只有发现上下文隔离、职责专门化或并行调查的可定位瓶颈，才拆分协作者。
+- 在故障诊断项目中实现一条最小受控协作链，例如 coordinator 只负责分派和停止、diagnostic worker 只读取证、risk reviewer 独立检查证据与变更风险；每个 handoff 使用可验证 schema，不依赖自然语言猜测隐含状态。
+- 明确共享 state、角色私有上下文、最大 handoff/step、总 token/成本预算、失败/超时/循环停止和人工升级；危险变更仍受 G8-03 的 sandbox、interrupt 与幂等约束。
+- 用单 Agent 与多 Agent 对照质量、主要根因覆盖、冲突/遗漏、延迟、token/成本和失败类型；多 Agent 没有净收益时回退，不为展示框架而保留。
 
-为什么：JD 常要求 multi-agent orchestration（LangGraph / CrewAI / AutoGen）。
+为什么：部分高工程标准岗位明确要求 multi-agent orchestration，但当前可投样本频率可能低于主线阈值；它的准入依据是复杂任务中的上下文隔离、独立复核和可控协作价值，而不是框架热度。
 
-通过标准：能展示多 Agent 分工与汇总的完整轨迹，并说明多 Agent 的代价和风险。
+通过标准：能展示带类型约束的角色交接格式、共享/私有 state、冲突处理、停止/升级和完整 trace；同一评估集上有单 Agent 对照，能用证据说明保留、限制或回退多 Agent 的决定。
 
 ## S-05 安全与 Guardrails
 
-挂载：A4-Gate 先做最小安全基线，阶段 7（D7-03）再强化。
+挂载与判定：A4-Gate 已完成最小安全基线；R6-Gate 负责 ACL/间接注入，D7-03 负责 Memory/PII/poisoning，M9-Gate 负责 OAuth/scope/audience/恶意 server，J11-05 后完成跨层威胁模型与至少 10 条综合攻击回归。只有这些切片全部有证据时，才在 `J11-06/FINAL-Gate` 前正式判定 S-05。
 
 要做：
 
@@ -2049,7 +2162,7 @@ Gate 不能只有“题数”，还必须在第一次调参前写清验收阈值
 
 ## S-06 微调 vs RAG vs Prompt 的判断
 
-挂载：阶段 6 或阶段 10（只需概念，不要求动手微调）。
+挂载：`R6-03` 正式对照完成后（只需概念与项目选型判断，不要求动手微调）；若当时未收口，最迟在 `E10-02` 前补齐。
 
 要做：
 

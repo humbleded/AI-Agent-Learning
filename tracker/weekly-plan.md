@@ -1,71 +1,96 @@
-# AI Agent 应用岗 · 周计划
+# AI Agent 应用岗 · 依赖驱动内容块
 
-把 `ai-agent-learning-tracker.md` 的任务排进时间线，针对「大模型应用 / Agent 应用开发」岗。工程深度优先参考京东、腾讯等大厂标杆，真实匹配率仍只统计用户满足硬门槛的可投岗位；不因标杆岗位要求 Java/C++ 或训练算法就复制第二套主线。教学难度默认按零基础新手设计；既往职业经历不用于跳过课程或降低验收要求。后续课程与旗舰项目统一采用 Python/FastAPI 后端 + Vue 前端。
+本文件把课程任务按知识依赖组织成内容块。W1–W20 是兼容 tracker、历史证据和算法台账的稳定 ID，不是日历周、完成期限或学习时长；一个内容块可以跨任意数量的日期与 Session。课程状态只读 `tracker/progress.md`，当前入口只读 `tracker/daily-plan.md`。
 
-最后路线校准：2026-07-22。实时任务状态只读 `tracker/progress.md`；当前执行入口由 `tracker/daily-plan.md` 根据它派生，周计划不复制当前任务状态。
+最后路线校准：2026-08-25。
 
-## 你的时间与排法
+## 路线原则
 
-- 可持续**计划容量**：工作日每天 2.5–3 小时 + 周末 1–2 个各 3 小时连续块，约 **15.5–21 计划小时 / 周**。它只用于估算课程承载量，不记录或考核实际学习时长；27 小时只可作为用户主动选择的短期冲刺，不用于承诺课程进度。
-- 默认每个自然日只安排一个 ≤180 分钟块，可以排满而不强制留缓冲。只有用户明确说「今天不上班，状态好，按休息日双块安排」或同义口令，才启用第一块 ≤180 分钟 + 充分休息 + 第二块 2–3 小时的短期冲刺，全天计划最多 6 小时；第二块不追加概念题量，未执行也不形成补偿欠账。
-- 时间线：约 **18 个内容块到综合项目上线**，约 **20 个内容块含求职冲刺**。
-- **节奏说明（重要）**：下表 `W1–W20` 是内容块编号，不是日历周。按 15.5–21 计划小时/周、零基础带读、工程化验收和回收周估算，现实更可能需要 **28–36 个日历周**；把 W 当“第几块内容”，不当“第几周必须到”。
-- A4 当前额外拆成 `W5-A / W5-B / W5-C` 三个子块，用来吸收零基础带读、真实实现和非重复练习时间；它不改变后续里程碑编号。
-- **补坑周**：在 **W4 / W9 / W14 之后**按需各插一个「回收/补坑周」（补没跑通的代码、消化欠账、整理作品集）；这是计划内缓冲、不算掉队，且**不重排下表周号**。
-- 排法原则（按你的时间形状）：
-  - **工作日最多 180 分钟计划**：只统计用户主动参与的概念/文档/源码学习、即时考察、正式练习、编码/操作，以及明确共写或复核 notes；助手读取、等待、自动整理与写回不占预算。算法只有日计划明确排了独立时段时才替换部分主块。
-  - **周末按 3h 连续块安排**：动手编码、项目、Gate、部署可跨两天/两个块推进；同一天的第二块只按上面的显式休息日口令启用，不因跨日就把未完成代码判成失败。
-  - 作品集线（J11）从 W6 起并行；算法从 W4 起按内容块累计“3 道新题 + 1 道旧错题重做”，记录在 `tracker/algorithm-progress.md`，W4 没有旧题时把复测位改成第 4 道新题。结转债务优先占后续算法席位，未清前不叠加下一块完整 `3+1`；同一内容块顺延超过 7 个自然日时追加旧题复测。
-  - 主流框架基础前移但不叠加课时：`G8-00 LangGraph Lite` 复用 A4-Gate 的一条路径；H5 压成可选的单链路源码追踪并可顺延到补坑块。持久化、interrupt/resume 和故障恢复仍留到 W14。
-  - 工程基础 B0 与阶段 5.5（BE5：Python 工程化、async、FastAPI/Pydantic、PostgreSQL/Redis、后台任务、认证、压测）排成明确内容块，不再“顺带补”。
-  - W6/W12/W16/W19 采用双轨审计：京东/腾讯等大厂 4–6 条作能力标杆；另抽样 10 个当前在招岗位更新 `tracker/job-readiness.md`，其中至少 7 个必须是用户满足硬门槛的社招/转岗岗位。标杆、校招或不合格岗位不进入匹配率。
-- 诚实提醒：
-  - 15.5–21 计划小时/周仍是高投入容量，不是实际时长 KPI；承载不下就顺延，节奏比赶进度重要。
-  - Gate 和项目周**宁可慢，不要带着跑不通的代码往后走**——质量决定作品集和面试能不能打。
-  - 算法和面试准备是长尾，常常延续到求职阶段，不必在 W20 前全部完成。
+- 主目标是初级/初中级 Agent 应用开发，次目标是大模型应用后端与 RAG/知识库工程，AI 全栈只作邻接优势。
+- A4-Gate 已证明 Agent Loop、ReAct、Plan-and-Solve、Reflection、工具边界、停止与受控恢复；后续只迁移和组合这些能力，不换名字重复教学。
+- A4 后先接触 LangGraph，再进入 LangChain/RAG；工程基础在两个真实项目需要时即时补齐，不等待完整 BE5 前置课。
+- FastAPI 是两个纯 Python 核心的交付层，不是 Agent 编排框架，也不再单独创建聊天玩具。
+- LangChain 与 LangGraph 可以互用组件，但两个旗舰必须分别有明确主框架、业务问题、目录、测试和 Gate 证据。
+- PostgreSQL + pgvector 是向量检索主线；轻量本地索引只用于理解原理，Qdrant/Milvus 只在 JD 或架构取舍需要时短对照。
+- 多 Agent 不是单 Agent 的自动升级。先建立单 Agent baseline；只有任务拆分、上下文隔离或并行专长产生可测收益时，才在 `S-04` 引入受控协作。
+- checkpoint/thread state 负责一次工作流的执行状态；`D7-03` 的长期 Memory 负责跨会话事实生命周期。二者不得混称。
+- H5 保持可选：只在真实框架问题需要时追一条源码路径，不阻塞主线。
+- 用户会一些 Vue，前端不扩成独立主线：先做最小独立复核；真正进入界面任务时，助手可审计许可证、维护状态、依赖和安全风险后组合 GitHub 开源 Vue 骨架。若 G8-Gate 提前采用，用户当场做第三方代码最小准入审核；完整状态/SSE/认证/错误处理和亲自修改能力留到 J11-03。助手搭建不算用户独立掌握证据，也不提前克隆。J11-02 冻结唯一 `product_flagship`，不建设两套正式前端/公网产品链。
 
-## 里程碑（什么时候手里有「能拿出去的东西」）
+## 两个旗舰项目
 
-- W6：A4-Gate 带工具 Agent 跑通，并用 G8-00 把一条路径迁移为可测试、可流式观察的基础 Graph；不提前做持久化。
-- W10：可维护、可测试、可并发、可持久化的 Agent 后端通过 BE5-Gate，并完成最小 CI/Docker/测试部署/smoke 与求职材料校准。
-- W12：面向明确业务流程的生产 RAG + FastAPI/SSE 跑通，形成旗舰项目一，完成第二次 JD 审计并开始小范围试投。
-- W14：A4-Gate 演化为可持久化、可暂停恢复的 LangGraph Agent，并接 Vue，形成旗舰项目二。
-- W17：至少一个旗舰完成 CI/CD、容器化和公网部署，拿到可点开的 demo。
-- W18：FINAL 不另起炉灶，把最强旗舰补齐评估回归、可观测、安全、负载与答辩。
-- W20：一个小项目 + 两个旗舰、简历和面试自测就绪，开始稳定投递。
+| 主框架 | 项目 | 规划目录 | 需要证明的核心能力 |
+| --- | --- | --- | --- |
+| LangChain | 工程文档 RAG 助手 | `code/stage6/engineering_docs_rag/` | Loader/Splitter/Document/metadata、检索、固定两步 RAG、Agentic RAG、引用、权限、评估、API 与部署 |
+| LangGraph | 故障诊断与变更评审 Agent | `code/stage8/incident_change_review_agent/` | 显式 State/Node/Edge、route/loop/stop、stream、checkpoint、interrupt/resume、幂等、受控多 Agent、评估与恢复 |
 
-## 周计划表
+两个项目的交付层统一为：
 
-| 周  | 阶段 | 工作日（每天最多 3h）：概念 / 阅读 / 定向练习 | 周末（每块最多 3h）：动手 / 项目 / Gate | 本块产出 |
-| --- | --- | --- | --- | --- |
-| W1 | 阶段0→1 | P0-Gate 设计；B0-02 网络与 HTTP | P0-Gate；L1-01~02 | Python 闯关 + 第一次调模型 |
-| W2 | 阶段1 | L1-03 多轮、L1-04 流式；B0-01 命令行 | L1-05 + L1-Gate | 流式 CLI chatbot |
-| W3 | 阶段2 | Prompt、摘要、分类；S-03 上下文工程 | JSON/Schema + PR2-Gate | 结构化输出 + 上下文实验 |
-| W4 | 阶段3 | T3-01~04；算法启动 | T3-Gate：真实 Tool Calling + 14 条评估 | 多工具助手闭环 |
-| W5-A | 阶段4 | A4-02 三个学习单元；1–2 个独立算法时段 | A4-02 notes/定向练习收尾；A4-03 资料定位与设计 | A4-02 正式完成 + ReAct 起点 |
-| W5-B | 阶段4 | A4-03 ReAct 带读、读码与设计 | ReAct 实现、轨迹与停止条件验证 | 可运行 ReAct demo |
-| W5-C | 阶段4 | A4-04 Plan-and-Solve、A4-05 Reflection，按日拆分 | Plan/Reflection 实现；满足条件后再闯 A4-Gate | Plan demo + A4-Gate |
-| W6 | 阶段4→4.5 | J11-01、G8-00 官方文档/迁移设计、首轮双轨 JD 审计（大厂标杆 + ≥7 个硬可投社招）；算法独立时段 | A4-Gate 若上块未完成则先收尾；否则完成 G8-00 单路径迁移与测试 | 旗舰二 v1 + LangGraph 基础证据 + 可投岗位基线 |
-| W7 | 阶段5→5.5 | BE5-01、S-01 第二 provider；H5-01 源码追踪仅在容量允许时做，否则顺延补坑块；算法 | Python 工程化重构；可选追通一条框架调用链 | 工程骨架 + 可选源码追踪证据 |
-| W8 | 阶段5.5 | BE5-02 asyncio、BE5-03 FastAPI/Pydantic；算法 | REST/SSE、接口测试、并发/取消故障注入 + pytest/Ruff/type-check CI | 可测试异步 Agent API + 最小 CI |
-| W9 | 工程基础 | B0-03 SQL、B0-04 Docker；未补完先收 B0-01；算法 | B0-Gate PostgreSQL + Python + Compose，完成本地 Docker build | 可复现本地工程栈与容器镜像 |
-| W10 | 阶段5.5 | BE5-04 PostgreSQL/Redis、BE5-05 后台任务/认证/压测；算法 | BE5-Gate + 系统设计评审 + 最小测试部署/smoke | 生产后端闭环 + 可访问薄纵切 + 求职材料校准 |
-| W11 | 阶段6 | 确定领域/用户/业务基线；R6-01 解析/增量索引、R6-02 pgvector/hybrid/rerank；算法 | R6-03 引用问答 + 检索/答案/业务指标分项评估 | 领域 RAG 核心链路与 baseline |
-| W12 | 阶段6 | R6-Gate 设计；J11-02 服务联调；第二轮双轨 JD 审计；算法 | R6-Gate + 后台导入 + 权限/更新删除 + 更新部署/smoke | 旗舰一：领域生产 RAG 服务 + 可访问 v1 + 小范围试投 |
-| W13 | 阶段7 | 按 A4/R6 真实问题读 D7；D7-03 长期 Memory；S-04 多 Agent；S-05 威胁建模；算法 | D7-Gate：Memory baseline/eval + 10 条攻击/越权/poisoning 测试 | 架构取舍 + 长期 Memory + 安全基线 |
-| W14 | 阶段8 | LangGraph persistence/checkpoint/interrupt；复用 D7 长期 Memory 并区分 thread state；算法 | G8-Gate + Vue 状态/工具可视化 + 恢复架构评审 | 旗舰二 v2：可恢复 Agent |
-| W15 | 阶段9 | MCP 最新官方规范、STDIO/HTTP、授权边界；算法 | M9-Gate + 审计/权限/断连测试 | MCP 生产接入表达 |
-| W16 | 阶段10 | E10 eval harness、J11-05 tracing、S-06；第三轮双轨 JD 审计；算法 | baseline/holdout/候选对比 + 回归门禁 | 可观测与持续评估 |
-| W17 | 工程上线 | J11-04 上线强化：基于 BE5/R6 既有部署补 CI/CD、secret、health、日志/指标/trace；算法 | 复合部署事故、smoke/负载/备份/回滚/postmortem 演练 | 至少一个可运维公网产品 demo |
-| W18 | FINAL | 最强旗舰补可靠性、安全、评估、成本；算法 | ≥30 条评估 + FINAL-Gate 答辩 | 最强旗舰上线 + 答辩稿 |
-| W19 | 求职 | J11-06/07、第四轮 10 JD 审计、简历；算法 | 30 分钟限时系统设计、项目讲解、差距收口 | 作品集 + 简历 |
-| W20 | 求职 | J11-08、自测、投递、算法错题回炉 | 模拟面试 + J11-Gate | 面试就绪 + 稳定投递 |
+```text
+HTTP / SSE / Auth / Validation / 统一错误返回规则
+                       │
+                 Application Adapter
+              ┌────────┴─────────┐
+              │                  │
+      LangChain RAG Core   LangGraph Workflow Core
+```
 
-## 用法提醒
+## 内容块顺序
 
-- 每天仍按 `daily/YYYY-MM-DD.md` 打卡，按 `tracker/progress.md` 更新状态。
-- 补充项 S-01~S-07、阶段 11（J11）的详细定义见 `ai-agent-learning-tracker.md`。
-- W9 是明确的基础工程栈：`B0-03 SQL → B0-04 Docker → B0-Gate`；W8 只先建无 Docker 的测试/静态检查 CI，Docker build 与部署必须等 B0-04 后在 W9/W10 完成。两条线都通过后再进入 pgvector 与正式 RAG 服务化。
-- `job-readiness.md` 只在 Gate、作品集里程碑和 W6/W12/W16/W19 JD 审计时升级证据；普通概念 PASS 不冒充岗位就绪。
-- 求职不必等到 W20：W10 薄纵切完成后先做项目描述和 2–3 条硬可投岗位的材料校准；W12 领域 RAG v1 完成后再小范围投递试水，用面试反馈反推短板。
-- 这版按每周 15.5–21 计划小时的容量基线估算，且允许一个内容块跨多个日历周。现实里会有波动，**把它当节奏参考，不是实际时长 KPI 或 deadline**。
+W1–W5 是已发生的历史学习块，精确任务状态和证据仍以 `progress.md` 与历史 daily 为准，不重写历史。
+
+| 内容块 | 依赖驱动任务顺序 | 可验证产物 / 里程碑 |
+| --- | --- | --- |
+| W1–W3 | Python、LLM API、Prompt、结构化输出 | Python Gate、流式 CLI、结构化输出与上下文实验 |
+| W4 | Tool Calling 与算法启动 | T3-Gate；算法首块 4 道新题替代无旧题的复测位 |
+| W5 | Agent 基础与 A4-Gate | 手写 Agent Loop、ReAct、Plan-and-Solve、Reflection、正式 14-case Gate |
+| W6 | `G8-00`（课程位置：阶段 4.5）；并行开启 `J11-01` 的证据积累与首轮岗位审计 | LangGraph 故障诊断与变更评审 Agent v1：typed state、node/edge、条件路由、工具、停止、stream、测试；这不是直接跳到完整阶段 8。岗位审计当前为 RETRY，不阻塞 G8-00，但必须在其 PASS 后、W7/R6-01 前用独立 Session 关闭 |
+| W7 | `R6-01 → BE5-01`（同一项目、分别验收） | 先完成 Markdown/TXT/PDF 导入、切分、metadata、去重和文档状态，再补项目分层、日志、pytest、Ruff 与类型检查 |
+| W8 | `B0-01 → B0-03 → B0-04 → B0-Gate → BE5-04 → R6-02`；联合核验 `S-02` | 从命令行/进程/日志基础进入 PostgreSQL + pgvector；migration、CRUD、tenant filter、hybrid、rerank、Recall@k/MRR |
+| W9 | `R6-03 → S-06` | 同一数据集的固定两步 RAG baseline 与 Agentic RAG 对照；可定位引用、无答案拒答与失败分层；再用真实证据判断 Prompt/RAG/微调怎样选 |
+| W10 | `BE5-02 → BE5-03`；`S-01` 可从 provider 边界开始但不阻塞本块 | 两个纯 Python 核心分别接 FastAPI/Pydantic/SSE；timeout、cancel、并发限制、系统出错时怎样返回结果与接口测试；Graph 的 HITL 决策接口留到 G8-03 增量实现 |
+| W11 | `G8-01 → G8-02 → G8-03` | LangGraph v2：PostgreSQL 持久 checkpoint、thread 隔离、重启恢复、approve/edit/reject API、幂等副作用和故障注入 |
+| W12 | `BE5-05 → BE5-Gate`；第二轮岗位审计 | Redis、后台任务、认证、重复提交、负载、CI、Docker、smoke 与生产后端 Gate；复用两个项目，不建第三个教学项目 |
+| W13 | `R6-Gate`；完成 `S-05` 的 RAG/ACL/间接注入切片 | LangChain 工程文档 RAG 旗舰：完整导入/检索/问答/API/权限/评估/部署证据 |
+| W14 | `D7-02 → S-04 → G8-Gate` | 先用单 Agent baseline 做多 Agent 准入判断，再完成带类型约束的交接格式、共享/私有 state、预算/停止/升级与同集对照；G8-Gate 验收 FastAPI/SSE 和可观察状态输出，可使用 curl/调试页或任务启动后引入的已审计开源 Vue 薄界面；完整 Vue 掌握仍在 J11-03 复核 |
+| W15 | `D7-01 → D7-03 → D7-Gate`；完成 `S-05` 的 Memory/PII/poisoning 切片 | 复用已有项目做模式取舍；完成跨会话 Memory CRUD/TTL/provenance/delete/隔离/poisoning 与无 Memory 对照，不另建玩具 |
+| W16 | `M9-01 → M9-02 → M9-03 → M9-Gate`；第三轮岗位审计 | MCP 与外部工具连接、授权、断连与审计证据；补齐 `S-05` 的 MCP 授权/恶意 server 切片 |
+| W17 | `E10-01 → E10-02` | 一套共享 Eval Harness + 两个领域 adapter；两个旗舰分别完成 baseline/candidate、回归门禁和系统设计包，不复制两套评估平台 |
+| W18 | `S-01（若待完成）→ J11-02 → J11-03 → J11-04 → J11-05 → S-05 正式收口` | 先冻结唯一 `product_flagship`，再为它完成产品 API、Vue、公网部署和产品级观测；另一旗舰保留可复现 API/demo、容器与 E10 评估，随后收口权限、恢复、幂等、SLO、成本、回滚与生产事故闭环 |
+| W19 | `J11-01 收口 → J11-06 → FINAL-Gate → J11-07 → J11-08 → J11-Gate`；第四轮岗位审计 | 先完成作品工程化、部署和持续评估，再做综合答辩；随后收束作品集、简历、模拟面试与正式岗位证据 |
+| W20 | 证据债务、算法债务、交叉复核与投递前收口 | 不新增课程主题，只闭合既有缺口并稳定投递 |
+
+## 多 Agent 与长期 Memory 的准入边界
+
+### `S-04` 受控多 Agent
+
+- 先在同一故障诊断数据集上保留单 Agent baseline，再引入 supervisor/subagent、handoff 或 router 中最符合场景的一种模式。
+- handoff 必须使用带类型约束的交接格式，明确输入、输出、证据引用、失败、超时和所有权；共享 state 与私有 context 分开。
+- 必须有 `max_handoffs`、总 step/成本预算、停止与人工升级；worker 不能绕过工具权限和副作用确认。
+- 比较任务成功、遗漏/冲突、延迟、token/成本与 trace 可诊断性。没有净收益就回退单 Agent，不因术语热度保留复杂度。
+
+### `D7-03` 长期 Memory
+
+- 覆盖跨会话显式写入、检索注入、更新、冲突、TTL、删除/忘记、provenance、租户隔离、PII 与 poisoning。
+- PostgreSQL 是长期事实源；Redis 只作缓存。未受信工具输出或 RAG 文本不得自动晋升为长期记忆。
+- 用同一数据集比较有/无 Memory 的任务成功、误记、遗漏、延迟和成本；checkpoint 的恢复证据不能冒充长期 Memory 证据。
+
+## 算法保护项
+
+- W4–W20 共 17 个内容块，最低累计 **52 道新题**。
+- 每个内容块固定 `3 新 + 1 旧错题`；W4 因无旧题，以第 4 道新题替代。
+- 算法以独立 Session 推进。债务先清：旧债未清时不启动下一完整 `3+1`；同一块跨 7 个自然日仍追加旧题复测。
+- 路线重排不削减题量、复测、独立解释、复杂度或测试证据。
+
+当前纠偏：W5 结束时没有留下 `3 新 + 1 旧` 的合格证据，`algorithm-progress.md` 已正式记为 `DEBT 4`。它不撤销 A4 课程 PASS，但下一算法 Session 必须先清 W5，清完前不启动 W6 完整配额。
+
+## 使用与审计
+
+- 每次 Session 读取当前任务全部关联 daily；跨日不重置题量、覆盖或上下文。
+- `W6/W12/W16/W19` 做双轨岗位审计：4–6 个高工程标准标杆与恰好 10 个 `HARD_ELIGIBLE` 可投样本分开统计。
+- 岗位审计债务不会阻塞同块的课程任务，但不能跨过规定的最晚收口点：当前 W6 RETRY 最晚在 `G8-00` PASS 后、`R6-01` 启动前补齐；W12 必须新建自己的快照，不能覆盖 W6 未关闭记录。
+- 课程 PASS 不自动升级岗位证据。`JOB_EVIDENCE`、`FINAL-Gate`、`J11-Gate` 和投递前就绪必须经过另一工具的独立交叉复核。
+- 未开始任务只在 tracker 中保留目标路径与 rubric；真正进入动手 Session 时才创建骨架。
+- 每个 `progress.md` 中的独立 `TODO` 必须在主队列或“挂载任务”中有明确触发点、最晚收口点和状态写回规则；不能只把能力隐含在别的任务里。
+- Gate 不得要求路线后面才首次学习的能力；若某能力是后续增量，当前任务只验收已经具备的最小接口，并把完整交付明确放到后续 ID。
+- 每个内容块结束都要分别核对课程任务、挂载任务和算法 `PASS/DEBT`；其中一条未完成不能被另一条的 PASS 静默覆盖。

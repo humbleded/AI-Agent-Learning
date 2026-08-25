@@ -1,21 +1,50 @@
 # Agent 应用岗位能力与证据
 
-最后校准：2026-08-24。
+最后校准：2026-08-25。用户资格快照日期与 JD 检查日期分开记录。
 
-本表是“是否已有求职证据”的唯一事实源；`tracker/progress.md` 仍是课程任务 PASS 的唯一事实源。两者不能互相替代。
+本表是“是否已有求职证据”和正式 JD 审计结果的唯一事实源；`tracker/progress.md` 仍是课程任务 PASS 的唯一事实源。课程 PASS、投递硬资格和技术匹配是三条不同轴，不能互相替代。
 
 ## 目标岗位边界
 
-- **主目标**：初级/初中级 Agent 应用开发工程师，优先社招 0–3 年 AI 经验、接受传统开发转向或以项目能力替代纯 AI 年限的岗位。
+- **主目标**：初级/初中级 Agent 应用开发工程师。
 - **次目标**：大模型应用后端、RAG/知识库工程师。
-- **邻接优势**：AI 全栈应用开发；Vue 只用于完整产品交付，不把主线扩成独立前端课程。
-- **能力标杆**：优先用京东、腾讯等大厂的 Agent/RAG/大模型应用岗位校准工程深度，重点对齐高并发、高可用、分布式后端、Agent Runtime、长期 Memory、Durable Execution、Skills/MCP、评估飞轮、安全、性能与成本；标杆岗位不因公司名自动进入真实可投匹配率。
-- **目标条件**：在 W6 首轮正式审计前确认优先城市/远程范围、最低可接受薪资和预计开始投递日期；未确认前必须逐条记录，不得把不同地区、校招和高年限岗位混成一个匹配率。
-- 技术栈边界：学习与验收按零基础进行；既往工作经历只在简历中如实记录，不转化为课程豁免或旗舰集成要求。后续所有 Agent/RAG 项目的后端统一使用 Python/FastAPI，前端使用 Vue。
-- 大厂具体岗位若硬性要求 Java/C++、硕士、特定业务或多年高并发经历，只能作为能力标杆或 `STRETCH`；Python/FastAPI 项目证明的是可迁移系统工程能力，不能冒充满足语言/学历/年限硬门槛。只有明确转投京东 Java 或微信 C++ 后台时，才另开求职语言支线，不重复改写当前主线。
-- 非主线：大模型预训练、算法研究、PyTorch/DeepSpeed、SFT/LoRA、GPU 分布式训练。只有目标 JD 明确转向“模型算法/训练+应用混合岗”时，才另开选修分支，不挤占当前主线。
+- **邻接优势**：AI 全栈应用开发；用户自述会一些 Vue，后续先做最小独立复核。助手可核查许可证、维护状态和依赖风险后组合 GitHub 开源 Vue 骨架；若 G8-Gate 提前采用，用户先完成第三方代码最小准入审核，J11-03 再完成状态/SSE/认证/错误边界的独立解释与修改。不扩成独立前端主线，也不把助手搭建冒充用户证据。J11-02 只选一个 `product_flagship` 做正式前端和公网产品。
+- **目标城市**：深圳或武汉。
+- **不自动扩线**：大模型预训练/算法研究、纯 Java/C++ 后端、完整无人值守编码工厂。高配 JD 中出现这些内容，只作岗位相关差异或能力标杆。
 
-## 证据等级
+## 用户资格快照
+
+| 快照日期 | 本科 | 年龄 | 工作语言 | 目标地区 | 当前不可见、不得推测的事实 |
+| --- | --- | --- | --- | --- | --- |
+| 2026-08-06 | 是 | 27 | 中文 | 深圳 / 武汉 | 本科专业、总开发年限、AI 正式工作年限、英语工作能力、薪资下限、可投递日期 |
+
+资格审计只使用当前可见事实。岗位若硬性要求特定专业、未被当前事实证明的工作年限、应届/在校身份、外语能力或其他资格，则分别记为 `UNKNOWN` 或 `INELIGIBLE`，不能靠技术栈相近“冲掉”硬门槛。
+
+## 两轴口径
+
+```text
+eligibility_status = HARD_ELIGIBLE | INELIGIBLE | UNKNOWN
+technical_fit      = READY | NEAR | DEVELOPING
+```
+
+- `HARD_ELIGIBLE`：用户满足页面当前可见的学历、经验年限、招聘类型、语言和地区等投递门槛；技术差距不在此字段表达。
+- `INELIGIBLE`：至少一项可见硬门槛确定不满足，例如校招身份、硕士、明确高年限或非目标地区且不可远程。
+- `UNKNOWN`：职位已关闭/页面失效、硬门槛不完整，或所需用户事实不可见。
+- `READY`：已有可对外复现的岗位证据覆盖该岗位核心技术要求。
+- `NEAR`：已有核心证据，只差一个边界清晰、可在现有项目闭合的主要里程碑。
+- `DEVELOPING`：仍缺两个以上核心能力或缺少可复现工程/部署证据。
+
+技术 READY 匹配率只按下式计算：
+
+```text
+READY 且 HARD_ELIGIBLE 的岗位数
+──────────────────────────
+全部 HARD_ELIGIBLE 岗位数
+```
+
+`NEAR` 单独报告；`INELIGIBLE` 和 `UNKNOWN` 不进入分母。技术栈、框架和项目经验只影响 `technical_fit`，不得写成混合资格 `STRETCH`。
+
+## 岗位证据等级
 
 - `NOT_STARTED`：课程和作品都未开始。
 - `LEARNING`：正在学或已有零散练习，尚未完成课程 Gate。
@@ -23,105 +52,121 @@
 - `JOB_EVIDENCE`：已落到可复现旗舰/公开作品，有测试、评估/性能数据、工程说明、失败复盘和独立讲解。
 - `INTERVIEW_READY`：能在限时、无原答案辅助的面试/现场任务中稳定设计、实现、排错和讲取舍。
 
-升级规则：
+升级约束：
 
-1. 不能因为 tracker 出现了某个标题就升级；必须看真实产物和验证记录。
-2. `COURSE_PASS → JOB_EVIDENCE` 至少需要：可复现运行、自动测试、版本化评估或性能数据、README/架构图、失败复盘、无敏感信息、能独立讲清；相关生产能力在 `work-scenario-coverage.md` 至少有一次 `DIAGNOSED_AND_FIXED`，恢复/安全/部署类达到要求时需 `RECOVERED_UNDER_FAULT`；同时由另一工具完成一次证据交叉复核。
-3. `JOB_EVIDENCE → INTERVIEW_READY` 至少需要：一次模拟面试/限时任务、脱离原笔记完成、能回答失败恢复/成本/安全/扩展追问。
-4. 普通每日检查不更新本表；只在 Gate、作品集里程碑、模拟面试或 W6/W12/W16/W19 JD 审计时更新。
+1. tracker 出现课程标题不能自动升级证据。
+2. `COURSE_PASS → JOB_EVIDENCE` 至少需要可复现运行、自动测试、版本化评估或性能数据、README/架构图、失败复盘、无敏感信息和独立讲解；相关生产场景的**当前任务所需切片**满足 `work-scenario-coverage.md` 的证据等级，不能用同一大类里较早的局部证据替代尚未验证的 CI、429、ACL、恢复等子能力。
+3. 所有 `JOB_EVIDENCE` 升级、`FINAL-Gate`、`J11-Gate` 和正式投递就绪结论必须由另一工具独立交叉复核；分歧未解决时保持候选/pending。
+4. `JOB_EVIDENCE → INTERVIEW_READY` 还需脱离原笔记完成模拟面试/限时任务，并回答失败恢复、成本、安全和扩展追问。
+5. 普通 Session 不改本表；只在 Gate、作品里程碑、模拟面试或 W6/W12/W16/W19 正式审计时更新。
 
 ## 当前能力矩阵
 
-| 能力域 | 当前等级 | 已有证据 | 升级到下一档还缺什么 | 对应任务/作品 |
+| 能力域 | 当前等级 | 已有证据 | 下一条可验证证据 | 对应任务/作品 |
 | --- | --- | --- | --- | --- |
-| Python 基础与脚本 | COURSE_PASS | P0-01~Gate 已通过，能写函数、文件/JSON、异常、HTTP 与基础测试 | 在真实服务中补类型、分层、pytest/mock、lint/type-check、配置与日志 | BE5-01 |
-| LLM API、Prompt、结构化输出 | COURSE_PASS | L1、PR2、S-03 已通过；有聊天、流式、分类、JSON、邮件处理器；A4-Gate C3d 已把普通文本 Reflection、DeepSeek `json_object` Refinement、`json.loads` 与客户端 validator 接成 topic/path 真实链 | 抽 provider、严格 schema、版本化 prompt/eval，并接入服务 | S-01、E10、旗舰项目 |
-| Tool Calling | COURSE_PASS | T3-01~Gate 已通过；A4-Gate 又把 topic/path 两路接成 Action → 真工具 → Tool Observation → 三阶段摘要链，唯一 V5 RUN-5 为 normal 10/10、holdout 3/3、完整 14/14，HITL D01 A～K 11/11 | 接入 BE5 可复现服务工程；补维护型自动测试、README/架构、依赖锁定、生产事故证据与独立岗位证据交叉复核 | A4-Gate、BE5-Gate、旗舰二 |
-| Agent 原理与控制循环 | COURSE_PASS | A4-01～A4-Gate 全部通过；能实现并解释 Problem Contract、Action/Observation、Candidate/Reflection/Refinement、客户端 exact validator、共享 `MAX_STEPS=6` 账本、七字段日志、工具/Provider 恢复、安全停止与 action-bound HITL；V5 完整固定集 14/14 | G8-00 迁移基础 Graph；BE5 补服务化、并发/幂等、维护型测试与可复现工程；旗舰二再补持久恢复和端到端事实一致性 | A4-Gate、G8-00、BE5-Gate、旗舰二 |
-| 主流 Agent 框架基础 | NOT_STARTED | 已有手写 Agent 前置，但尚无框架迁移证据 | 用 LangGraph `StateGraph` 表达 state/node/edge/条件路由/tool/stream，并用同一案例测试迁移前后行为；能说明何时不需要框架 | G8-00、旗舰二 v1 |
-| Agent Memory / Context 生命周期 | NOT_STARTED | 仅有聊天历史与上下文实验，不等于长期 Memory | 跨会话 CRUD/TTL/provenance/冲突/删除、租户隔离、PII/poisoning、无 Memory baseline | D7-03、D7/G8/FINAL |
-| Python Agent 后端 | NOT_STARTED | 现有产物以 CLI/脚本为主 | async、FastAPI/Pydantic、PostgreSQL/Redis、后台任务、认证、压测 | BE5-01~Gate |
-| 大厂后端与分布式基本功 | NOT_STARTED | 尚无高并发服务证据 | 连接池/事务、缓存、MQ、限流/熔断/背压、幂等与一致性、容量/SLO、依赖故障恢复 | BE5、R6/G8/J11/FINAL |
-| Linux/网络/数据库/Docker | LEARNING | B0-02 已通过 | B0-01、SQL、Docker/Compose、B0-Gate | B0-01/03/04/Gate |
-| 生产 RAG | NOT_STARTED | 无 R6 课程证据 | 具体领域/用户流程、多格式/增量索引、pgvector、hybrid/rerank、ACL、检索/答案评估和至少一个业务/操作指标 | R6、S-02、旗舰一 |
-| 可恢复 LangGraph Agent | NOT_STARTED | 无高级 G8 课程证据；G8-00 只负责基础框架能力 | persistence、checkpoint/thread、interrupt/resume、幂等、进程退出恢复与故障注入 | G8、旗舰二 v2 |
-| MCP 生产接入 | NOT_STARTED | 仅前置 Tool Calling 概念 | 最新官方规范、STDIO/HTTP、认证边界、权限/断连/审计 | M9-Gate |
-| 安全与权限 | COURSE_PASS | T3/A4 已覆盖文件沙箱、工具白名单、参数原值绑定、候选来源/正文硬门和失败不回显；A4 D01 A～K 11/11 证明 action-bound confirmation、一次性消费、allow/deny/missing/错绑/replay/timeout 与生产 fake 隔离 | 补威胁模型、间接提示注入、SSRF/越权/外泄/poisoning、多租户与持久授权；在 R6/M9/FINAL 复测真实攻击面 | A4-Gate、S-05、D7/G8/M9/FINAL |
-| 评估与可观测 | COURSE_PASS | T3 与 A4 均有运行前冻结的自包含数据集、分项不可补偿阈值和 holdout；A4 透明保留 RUN-4 RETRY，V5 唯一 RUN-5 为 14/14，并用共享 step/固定七字段日志定位 F01～F03；源码/eval/Contract 指纹绑定完整 | E10 补维护型自动测试、版本化 baseline/candidate、代码+LLM evaluator、完整 trace、CI regression 与线上失败回灌；BE5 先补服务级指标/测试入口 | E10、J11-05、BE5-Gate |
-| CI/CD、部署与运维 | NOT_STARTED | 无公网服务与自动发布证据 | BE5-Gate 先补 pytest/Ruff/type-check CI、Docker build、测试部署与 smoke；R6 更新应用，J11-04 再补 secret、告警、负载、备份和回滚 | BE5-Gate、R6-Gate、J11-04/W17 |
-| 作品集与项目表达 | LEARNING | 已有课程代码与 daily/notes；A4-Gate 是可运行的课程级 Agent 里程碑，具备 Contract、固定 eval、故障复盘与安全矩阵，但尚无对外 README/架构、维护型测试、服务化或部署 | 2 旗舰+1 小项目、架构/指标/威胁模型/失败复盘、可复现运行与至少一个公网 demo | J11-01/06、FINAL |
-| 算法与系统设计 | LEARNING | W4 内容块已正式 4/4 PASS、结转债务 0：两数之和、存在重复元素、有效的字母异位词、存在相近的重复元素均有真实测试；两数之和已完成独立复测 | 后续内容块继续按 `3 新 + 1 旧错题` 累计 50–70 道高质量题，并补 RAG/对话服务系统设计 | algorithm-progress、J11-08 |
-| Python/Vue 全栈集成 | NOT_STARTED | 项目内尚无完整前后端集成证据 | 从基础复核后，让一个旗舰展示 Python/FastAPI Agent 后端与 Vue 的流式接口、认证、错误和部署边界 | J11-02/03/06 |
-
-## 模拟面试校准
-
-| 日期 | 范围 | 稳定证据 | 需要复测 | 结论 |
-| --- | --- | --- | --- | --- |
-| 2026-08-06 | Agent 工具安全、失败一致性、ReAct/Plan、上下文与工具取舍 | ReAct 成功/安全停止、Plan-and-Solve 与局部 ReAct 组合、上下文清洗和长对话管理回答稳定 | 确认状态与幂等键；聊天历史/长期 Memory/RAG；端到端事实一致性；按业务风险选择工具 | 仅校准为 `LEARNING`；尚未达到 `INTERVIEW_READY`，不产生 `JOB_EVIDENCE` 候选，也不触发交叉复核 |
+| Python 基础与脚本 | COURSE_PASS | P0-01~Gate 已通过 | 在真实服务补类型、分层、pytest/mock、lint/type-check、配置和日志 | BE5-01 |
+| LLM API、Prompt、结构化输出 | COURSE_PASS | L1、PR2、S-03 与 A4 的真实 DeepSeek、JSON/validator 证据 | provider 边界、版本化 prompt/eval、服务集成 | S-01、E10、旗舰项目 |
+| Tool Calling | COURSE_PASS | T3 与 A4 已完成真实工具、Action/Observation、参数绑定与安全停止 | 在可部署服务中补维护型测试、README、依赖锁定和事故证据 | G8、BE5、旗舰二 |
+| Agent Loop / ReAct / Planning / Reflection | COURSE_PASS | A4-Gate 于 2026-08-24 正式 PASS；V5 固定集 14/14，含 step/stop/recovery/HITL | 只迁移到显式 Graph，不换名字重复教学 | G8-00 |
+| LangGraph 与 durable workflow | NOT_STARTED | 无框架证据 | StateGraph、stream、checkpoint/thread、重启恢复、interrupt、幂等与故障注入 | G8-00~Gate、旗舰二 |
+| 多 Agent 协作 | NOT_STARTED | 无带类型约束的角色交接或对照证据 | 单 Agent baseline 后做共享/私有 state、角色交接、停止/预算/升级和同集对照 | S-04、G8-Gate |
+| 长期 Memory 系统 | NOT_STARTED | 聊天历史与 checkpoint 都不算长期 Memory | 跨 thread CRUD、TTL、provenance、冲突/删除、租户隔离、PII/poisoning 与无 Memory baseline | D7-03、D7-Gate |
+| LangChain / 生产 RAG | NOT_STARTED | 无 R6 课程证据 | Loader/Splitter/Document、pgvector、hybrid/rerank、引用/拒答、固定两步与 Agentic RAG 同集评估 | R6、旗舰一 |
+| Python Agent 后端 | NOT_STARTED | 当前主要是 CLI/脚本 | asyncio、FastAPI/Pydantic/SSE、PostgreSQL/Redis、后台任务、认证和负载 | BE5-01~Gate |
+| Linux/网络/数据库/Docker | LEARNING | B0-02 PASS | B0-01/03/04/Gate；PostgreSQL/pgvector migration 和 Docker Compose | B0、BE5、R6 |
+| 安全、权限与故障恢复 | COURSE_PASS | T3/A4 已有 sandbox、工具白名单、参数绑定、来源硬门、action-bound HITL 和失败恢复 | RAG/Memory/MCP 的注入、越权、poisoning、多租户与持久授权复测 | R6、D7、G8、M9、FINAL |
+| 评估、tracing 与回归 | COURSE_PASS | T3/A4 有冻结数据集、分项阈值、holdout、失败保留与结构化日志 | baseline/candidate、组件+端到端 evaluator、trace、CI regression 和线上失败回灌 | E10、J11-05 |
+| CI/CD、部署与运维 | NOT_STARTED | 无公网服务或自动发布证据 | pytest/Ruff/type-check CI、Docker build、smoke、secret、告警、负载、备份和回滚 | BE5-Gate、R6/G8-Gate、J11-04 |
+| 作品集与项目表达 | LEARNING | A4-Gate 是课程级里程碑，不是岗位证据 | 两旗舰+一小项目，公开 README/架构/指标/威胁模型/复盘和至少一个 demo | J11、FINAL |
+| 算法与系统设计 | LEARNING | W4 4/4 PASS；2026-08-25 审计确认 W5 `DEBT 4` | 下一独立算法 Session 先逐题清 W5 的 `3 新 + 1 旧`，清完前不启动 W6 完整配额；总目标仍为 W4–W20 最低 52 道新题 | algorithm-progress、J11-08 |
 
 ## JD 审计方法
 
-每次 W6/W12/W16/W19 审计采用“双轨样本”，不能混成一个匹配率：
+每次 W6/W12/W16/W19 都分成两张表：
 
-1. **大厂能力标杆池**：优先核验京东、腾讯等大厂 4–6 条当前或近期可验证的 Agent/RAG/大模型应用岗位。它决定工程深度、复合故障和系统设计追问；过期、高年限、算法混合或语言不匹配岗位可留作标杆，但不得进入可投分母。
-2. **真实可投池**：固定抽样 10 条当前仍在招岗位，并逐条记录岗位/公司、链接与抓取日期、地区、招聘类型、经验/学历/语言硬门槛、必须项、加分项、资格状态、已有证据、最大差距和下一动作。
+1. **能力标杆池**：4–6 条京东、腾讯或同等级岗位，用于校准工程深度；城市、学历、语言或年限不合格仍可作标杆，但不能进入匹配率。
+2. **真实可投池**：恰好 10 条当前在招、深圳/武汉且已核清硬门槛的 `HARD_ELIGIBLE` 岗位。页面失效、职位关闭、硬门槛缺失或用户事实不足的岗位改为 `UNKNOWN` 并替换，不能用来凑数。
 
-- 真实可投池至少 7 条必须是用户确实满足硬门槛的社招/转岗岗位；校招、实习或明确要求 3 年以上大模型落地经验的岗位最多 3 条，只能作为能力参考。
-- 过期或无法确认在招的岗位不计入 10 条总样本，必须换成有效岗位；校招、实习、高年限等仅参考样本不进入匹配率与能力频次分母。
-- 资格状态固定为：`HARD_ELIGIBLE`（硬门槛满足）、`STRETCH`（可冲刺但存在 AI 年限/部分栈差距）、`INELIGIBLE`（学历/语言/年限/城市等硬门槛不满足）、`UNKNOWN`（信息缺失）。只有 `HARD_ELIGIBLE` 进入匹配率分母，不能把标题里的“1–3 年”直接等同可投。
-- 匹配率与能力频次只按当轮 **7–10 条真实可投子集**计算：出现率 `≥60%` 记为主线 must-have，`30%–<60%` 记为 role-dependent，`<30%` 记为 optional；同时保留原始出现次数与实际分母，不能被一条高配 JD 带着无限扩课。
-- 课程优先级取“大厂标杆的工程共性”与“真实可投池高频项”的交集。只在大厂算法岗出现的 SFT/RLHF/vLLM/PyTorch 不自动升为应用岗主线；后端可靠性、评估、安全和问题定位即使 JD 没逐字写出，仍可因生产风险保留为硬门槛。
-- 审计结论必须落到“保留 / 前移 / 降级可选 / 删除”四种课程动作之一，并记录到下方审计表。
+审计规则：
 
-单条记录模板：
+- 优先企业招聘官网，其次 BOSS 直聘/智联招聘等当前职位页；搜索摘要只作入口，必须记录页面/卡片证据和检查日期。
+- 平台“经验不限”等结构化标签与正文硬性年限冲突时，以正文为准。
+- 硬资格只记录学历/专业、经验年限、招聘类型、语言、地区等门槛；Python、LangGraph、RAG、FastAPI、Docker 等只进入 `technical_fit`。
+- 能力按语义编码，不要求 JD 使用完全相同术语；每个频率保留 `出现数/10` 和逐行标签，禁止靠关键词计数伪精确。
+- 频率 `≥60%` 为主线候选，`30%–<60%` 为岗位相关，`<30%` 通常降级可选；权限、恢复、幂等、评估等核心生产风险即使低频也可保留，但必须写清风险依据。
+- 路线审计由 `learning-coach` 输出建议；用户批准后，正式岗位台账与证据等级由 `ai-agent-learning-review` 写回。
 
-| 日期 | 岗位/公司 | 样本轨道 | 地区/类型 | 经验/学历/语言硬门槛 | 必须项 | 加分项 | 资格状态 | 证据/差距 | 链接 |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+## 能力标杆池（检查日期：2026-08-25）
 
-## 京东 / 腾讯能力标杆（2026-07-10）
+以下 6 条只校准工程上限，不进入个人匹配率：
 
-本节只校准课程深度，不作为本轮真实可投匹配率。正式审计仍需在抓取当日确认职位状态和用户的城市、学历、总开发年限、AI 年限及语言硬门槛。
+| 公司/岗位 | 当前链接与检查证据 | 主要能力信号 | 为何不进入分母 |
+| --- | --- | --- | --- |
+| 腾讯：微信－大模型（Agent）应用开发后台工程师 | [腾讯招聘](https://careers.tencent.com/jobdesc.html?postId=2037392065205268480)，2026-08-25 核验 | Agent 后台、规划/工具、多轮决策、RAG/Function Calling、高并发/低延迟/高可用 | C++/大规模后台经验等硬门槛只作标杆 |
+| 腾讯：大语言模型应用工程师（Agent 方向） | [腾讯招聘](https://careers.tencent.com/jobdesc.html?postId=2034114867123875840)，2026-08-25 核验 | Agent 全链路、Prompt/Skill、Agentic RAG、评估、性能与线上排错 | 标杆池，不以公司名推定个人资格 |
+| 腾讯 PCG：AI 应用开发工程师（Agent 方向） | [腾讯招聘](https://careers.tencent.com/jobdesc.html?postId=2026845083588001792)，2026-08-25 核验 | Planning、长期 Memory、多 Agent、Durable Execution、sandbox、Skills/MCP、评估飞轮 | 高工程标准岗位；硬资格未用于个人匹配 |
+| 京东：大模型应用算法/开发专家（Agent 方向） | [京东招聘 219681](https://zhaopin.jd.com/web/job-info-detail?requementId=219681)，页面发布 2026-06-24，检查 2026-08-25 | Agent Runtime、模型网关、状态、stream/cache/circuit、Eval、回放和全链路可观测 | 明确 3+ 后端、2+ 分布式及 Java/Go 等硬门槛 |
+| 京东：软件开发岗（AI 应用方向） | [京东招聘 220736](https://zhaopin.jd.com/web/job-info-detail?requementId=220736)，页面发布 2026-07-14，检查 2026-08-25 | Agent/RAG/向量库、权限/失败兜底、离线/线上评估、trace、API/DB/cache/async/container | 明确 3+ 软件/后端/AI 工程经验 |
+| 京东：国际产研 AI Agent 算法/工程专家 | [京东招聘 219868](https://zhaopin.jd.com/web/job-info-detail?requementId=219868)，页面发布 2026-06-29，检查 2026-08-25 | A2A、多 Agent、A2UI、Skills/MCP、Memory/Context/Harness、sandbox | 明确相关专业硕士、算法/论文或竞赛门槛 |
 
-- [腾讯：微信－大模型（Agent）应用开发后台工程师](https://careers.tencent.com/jobdesc.html?postId=2037392065205268480)：Agent 后台架构、复杂任务规划/工具调用、多轮决策、RAG/Function Calling，以及亿级用户下的高并发、低延迟、高可用；C++ 属于该岗位硬门槛，因此只作当前能力标杆。
-- [腾讯：大语言模型应用工程师（Agent 方向）](https://careers.tencent.com/jobdesc.html?postId=2034114867123875840)：Agent 全链路、Prompt/Skill、Agentic RAG、效果评估、性能调优、线上问题排查、可复用组件和跨团队产品化；与当前应用开发主线最接近。
-- [腾讯 PCG：AI 应用开发工程师（Agent 方向）](https://careers.tencent.com/jobdesc.html?postId=2026845083588001792)：Planning、长期 Memory、Multi-Agent、Durable Execution、沙箱、Skills/MCP 和评测优化飞轮；作为复合工作场景与旗舰深度的主要标杆。
-- [腾讯：AI Agent 开发工程师（游戏研发）](https://tencent.wd1.myworkdayjobs.com/en-US/internal_bole/job/AI-Agent--_R107498)：强调接入真实工业工具链，以及任务成功率、人工节省时长、质量、一致性、稳定性和安全性的评估；游戏/UE 经验不满足时只取其工程要求。
-- [京东健康：软件开发岗](https://zhaopin.jd.com/web/job/job_info_list/3?requirementId=217987)：Agent/RAG 落地与稳定后端并重，涉及 Java/Spring、事务、缓存、消息和分布式；Python 主线不能冒充满足其 Java 硬门槛。
-- [京东探索研究院：算法工程师](https://www.zhaopin.com/jobdetail/CC192921310J40774593609.htm)：RAG、Agent、工具调用之外还要求后训练、深度学习框架和论文/比赛，代表算法混合岗上限，不据此扩充当前应用岗训练主线。
+标杆动作：保留高可用后端、durable execution、权限/sandbox、Memory、评估回归、trace、故障恢复和成本；多 Agent 作为 G8 的受控对照；Java/C++ 第二实现、模型训练、论文/竞赛不升为当前主线。
 
-标杆结论与课程动作：
+## 真实可投池：深圳 / 武汉（检查日期：2026-08-25）
 
-- **前移/强化**：大厂后端基本功、长期 Memory、Durable Execution、工具沙箱与权限、RAG 数据治理、评估 holdout/回归、线上排错、性能/成本、PR/CI 和事故复盘。
-- **保留**：Python/FastAPI + PostgreSQL/Redis + LangGraph + RAG + MCP 的两旗舰主线，用系统设计与复合故障证明可迁移工程能力。
-- **降级为岗位相关**：Java/C++ 第二实现、训练/微调/RLHF、vLLM/TensorRT、UE/游戏工具链；只有目标岗位硬门槛明确且用户决定转向时再开支线。
+正式 W6/W12/W16/W19 审计的目标分母固定为恰好 10 条 `HARD_ELIGIBLE`。职位卡片只有在它确实完整覆盖学历/专业、年限、招聘类型、语言、地区等所有可能硬门槛时才够用；详情页受安全验证阻挡、当前页面不再含该岗位、只剩旧搜索缓存，或用户关键事实不可见时，一律先记 `UNKNOWN` 并替换，不能用“未看见冲突”推导“已经满足”。下表保留本轮 10 条候选及复核失败，直到补足 10 条合格样本前不计算正式匹配率或 `/10` 频率。技术标签含义为：`APP` 业务应用交付、`AGENT` Agent/workflow、`BACKEND` Python/后端/API、`RAG` 检索/知识库、`OPS` 部署/运维、`QE` 测试/评估/可观测、`MULTI` 多 Agent、`MEM` 长期记忆。
 
-## 2026-07-10 JD 基线审计
+| # | 岗位 / 公司 | 城市 | 链接与检查日期 | 硬资格判断 | eligibility_status | technical_fit | 能力标签与当前技术差距 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | AI Agent 应用开发工程师 / 海葵音乐 | 武汉 | [BOSS 职位](https://www.zhipin.com/job_detail/df18841f501752540nZ729y5EVZS.html)，2026-08-25 | 经验不限、学历不限、武汉；普通职位页未标应届身份，正文强调不以名校/大厂履历筛选 | HARD_ELIGIBLE | DEVELOPING | `APP AGENT BACKEND OPS QE`；A4 有控制循环，但缺可上线框架项目、服务/部署与公开证据 |
+| 2 | AI Agent 应用工程师 / AIOTAGRO 爱农云联 | 武汉 | [BOSS 当前搜索页](https://m.zhipin.com/zhaopin/291bd2be5eafd66b03By29q9Ew~~/)、[直达页](https://m.zhipin.com/job_detail/58f2f6c085cb92c103B93tu0GFBZ.html)，2026-08-25 复核 | 当前卡片为经验不限/本科/武汉，但搜索索引暴露“理工科专业”要求，用户本科专业不可见；直达正文又被安全验证阻挡 | UNKNOWN | DEVELOPING | `APP AGENT`；技术方向可观察，但不进入资格分母 |
+| 3 | AI 应用工程师 / 武汉禹森特智能科技 | 武汉 | [BOSS 当前搜索页](https://m.zhipin.com/zhaopin/291bd2be5eafd66b03By29q9Ew~~/)、[直达页](https://m.zhipin.com/job_detail/1da3aaa1de6357a90nd-0ty7EFRT.html)，2026-08-25 复核 | 卡片只显示经验不限/本科/武汉，直达页被安全验证阻挡；完整专业、语言、招聘类型等门槛无法核清 | UNKNOWN | DEVELOPING | `APP AGENT BACKEND OPS`；偏 Node/TypeScript 全栈并含基础部署运维，仅作邻接观察 |
+| 4 | AI 应用工程师 / 武汉双知智能 | 武汉 | [BOSS 职位](https://www.zhipin.com/job_detail/f9ab05eb93b231c30nV539q6E1tW.html)，2026-08-25 复核 | 当前直达页重定向到安全验证；现有记录不足以复核完整正文和全部硬门槛 | UNKNOWN | DEVELOPING | `APP AGENT RAG QE`；缺知识库/RAG 与服务级测试证据，且不进入资格分母 |
+| 5 | AI 软件工程师 / 上海帛未信息技术（武汉岗位） | 武汉 | [原 BOSS 链接](https://www.zhipin.com/zhaopin/eb55e12bc2ca36371Hd-3t-_FA~~/)，2026-08-25 复核 | 当前页面实际是“武汉 AI 软件销售”搜索页且不含目标公司/岗位；旧卡片不能证明仍在招或完整硬门槛 | UNKNOWN | DEVELOPING | `APP BACKEND OPS`；仅保留历史候选，不进入资格分母 |
+| 6 | AI Agent 开发工程师 / 深圳市聚铂鑫科技 | 深圳 | [学聘通职位页](https://xuejob.com/index/job/detail/id/9092.html)，2026-08-25 | 页面为经验不限、本科、深圳龙岗、全职；未列校招/外语/专业硬限制 | HARD_ELIGIBLE | DEVELOPING | `APP AGENT BACKEND RAG OPS QE MULTI MEM`；JD 直接覆盖 RAG、多 Agent、Memory、Docker、安全，当前除 A4 外均缺项目证据 |
+| 7 | AI 应用算法工程师 / Agent 开发工程师 / 无限进制 | 深圳 | [原 BOSS 搜索页](https://m.zhipin.com/zhaopin/0cc79891087af91d03V83di7Ew~~/)，2026-08-25 复核 | 当前页面不再含该公司/岗位，只能找到约两个月前缓存；不能证明当前在招或完整硬门槛 | UNKNOWN | DEVELOPING | `APP AGENT BACKEND QE`；历史技术信号保留，但不进入资格分母 |
+| 8 | AI 开发工程师 / 深圳市创世纪科技发展 | 深圳 | [智联招聘](https://www.zhaopin.com/jobdetail/CC321869010J40855422213.htm)，2026-08-25 | 页面为经验不限、本科、全职、深圳；正文无硬性专业/年限/外语条件 | HARD_ELIGIBLE | DEVELOPING | `APP AGENT BACKEND`；要求 Python、LangChain/Dify 与 AI 应用经验，当前尚无框架项目 |
+| 9 | AI 应用工程师 / 深圳市同一方光电技术有限公司 | 深圳 | [智联招聘](https://www.zhaopin.com/jobdetail/CC443684910J40987547504.htm)，2026-08-25 复核 | 完整正文为经验不限、本科、全职、深圳；未列特定专业、年限或外语硬门槛，“应届生可培养”不是仅限校招 | HARD_ELIGIBLE | DEVELOPING | `APP OPS QE`；正文是 AI 工具调研、测试、配置、轻量部署、权限与复盘，没有明确 Agent/workflow 要求 |
+| 10 | 软件工程师（AI 智能体与网络安全方向）/ 深圳市北宸环境科技 | 深圳 | [原 BOSS 搜索页](https://www.zhipin.com/zhaopin/cd2c35a0d142ac3c0nB509y9FA~~/)，2026-08-25 复核 | 当前页面不含目标公司/岗位，只能找到旧索引缓存；不能证明当前在招或完整硬门槛 | UNKNOWN | DEVELOPING | `APP AGENT BACKEND OPS QE`；历史技术信号保留，但不进入资格分母 |
 
-本次只有 4 条方向性能力样本，其中包含校招/在校生岗位；只用于校准技术深度，不作为用户真实可投岗位匹配率。首轮合格的可投社招样本在 W6 按上面的审计方法补齐。
+当前结果：
 
-- Python 后端、FastAPI/Flask、async、Pydantic/分层、SQL/Redis。
-- RAG 全链路：解析、chunk、embedding、向量库、hybrid/rerank、评估与更新。
-- Agent/Tool Calling、上下文/记忆、异常恢复、安全接入、LangGraph 等编排。
-- Linux、Docker、CI/CD、性能/高并发、可观测与评估。
-- 训练/LoRA/vLLM/Kubernetes/多模态属于岗位相关加分或算法混合岗，不全部纳入主线硬门槛。
+- 本轮 10 条候选中，暂有 `4 HARD_ELIGIBLE + 6 UNKNOWN`；W6 正式审计判 `RETRY / INCOMPLETE`。
+- 固定的 10 条硬可投分母尚未成立，因此**不报告**正式 READY 匹配率、NEAR 比例或 `/10` 能力频率；`0/4` 也不能冒充 W6 正式结果。
+- 至少还需补 6 条当前在招、正文完整且能依据用户事实判断全部硬门槛的新样本；补齐前，旧的 `10/10`、`READY 0/10` 与频率表全部撤销。
+- 课程路线仍由目标岗位边界、6 条工程标杆、已验证生产风险和用户主/次目标共同支持；本次不完整小样本不得单独增加或删除课程主线。
+- 收口触发点：本债务不阻塞当前 `G8-00`，但在它正式 PASS 后、`R6-01` 启动前必须开独立岗位审计 Session，补足 6 条或用新增的用户资格事实重新核清候选，并形成恰好 10 条 `HARD_ELIGIBLE` 的 W6 正式结果。W12 是新的审计快照，不能静默覆盖 W6 的 `RETRY / INCOMPLETE`。
 
-抽样来源：
+## 能力语义频率（W6 待重做）
 
-- [2026 校招：Agent/RAG/async/FastAPI/Pydantic/PostgreSQL/Redis](https://career.cuhk.edu.cn/attachment/careercuhk/ueditor/file/20260515/2071_%E7%86%B5%E5%9F%BA%E5%BE%8B%E5%8A%A8%20-%202026%E6%A0%A1%E5%9B%AD%E6%8B%9B%E8%81%98.pdf)
-- [大模型应用工程师：Celery/SQLAlchemy/async/CI-CD/K8s](https://www.shushuqiuzhi.com/position/280081)
-- [AI 应用/RAG：hybrid/rerank/pgvector/MCP/observability](https://www.gzlpsyaj.com/correcruit/content/id/54911.html)
-- [RAG 与智能体：Prompt A/B、Tool Calling、Agent、Python 服务](https://jobs.morganphilips.cn/en-cn/ai%E5%A4%A7%E6%A8%A1%E5%9E%94%E7%94%A8%E5%B7%A5%E7%A8%8B%E5%B8%88-rag%E4%B8%8E%E6%99%BA%E8%83%BD%E4%BD%93%E6%96%B9%E5%90%91-shenzhen-153501/)
+当前没有合规的 10 条 `HARD_ELIGIBLE` 分母，不生成正式频率表，也不把 4 条残余样本套进 `/10` 阈值。补齐样本后重新逐行编码；在此之前，应用交付、Agent/workflow、Python 后端/API、测试评估、部署运维等优先级只作标杆与风险校准结论，不声称来自一张有效的 10 岗统计表。
 
-当前结论：尚未达到稳定投递的岗位证据门槛。A4-Gate 已把 Agent 控制循环、最小安全门和早期 eval/日志能力升级到 `COURSE_PASS`，但没有自动生成 `JOB_EVIDENCE`；下一条证据链是 `G8-00 → BE5-Gate → 旗舰二`。W10 最小部署完成后先校准项目描述和 2–3 条硬可投岗位，W12 领域 RAG 旗舰成形后再开始小范围试投递。个人真实匹配率仍须等 W6 补齐硬门槛字段和合格样本，不能由本次课程 Gate 代替。
+## 不进入分母的反例
+
+| 岗位 | 状态 | 排除证据 |
+| --- | --- | --- |
+| 武汉起点人力：AI 应用开发工程师 | UNKNOWN | 智联标签为 3–5 年；当前用户总/AI 年限不可见，不进入分母 |
+| 武汉智领创联：大模型应用工程师 | UNKNOWN | 正文明确三年以上 AI 大模型经验且要求相关专业；用户相关事实不可见 |
+| 深圳广信通信：AI 应用工程师 | UNKNOWN | 正文要求 1 年以上 AI 相关经验和相关专业；用户事实不足 |
+| 深圳泰和安：AI 应用工程师 | UNKNOWN | 正文硬性 3 年以上企业私有化 AI/LLM 落地经历 |
+| 深圳汉得：大模型应用开发工程师 | UNKNOWN | 虽标无经验，但正文硬性相关理工专业；用户本科专业不可见 |
+| 武汉东智汇通 AI 应用实习 / 小米 2027 届实习 | INELIGIBLE | 明确 2027 届/在校实习身份，不能污染社招匹配率 |
+| 安克创新：AI 应用工程师 | UNKNOWN | BOSS 卡片与另一条可核验来源对招聘类型/状态存在冲突，后者显示校招且已结束；用户应届身份不可见，因此从分母移除并替换 |
+
+## 当前路线与投递动作
+
+- 当前不宣称技术 READY；课程依赖顺序以 `daily-plan.md` 为准，关键链是 `G8-00 → R6/BE5/B0 → pgvector/RAG 对照 → FastAPI/SSE → durable G8 → BE5-05/BE5-Gate → R6-Gate → D7-02/S-04/G8-Gate → D7-01/D7-03/D7-Gate → M9/E10 → J11-02~06 产品化与 S-05 收口 → FINAL-Gate → J11-07/08/Gate`。
+- 两个旗舰形成 README、测试、评估、部署和故障证据后，再将相应样本从 `DEVELOPING` 重算为 `NEAR/READY`；不能因为路线已写入 tracker 提前升级。
+- W12/W16/W19 每轮重新打开页面。岗位关闭、正文改变或出现硬门槛冲突时，先改 `UNKNOWN` 再替换，仍保持 10 条硬可投样本。
+- 若用户补充本科专业、总开发年限、AI 工作年限和英语能力，可重审目前被排除的岗位；补充事实只改变资格，不自动改变技术证据。
 
 ## 审计记录
 
-| 内容块/日期 | JD 样本 | 主要变化 | 影响的课程/Gate | 结论 |
+| 内容块/日期 | 样本 | 主要变化 | 影响的课程/Gate | 结论 |
 | --- | --- | --- | --- | --- |
-| 2026-07-10 / W4 | 近期岗位方向性样本 | Python 后端、生产 RAG、持久化 Agent、评估回归、安全和 CI/CD 深度不足 | 新增 BE5；升级 R6/G8/M9/E10/J11/FINAL | 维持应用岗主线，延长到 W20 |
-| 2026-07-22 / 路线改造复审 | 大厂能力标杆 + 近期应用岗方向性样本；因个人硬门槛字段未齐，不计算匹配率 | 主流框架基础、最小部署和业务型作品证据出现偏晚；H5 教学框架源码任务性价比偏低 | 前移 G8-00；H5 压成可选单链路；BE5-Gate 完成最小部署；R6 改为领域/业务旗舰 | 修订方案 PASS；不改变当前 A4-04，不扩第二后端/模型训练主线 |
-| 2026-08-24 / A4-Gate | 未新增 JD 样本；本行只做 Gate 证据校准 | Agent 控制循环、最小安全门、固定 eval/holdout 和结构化日志已形成课程证据；仍缺服务化、维护型自动测试、README/架构、CI/部署与岗位证据独立复核 | Agent 控制循环、安全与权限、评估与可观测升 `COURSE_PASS`；下一主块 G8-00，随后 BE5-Gate | 课程 Gate PASS；不升级 `JOB_EVIDENCE`，不触发强制岗位证据交叉复核 |
-| W6 | 待核验大厂标杆 4–6 条 + 在招样本 10 条（≥7 `HARD_ELIGIBLE`） |  |  |  |
-| W12 | 待核验大厂标杆 4–6 条 + 在招样本 10 条（≥7 `HARD_ELIGIBLE`） |  |  |  |
-| W16 | 待核验大厂标杆 4–6 条 + 在招样本 10 条（≥7 `HARD_ELIGIBLE`） |  |  |  |
-| W19 | 待核验大厂标杆 4–6 条 + 在招样本 10 条（≥7 `HARD_ELIGIBLE`） |  |  |  |
+| 2026-07-10 / W4 | 方向性样本 | Python 后端、生产 RAG、持久化 Agent、评估回归、安全与 CI/CD 偏薄 | BE5；R6/G8/M9/E10/J11 与 FINAL-Gate | 维持应用岗主线 |
+| 2026-07-22 / 路线复审 | 大厂标杆 + 方向性样本 | 框架、部署和业务作品证据出现偏晚；H5 性价比低 | 前移 G8-00；H5 可选；强化 BE5/R6 | 不扩第二后端/训练主线 |
+| 2026-08-24 / A4-Gate | Gate 证据校准 | Agent 控制循环、安全门、固定 eval/holdout 和结构化日志形成课程证据 | Agent Loop 升 `COURSE_PASS` | 不升级 `JOB_EVIDENCE` |
+| 2026-08-25 / W6 | 6 条大厂标杆 + 深圳/武汉 10 条候选；复核后 `4 HARD_ELIGIBLE + 6 UNKNOWN` | 原审计误把职位卡片/旧缓存当作“硬门槛已核清”，`10/10`、READY 分母和 `/10` 频率撤销；#9 公司名与标签已修正 | 课程方向暂按标杆、风险与用户目标保留；岗位统计不能继续驱动细粒度优先级 | `RETRY / INCOMPLETE`；补足 6 条完整、当前、硬门槛可核验的样本后重算 |
+| W12 | 待重新核验 6 条标杆 + 10 条硬可投样本 |  |  |  |
+| W16 | 待重新核验 6 条标杆 + 10 条硬可投样本 |  |  |  |
+| W19 | 待重新核验 6 条标杆 + 10 条硬可投样本 |  |  |  |
