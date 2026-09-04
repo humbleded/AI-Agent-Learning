@@ -51,7 +51,7 @@
 | A4-04 | Plan-and-Solve | PASS | 2026-07-30 | code/stage4/a4_04_plan_solve_demo.py | 可运行 demo 输出计划、3 步结果、事实复盘和最终答案；39/39 聚焦边界断言通过，G1–G7 与 F1–F3 全部闭合，详见 daily/2026-07-22.md～2026-07-30.md。 |
 | A4-05 | Reflection | PASS | 2026-08-04 | code/stage4/a4_05_reflection_writer.py | 初稿/反思/改进稿/同标准对比闭环可运行；39/39 确定性断言、真实 2 调用提前停止与受控坏初稿后的真实修正分支均通过，10 个语义证据闭合；详见 daily/2026-08-04.md。 |
 | A4-Gate | 最小 Agent 闯关 | PASS | 2026-08-24 | code/stage4/problem-contract.md + code/stage4/a4_gate_research_summary_agent.py + code/stage4/eval_cases.json | `FINAL / PASS` 版输入输出、失败和验收规则、冻结生产源码与 V5 自包含 14-case 已闭合；唯一 RUN-5 为 normal 10/10、holdout 3/3、exact/supportedness 10/10、semantic 10/10 cases（20/20 keypoints）、failure 3/3、danger 1/1（A～K 11/11），五道 Gate 问题全部通过；共享 step/七字段日志、受控恢复、安全停止与 action-bound HITL 均由真实运行及离线 70/70、独立 85/85 + 55/55 复核支持，详见 daily/2026-08-05.md～daily/2026-08-24.md。 |
-| G8-00 | LangGraph 基础工作流（课程阶段 4.5） | TODO |  | code/stage8/incident_change_review_agent/ | 当前入口；任务编号归属 LangGraph 旗舰，不代表跳过阶段 5～7；覆盖 typed state/node/edge/条件路由/tool/stream/stop/test，持久化与恢复留到 G8-01~03。 |
+| G8-00 | LangGraph 基础工作流（课程阶段 4.5） | PASS | 2026-09-05 | code/stage8/incident_change_review_agent/ | 15 字段 typed State、7 个业务 Node、五路条件路由/回环/稳定停止与 v2 `updates` 已闭合；最终回归 12/12、真实 DeepSeek Node 链与 G1～G11 + F1 均通过，持久化/恢复仍留到 G8-01~03，详见 daily/2026-08-25.md～daily/2026-09-05.md。 |
 | H5-01 | 框架源码单链路追踪（可选） | TODO |  | notes/stage5/h5_01_framework_trace.md | 只在真实调用链阻塞时追一个入口、重建一个关键行为并迁移到当前项目；不按目录通读，不阻塞 G8/R6。 |
 | BE5-01 | Python 工程化基础 | TODO |  | code/stage6/engineering_docs_rag/ | 在 LangChain 工程文档 RAG 项目中建立 typing、分层、pytest/mock、Ruff、类型检查、配置与日志，不另建教学项目。 |
 | BE5-02 | asyncio、并发与可靠 I/O | TODO |  | （复用两个旗舰项目） | 在两个现有 core 中验证并发上限、timeout/cancel、阻塞隔离和部分失败，不建独立教学服务。 |
