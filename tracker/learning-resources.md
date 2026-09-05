@@ -6,6 +6,8 @@
 - **原路线真正偏薄的是 Python Agent 后端、生产 RAG、可恢复执行、持续评估、安全和 CI/CD。** A4 后按 `G8-00 → R6/BE5/B0 → pgvector 与 RAG 对照 → FastAPI/SSE → durable G8 → BE5/R6 Gate → 多 Agent 对照与 G8-Gate → 长期 Memory → MCP → 评估 → 产品化与 FINAL` 补齐；工程知识在两个真实项目产生依赖时学习，不先完整上完一套孤立后端课。
 - **知识库只保存正式、稳定的沉淀。** 当前结构、既有页面和同步规则必须在实际同步前读取 `D:\AI-Knowledge`；不在本资料页复制会过期的文件数量或日期快照。
 
+2026-09-05 已分页核查本人 `humbleded` 的 8 个 Star 与 0 个 Watch 仓库，具体版本、章节、许可和任务用途见 [GitHub 收藏资料映射](../resources/github-starred-learning-map-2026-09-05.md)。每个当前知识单元选择一份概念主线，必要时加一个解决实际缺口的补充片段；官方 API 用于校准。新增收藏进入此映射，不自动变成整书必读或新框架课程。
+
 ## 二、你已有的核心资料（都在 repos/，离线可用）
 
 | 资料 | 位置 | 用途 | 语言 |
@@ -17,17 +19,19 @@
 | Agentic Design Patterns（21 章 + 附录） | `repos/agentic-design-patterns/bilingual/`（中英）`/chapters/`（英） | 阶段 7 设计模式主资料；MCP/RAG/Guardrails/评估都有 | 中英对照 |
 | Agent Learning Hub 路线图 | `repos/Agent-Learning-Hub/README.md` | 现代生产视角的 todo / Project Ladder / 官方资料索引 | 中 |
 
-> 重点：Hello-Agents 第 9 章《上下文工程》正好是 S-03 的资料；第 12 章是评估；第 13–16 章是完整项目案例（旅行助手、深度研究、赛博小镇、毕业设计），可作为你阶段 10 综合项目的参考蓝本。
+> Hello-Agents 第 9 章《上下文工程》对应已有 S-03 证据；第 12 章用于评估。第 13–16 章的项目只在当前两个旗舰出现具体问题时选读，不复制成阶段 10 的第三个项目。目录章数描述的是现有本地副本，远端更新以资料映射与任务启动时核验为准。
 
 **额外推荐（中文实战，按需读取）：[llm-universe｜动手学大模型应用开发](https://github.com/datawhalechina/llm-universe)**（Datawhale，[在线阅读](https://datawhalechina.github.io/llm-universe/)）
 
 - 是什么：面向小白、**项目导向**的中文教程，带你从零搭一个「个人知识库助手」(RAG)。覆盖：调用大模型 API（含国内模型）、Prompt、Embedding 与向量库、用 LangChain 搭检索问答链、Streamlit 部署、评估。
 - 怎么用：当 **阶段 2（Prompt）和阶段 6（RAG）的中文实战补充**最合适；阶段 1 也能参考它「调用 API」一节（讲国产模型，和你用 DeepSeek 对得上）；部署部分呼应 J11。
-- 定位提醒：它和 Hello-Agents **互补**——Hello-Agents 偏 Agent 原理 / 从零构建，llm-universe 偏 LLM 应用 / RAG 落地（直接上 LangChain）。它为求简洁删了底层原理，所以当「实战」用、别替代你 tracker 里「先理解再写」的要求。内容是 2024 V1（举例用文心 / 讯飞 / 智谱），调用模式照搬到 DeepSeek 即可。
+- 定位提醒：Hello-Agents 用于原理，llm-universe 只补当前任务需要的文档处理/检索示例。旧 SDK、模型参数、Embedding 和 LangChain 链式接口不能直接迁移；逐项对照当前官方文档与已装版本，模型调用沿用项目已验证的真实 DeepSeek 路径。它的 Streamlit/Azure/其他框架示例不改变 Python/FastAPI + Vue 主线。
 
 ## 三、按当前依赖的资料导航（先读什么 → 再读什么 → 动手）
 
 资料优先级：**当前官方文档/规范校准 → 中文教材建立直觉 → 参考代码对照 → 当前项目落地**。CSDN、知乎、视频和旧课程只能作辅助，不能作为版本字段、认证、安全和生产配置的事实源。
+
+核验来源的优先级不等于课堂叙述顺序：概念课仍先用已选中文片段讲清原理，再看当前 API。官方链接发生重定向时记录最终页面与实际范围，不因导航换了产品名称就换课程主框架。2026-09-05 实际发现旧 LangChain Retrieval 路径跳到 `deepagents/retrieval`，`langgraph/durable-execution` 跳到 `langgraph/persistence`；保留其中相关内容，分别限定为 RAG 架构与持久化，不自动加入 Deep Agents 全套课程。
 
 英文资料采用渐进式训练：阶段 0–3 以中文建立直觉；阶段 4–5 保留英文原始标题、参数名与报错，让用户自己定位关键段落；从 BE5 起，短篇英文官方文档先由用户提取 2–3 条事实，卡住时再逐段翻译，不再默认整篇代译。
 
@@ -77,6 +81,8 @@
 
 ### LangChain / LangGraph / RAG 官方源码切片
 
+R6-01 的当前官方入口（2026-09-05 已读对应正文）：[Document loaders 的 Interface](https://docs.langchain.com/oss/python/integrations/document_loaders#interface)、[Text splitter integrations](https://docs.langchain.com/oss/python/integrations/splitters)。只覆盖读入统一文档、按长度/结构切分、metadata 和文档生命周期；具体 PDF/Markdown 依赖在实际 Session 再按文件类型核验，不从整页集成清单批量安装。
+
 以下来源只在对应知识单元真正开始时读取或浅克隆；路线修订阶段不提前创建 `repos/` 副本、未来代码或课程骨架。GitHub 星标和 trending 只用于发现线索，不能单独决定课程主线。
 
 | 来源 | 当前路线中的用法 | 明确不采用 |
@@ -91,7 +97,7 @@
 | [langchain-ai/langchain-postgres](https://github.com/langchain-ai/langchain-postgres) | 核对当前 LangChain + PostgreSQL/pgvector 集成和迁移说明 | 不依赖过时 community 示例；任务开始时确认当前推荐类与版本 |
 | Qdrant / Milvus 官方资料 | 目标 JD 明确要求或需要解释取舍时做短对照 | 不并行开两条完整向量数据库课程 |
 
-每个被选中的源码切片必须形成可复核证据：
+只有为实际实现或 debug 而精读源码的切片，才形成以下可复核证据；普通概念小节只需记录来源、适用结论与当前题/产物，不每读一页都要求重建代码：
 
 - 记录 URL、检查日期、commit SHA；快速变化的 API 同时记录库版本。
 - 画出入口、核心 State/数据必须包含哪些字段与遵守哪些规则、主控制路径、错误边界和测试策略的源码地图。

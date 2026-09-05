@@ -386,14 +386,14 @@ discover → schedule → execute → independent verify
 
 主资料：
 
-- 阅读规则：中文文档优先；英文官方文档只在中文资料看不懂、命令参数不确定、或需要核对版本时再查。
+- 阅读规则：中文文档负责主讲与理解；命令参数、版本、安全和部署配置在任务启动时用当前官方文档校准，中文镜像/译文不代替官方依据；视频只补操作演示。英文定位按项目渐进规则执行，不为核验资料提前展开未来课程。
 - Linux 文档：[Linux 命令大全（菜鸟教程）](https://www.runoob.com/linux/linux-command-manual.html)、[Missing Semester 中文版：Shell 入门](https://missing-semester-cn.github.io/2026/course-shell/)
 - Linux 视频：[MIT Missing Semester 2020 - B站双语字幕](https://www.bilibili.com/video/BV1w7411477L/)、[Shell Tools and Scripting - B站双语字幕](https://www.bilibili.com/video/BV1xa4y1g7sZ/)
 - 网络文档：[MDN HTTP 概述（中文）](https://developer.mozilla.org/zh-CN/docs/Web/HTTP/Guides/Overview)、[MDN HTTP 标头（中文）](https://developer.mozilla.org/zh-CN/docs/Web/HTTP/Reference/Headers)、[MDN HTTP 响应状态码（中文）](https://developer.mozilla.org/zh-CN/docs/Web/HTTP/Reference/Status)、[Cloudflare：什么是 DNS（中文）](https://www.cloudflare.com/zh-cn/learning/dns/what-is-dns/)
 - 网络视频：[湖科大教书匠《计算机网络微课堂》](https://www.bilibili.com/list/ml962700202?bvid=BV1c4411d7jb&oid=64605483)、[Computer Networking: A Top-Down Approach - YouTube playlist](https://www.youtube.com/playlist?list=PL1ya5dD_M8uX-BLUF1FEvUNsYWQL5_l0O)
 - 数据库文档：[SQLite 5 分钟快速上手（中文）](https://sqlite.ac.cn/quickstart.html)、[SQLite SQL 语言（中文）](https://sqlite.ac.cn/lang.html)、[PostgreSQL 教程（中文）](https://postgresql.ac.cn/docs/current/tutorial.html)、[PostgreSQL SQL 语言（中文）](https://postgresql.ac.cn/docs/current/sql.html)
 - 数据库视频：[尚硅谷 MySQL 入门到高级](https://www.bilibili.com/video/BV1eC4y1M7c3/)、[CMU Intro to Database Systems - YouTube](https://www.youtube.com/@CMUDatabaseGroup)
-- Docker 文档：[Docker 中文文档：Docker 教程](https://dockerdocs.xuanyuan.me/)、[Docker Compose 快速入门（中文）](https://docker.cadn.net.cn/manuals/compose_gettingstarted)、[Docker 官方文档（英文备查）](https://docs.docker.com/get-started/)
+- Docker 文档：[Docker 中文文档：Docker 教程](https://dockerdocs.xuanyuan.me/)、[Docker Compose 快速入门（中文）](https://docker.cadn.net.cn/manuals/compose_gettingstarted)、[Docker 官方文档（命令、版本与部署校准）](https://docs.docker.com/get-started/)
 - Docker 视频：[黑马 Docker 从入门到实战](https://www.bilibili.com/video/BV1vo4y1T73j/)、[Docker Tutorial for Beginners - TechWorld with Nana](https://www.youtube.com/watch?v=3c-iBn73dDE)
 
 学习边界：
@@ -489,7 +489,7 @@ discover → schedule → execute → independent verify
 
 - Docker 中文文档：先看 Docker 教程、容器操作、镜像管理、Dockerfile、Docker Compose。
 - Docker Compose 快速入门（中文）：重点看 services、ports、environment、volumes、logs、exec。
-- Docker 官方英文文档：只在中文文档和本机 Docker Desktop 行为不一致时备查。
+- Docker 官方英文文档：实际 Session 用对应小节核对命令、版本、安全与部署配置；中文教程主讲，不能等出现行为冲突后才核验。
 - 视频：黑马 Docker 从入门到实战 02-18；YouTube 可补 TechWorld with Nana Docker Tutorial for Beginners
 
 要做：
@@ -1209,7 +1209,7 @@ discover → schedule → execute → independent verify
 - 在两个旗舰项目的现有 Python core 中选择真实并发调用链，比较串行与并发行为；不另建脱离项目的 async 教学脚本。
 - 使用 `asyncio.gather`/`TaskGroup`、Semaphore、timeout 和 cancellation；识别会阻塞事件循环的同步调用，并用异步客户端或线程池隔离。
 - 覆盖部分失败、整体超时、用户取消和限流四类场景；对 429 读取 `Retry-After`，实现有上限的指数退避 + jitter，并区分可重试与不可重试错误。
-- 用 fault injection 组合 provider 429/超时、SSE 客户端断开和部分工具成功，验证取消传播、并发槽位释放、重试次数、fallback/降级与成本上限；重试不得复制有副作用的操作。
+- 用 fault injection 组合 provider 429/超时、调用方取消和部分工具成功，验证取消传播、并发槽位释放、重试次数、fallback/降级与成本上限；重试不得复制有副作用的操作。本任务用 Python 调用方的取消信号，真实 SSE 客户端断开留到 BE5-03；读取并承认 BE5-04 已记录的 await/连接生命周期局部证据，不重复考察。
 
 通过标准：
 
@@ -1226,6 +1226,7 @@ discover → schedule → execute → independent verify
 - `approve/edit/reject` 属于 `G8-03` 的持久化 interrupt 增量：G8-03 在同一 Graph adapter 中补决策接口及重启恢复测试，`BE5-Gate` 再统一验收完整 REST/SSE/HITL 链路。BE5-03 不能提前要求尚未实现的 HITL。
 - 使用 Pydantic v2 校验请求/响应，统一错误结构，区分 4xx 与 5xx；API Key 只在服务端读取。
 - 加 request ID、health/readiness endpoint、超时与客户端断开处理；用 FastAPI TestClient/httpx 写接口测试。
+- 把 BE5-02 的取消传播接到真实 SSE 客户端断开；规定事件类型、`run_id`、顺序号以及完成/失败怎样表示。明确断线后查询已有任务、续流或显式新建的选择，验证重连不会静默启动重复任务；用慢客户端验证有界缓冲或明确取消策略，避免数据无限积压。复用项目接口测试，不另建演示服务。
 
 通过标准：
 
@@ -1240,14 +1241,14 @@ discover → schedule → execute → independent verify
 要做：
 
 - 在工程文档 RAG 项目中使用 SQLAlchemy 2 + Alembic 管理文档、chunk、embedding/index 版本、导入任务与审计；禁止用一次性建表脚本代替迁移历史。
-- 使用当前 `langchain-postgres` / pgvector 集成，覆盖 exact baseline、HNSW、metadata/tenant filter、增量更新、删除和版本迁移；执行时核对当前包版本与迁移说明。
-- 使用 async driver，演示事务回滚、唯一约束和幂等导入，避免重复 chunk 或关系数据/向量状态漂移。
+- 使用当前 `langchain-postgres` / pgvector 集成，完成向量列/适配器的确定性读写、最小 metadata/tenant filter、增量更新、删除和版本迁移；执行时核对包版本与迁移说明。这里只验存储、一致性和权限，exact/HNSW、召回影响、hybrid/rerank 与质量对照由 R6-02 正式展开。
+- 使用 async driver 前，即时引入 BE5-02 的最小前置：coroutine、await、async with，以及连接/事务的进入和释放。记录为 BE5-02 局部证据，不能提前判整项 PASS；并发、取消与重试仍在后续 BE5-02 学习。随后演示事务回滚、唯一约束和幂等导入，避免重复 chunk 或关系数据/向量状态漂移。
 
 通过标准：
 
 - 数据库迁移可从空库执行，服务重启后文档、索引版本与任务状态仍在。
 - 有 repository/service 边界和数据库集成测试。
-- 能解释 PostgreSQL 关系数据、向量列与索引的职责，以及 filter 与近似索引的取舍。
+- 能解释 PostgreSQL 关系数据、向量列、稳定 ID 和最小权限过滤的职责；连接/事务能正常释放。近似索引与召回的取舍在 R6-02 验收，不倒置前置。
 
 ## BE5-05 Redis、后台任务、认证与负载测试
 
@@ -1319,9 +1320,10 @@ discover → schedule → execute → independent verify
 
 资料：
 
-- Hello-Agents：`docs/chapter8/第八章 记忆与检索.md`
-- Hello-Agents 代码：`code/chapter8/04_RAGTool_MarkItDown_Pipeline.py`
-- Hugging Face：`unit3/agentic-rag/introduction.mdx`
+- 概念主线：本人 Star 中 llm-universe C3 §3.3.2“数据读取”与 §3.3.4“文档分割”；只讲内容/来源、Document/metadata 与切分边界。按资料映射中的订正使用，不复制删除全部空格的清洗或旧接口。
+- 官方实现依据：[Document loaders / Interface](https://docs.langchain.com/oss/python/integrations/document_loaders#interface)、[Text splitters](https://docs.langchain.com/oss/python/integrations/splitters)，2026-09-05 已核验；实际 Session 再核查具体 parser 与包版本。
+- 可选补充：Hello-Agents 第 8 章 §8.3.2 的导入流程、§8.3.4（1）（2）的文档载入与结构感知切分；若主线已讲清则不追加，不扩成长期 Memory。已核验章节、冻结版本、订正和许可见 [GitHub 资料映射](../resources/github-starred-learning-map-2026-09-05.md)。
+- Hello-Agents `code/chapter8/04_RAGTool_MarkItDown_Pipeline.py` 只作有需要时的处理链对照；Hugging Face `unit3/agentic-rag/introduction.mdx` 移到 R6-03 的 Agentic 对照语境，不作为本单元额外必读。
 
 要做：
 
@@ -2012,6 +2014,7 @@ discover → schedule → execute → independent verify
   2. 旗舰一：`code/stage6/engineering_docs_rag/` 工程文档 RAG 助手（LangChain 主项目，FastAPI、引用、技术/业务指标、可复现部署；只有被选为 `product_flagship` 时才要求 Vue 与公网产品）；默认使用公开或脱敏的 API 文档、README、ADR、runbook 和排障资料，不以个人知识库作为业务题目。
   3. 旗舰二：`code/stage8/incident_change_review_agent/` 故障诊断与变更评审 Agent（LangGraph 主项目，持久工作流、HITL、受控多 Agent 对照、trace、失败恢复与可复现 API/demo；只有被选为 `product_flagship` 时才要求正式 Vue 与公网产品）；A4 只作为已 PASS 的手写 Agent Loop 参照，不复制为新研究 Agent。
 - 每个项目写清楚：为谁解决什么流程问题、基线是什么、用了哪些技术、难点、取舍和指标结果；没有改善的指标也要解释原因和下一实验。
+- 已要求的真实迭代中，至少一次由使用者反馈或明确标注的模拟需求变更触发：说明原流程哪里不便、验收条件怎样改变，在现有旗舰做最小修改并回归验证；保留到已有 issue/PR 或设计记录，不另建课程或反馈管理系统。助手整理记录，用户亲自作影响行为的取舍；模拟反馈不冒充真实客户验证。
 - 每个旗舰附：架构/数据流/信任边界图、版本化评估报告、负载报告、威胁模型、失败复盘、CI 状态和可复现部署说明；至少记录一次真实迭代前后对比。
 - 冻结的 `product_flagship` 展示 Python/FastAPI Agent 后端与 Vue 前端的真实集成边界（SSE/HTTP、认证、系统出错时怎样返回结果、任务状态）；另一个旗舰保留可复现 API/demo、完整评估和部署说明。只把项目中已经验证的部分写成差异化，不引入第二套后端技术栈。
 
@@ -2026,7 +2029,7 @@ discover → schedule → execute → independent verify
 - 按目标 JD（大模型应用 / Agent 应用开发）写一版简历；既往工作经历如实保留，项目主线突出 `Python/FastAPI + Vue + Agent/RAG` 的完整应用落地证据。
 - 按 `tracker/job-readiness.md` 做双轨样本：4–6 条京东/腾讯等大厂岗位校准工程上限；另收集恰好 10 条当前在招且满足硬门槛的岗位，用于计算真实匹配率和差距。
 - 这不是 W19 才第一次做：W6、W12、W16、W19 都更新双轨审计；W19 负责把累计证据收束进简历。Java/C++、学历或年限不匹配的大厂岗位只能作为标杆，不能写成“已满足”。
-- BE5-Gate/W10 完成最小部署后做一次轻量求职材料校准：把新证据写成项目描述，并拿 2–3 条 `HARD_ELIGIBLE` 岗位检查缺口；它不替代 W12 正式双轨审计，也不要求证据不足时强行投递。
+- BE5-Gate 完成最小部署后做一次轻量求职材料校准：把新证据写成项目描述，并拿 2–3 条 `HARD_ELIGIBLE` 岗位检查缺口；它不替代 W12 正式双轨审计，也不要求证据不足时强行投递。
 
 问答：
 

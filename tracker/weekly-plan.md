@@ -2,7 +2,7 @@
 
 本文件把课程任务按知识依赖组织成内容块。W1–W20 是兼容 tracker、历史证据和算法台账的稳定 ID，不是日历周、完成期限或学习时长；一个内容块可以跨任意数量的日期与 Session。课程状态只读 `tracker/progress.md`，当前入口只读 `tracker/daily-plan.md`。
 
-最后路线校准：2026-08-25。
+最后路线校准：2026-09-05。
 
 ## 路线原则
 
@@ -44,7 +44,7 @@ W1–W5 是已发生的历史学习块，精确任务状态和证据仍以 `prog
 | W1–W3 | Python、LLM API、Prompt、结构化输出 | Python Gate、流式 CLI、结构化输出与上下文实验 |
 | W4 | Tool Calling 与算法启动 | T3-Gate；算法首块 4 道新题替代无旧题的复测位 |
 | W5 | Agent 基础与 A4-Gate | 手写 Agent Loop、ReAct、Plan-and-Solve、Reflection、正式 14-case Gate |
-| W6 | `G8-00`（课程位置：阶段 4.5）；并行开启 `J11-01` 的证据积累与首轮岗位审计 | LangGraph 故障诊断与变更评审 Agent v1：typed state、node/edge、条件路由、工具、停止、stream、测试；这不是直接跳到完整阶段 8。岗位审计当前为 RETRY，不阻塞 G8-00，但必须在其 PASS 后、W7/R6-01 前用独立 Session 关闭 |
+| W6 | `G8-00`（课程位置：阶段 4.5）；并行开启 `J11-01` 的证据积累与首轮岗位审计 | LangGraph 故障诊断与变更评审 Agent v1：typed state、node/edge、条件路由、工具、停止、stream、测试；这不是直接跳到完整阶段 8。岗位样本不足保持 RETRY 并继续独立补齐，不阻塞已满足技术依赖的 W7/R6-01 |
 | W7 | `R6-01 → BE5-01`（同一项目、分别验收） | 先完成 Markdown/TXT/PDF 导入、切分、metadata、去重和文档状态，再补项目分层、日志、pytest、Ruff 与类型检查 |
 | W8 | `B0-01 → B0-03 → B0-04 → B0-Gate → BE5-04 → R6-02`；联合核验 `S-02` | 从命令行/进程/日志基础进入 PostgreSQL + pgvector；migration、CRUD、tenant filter、hybrid、rerank、Recall@k/MRR |
 | W9 | `R6-03 → S-06` | 同一数据集的固定两步 RAG baseline 与 Agentic RAG 对照；可定位引用、无答案拒答与失败分层；再用真实证据判断 Prompt/RAG/微调怎样选 |
@@ -88,7 +88,7 @@ W1–W5 是已发生的历史学习块，精确任务状态和证据仍以 `prog
 
 - 每次 Session 读取当前任务全部关联 daily；跨日不重置题量、覆盖或上下文。
 - `W6/W12/W16/W19` 做双轨岗位审计：4–6 个高工程标准标杆与恰好 10 个 `HARD_ELIGIBLE` 可投样本分开统计。
-- 岗位审计债务不会阻塞同块的课程任务，但不能跨过规定的最晚收口点：当前 W6 RETRY 最晚在 `G8-00` PASS 后、`R6-01` 启动前补齐；W12 必须新建自己的快照，不能覆盖 W6 未关闭记录。
+- 岗位审计样本不足不阻塞已满足技术前置的课程任务；W6 未完成时并行补齐，W12 必须复查未关闭原因并新建自己的快照，不能覆盖历史记录。正式岗位匹配率、J11-Gate 与投递前就绪仍要求完整审计；不得因继续学习就把 W6 改为完成。
 - 课程 PASS 不自动升级岗位证据。`JOB_EVIDENCE`、`FINAL-Gate`、`J11-Gate` 和投递前就绪必须经过另一工具的独立交叉复核。
 - 未开始任务只在 tracker 中保留目标路径与 rubric；真正进入动手 Session 时才创建骨架。
 - 每个 `progress.md` 中的独立 `TODO` 必须在主队列或“挂载任务”中有明确触发点、最晚收口点和状态写回规则；不能只把能力隐含在别的任务里。
