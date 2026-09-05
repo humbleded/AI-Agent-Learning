@@ -18,11 +18,12 @@
 
 ## 复合题与复合事故规则
 
+- 普通小编码任务先验证当前真实改动相关的至少一个故障；只有两类以上已学问题存在实际联系时才组合，不为类别配额重复旧知识或提前考后续能力。从 BE5 起的 Gate/项目验收仍必须完成 2–4 类问题叠加的复合事故，以下各 Gate 的数量、根因、恢复和安全要求全部保留。
 - 一道复合题是**一个完整事故包**，可以同时包含 2–4 类问题，例如 provider 429、SSE 断连、后台任务重试和重复写入。它仍算一个高价值检查点，不拆成一屏十道互不相干的小问。
 - 用户第一步要找出所有重要问题并按影响排序，不能只命中最显眼的报错；随后按“止损/隔离 → 复现 → 根因定位 → 最小修复 → 回归/故障注入 → 取舍与复盘”推进。
 - 同一事故可以给多个类别升级证据，但每个类别都要分别记录命令、关键输出和证据路径；不能用一句“综合题做过了”把全部类别一起判 PASS。
 - 题目只能组合 `progress.md` 已 PASS 或当前任务已经正式引入的知识。大厂标杆决定工程深度，不允许拿尚未教学的高阶术语突然考用户。
-- 编码、Gate、项目日优先选择本表中最久未验证、等级最低或本 Gate 强制要求的类别；不得连续多次只练同一种安全题而遗漏并发、恢复、部署等类别。
+- 编码、Gate、项目 Session 先按当前真实产物与已引入知识筛选类别，再优先选择其中最久未验证、等级最低或本 Gate 强制要求的项；不得连续多次只练同一种安全题而遗漏已经具备前置的并发、恢复、部署等类别。
 
 ## 覆盖矩阵
 
@@ -33,7 +34,7 @@
 | WS-03 | 测试、CI 与回归 | 单测通过但集成失败、flaky、eval 回归、发布门禁 | P0-07/L1-Gate | BE5、E10、J11、FINAL-Gate | DIAGNOSED_AND_FIXED | `daily/2026-08-08.md`～`2026-08-24.md`：V4 RUN-4 RETRY 不覆盖，按透明问题修复、holdout 替换、V5 指纹冻结后唯一 RUN-5 为 14/14；正式收口离线 70/70、独立 85/85 + 55/55，源码/eval 指纹无漂移 | BE5 建维护型 pytest/lint/type-check/CI；E10 再建版本化 evaluator 与回归门禁 |
 | WS-04 | 并发、取消与流中断 | 超时、SSE 断连、悬挂任务、背压、部分失败 | BE5-02（取消信号）；BE5-03（SSE 断连/慢客户端） | BE5、G8、J11、FINAL-Gate | NOT_VERIFIED |  | BE5-Gate |
 | WS-05 | 模型/provider 韧性与成本 | 429、Retry-After、退避+jitter、配额耗尽、fallback、context 超限 | T3-04/S-01 | BE5/E10/FINAL | RECOVERED_UNDER_FAULT | `daily/2026-08-04.md`～`2026-08-24.md`：工具、Candidate、Reflection、Refinement 的协议/Provider 失败与共享 recovery 闭合；F01～F03 3/3，工具恢复 3/3，无第三次 Refinement、step 7 或工具重跑；RUN-5 延迟/token 门全部通过 | BE5/S-01 补 429/Retry-After、退避+jitter、配额降级与 fallback；E10 补成本趋势门 |
-| WS-06 | 身份、授权与多租户 | 猜 ID、跨用户读写、ACL filter、principal 丢失、日志越权 | BE5-05 | BE5/R6/M9/FINAL | NOT_VERIFIED |  | BE5-Gate |
+| WS-06 | 身份、授权与多租户 | 猜 ID、跨用户读写、ACL filter、principal 丢失、日志越权 | BE5-04 存储/tenant filter；BE5-05 补身份认证/资源归属 | BE5/R6/M9/FINAL | NOT_VERIFIED |  | BE5-Gate |
 | WS-07 | 工具与 Agent 安全 | 坏参数、路径逃逸、SSRF、间接注入、secret/PII 外泄、过度授权 | T3-03/T3-Gate | A4/R6/M9/FINAL | RECOVERED_UNDER_FAULT | `daily/2026-08-07.md`～`2026-08-24.md`：沙箱/白名单/参数绑定、严格 Observation、坏 candidate 不回显、失败来源重派生均闭合；D01 A～K 11/11 验证 allow/deny/missing/错绑/replay/timeout、三方 request/executor 绑定与副作用前一次性消费，生产注册表无 fake 污染 | R6 复测提示注入/ACL/来源真实性；M9 复测 scope/audience/恶意 server 与持久授权 |
 | WS-08 | 数据库、迁移与幂等 | pgvector/Alembic 迁移失败、事务回滚、重复提交、缓存不一致、Graph replay 后重复副作用 | B0-03/BE5-04 | R6/BE5/G8/FINAL | NOT_VERIFIED |  | R6-02 先覆盖 migration/增删改；BE5/G8 再覆盖重复提交与恢复幂等 |
 | WS-09 | 后台任务与队列 | worker 崩溃、重复投递、重试风暴、取消、死信/积压 | BE5-05 | BE5、R6、J11、FINAL-Gate | NOT_VERIFIED |  | BE5-Gate |
@@ -45,7 +46,7 @@
 | WS-15 | Git/PR 与团队协作 | issue、branch、review、CI 失败、冲突、revert、变更说明 | J11-01 | J11、FINAL-Gate | NOT_VERIFIED |  | J11-01 |
 | WS-16 | 长期 Memory 生命周期 | 跨会话写入/更新/删除、TTL、冲突、租户隔离、PII、poisoning | D7-03 | D7/FINAL | NOT_VERIFIED |  | D7-Gate；G8 checkpoint 只做边界说明，不提前升级本项 |
 
-A4–M9 的“运行轨迹”可以是结构化日志或单次可复现步骤，不要求提前建设 tracing 平台；E10/J11 才要求完整 tracing。D7/R6 等较早阶段的 eval/baseline 使用复用的小数据集、项目测试和紧凑对比表，不另建通用评估框架。G8 的 checkpointer/thread state 是一次工作流的 durable execution 证据；D7-03 的长期 Memory 才负责跨 thread 的事实生命周期。S-04 必须先有单 Agent baseline，再以带类型约束的角色交接格式、上下文隔离、停止和对照指标证明多 Agent 是否值得保留。
+A4–M9 的“运行轨迹”可以是结构化日志或单次可复现步骤，不要求提前建设 tracing 平台；E10/J11 才要求完整 tracing。D7/R6 等较早阶段的 eval/baseline 使用复用的小数据集、项目测试和紧凑对比表，不另建通用评估框架。G8 的 checkpointer/thread state 是一次工作流的 durable execution 证据；D7-03 的长期 Memory 才负责跨 thread 的事实生命周期。S-04 必须先有单 Agent baseline，再完成最小受控协作候选实验，用带类型约束的角色交接格式、上下文隔离、停止和同集对照证明协作机制与采用取舍；没有净收益则产品继续默认单 Agent，不能用“不采用”省略学习实作，也不能把实验过关写成产品已采用。
 
 ## Gate 最低覆盖
 
@@ -56,7 +57,7 @@ A4–M9 的“运行轨迹”可以是结构化日志或单次可复现步骤，
 - `BE5-Gate`：WS-01、WS-03、WS-04、WS-05、WS-06、WS-08、WS-09、WS-13、WS-14；WS-13 在本关至少达到可重复部署与 smoke 的 `EXECUTED`，完整回滚/恢复留到 J11-04；其余至少两个复合事故达到 `DIAGNOSED_AND_FIXED`，其中一个达到 `RECOVERED_UNDER_FAULT`。
 - `R6-Gate`：WS-02、WS-03、WS-06、WS-08、WS-10、WS-14；关键越权/泄漏案例必须全部拦截。
 - `D7-Gate`：WS-16，并复用同一轻量数据集/项目测试对比模式变更前后的质量、延迟和成本。
-- `G8-Gate`：WS-02、WS-04、WS-08、WS-11；必须演示进程退出后恢复且不重复副作用，并完成单 Agent/受控多 Agent 的同集对照；WS-16 留给后续 D7-03，不把 checkpoint 冒充长期 Memory。
+- `G8-Gate`：WS-02、WS-04、WS-08、WS-11；必须演示进程退出后恢复且不重复副作用，并复用 S-04 的单 Agent/最小受控多 Agent 候选实验及同集对照，补齐新增集成或受改动影响的验证；无净收益可以默认单 Agent，但协作实作证据仍须齐全。WS-16 留给后续 D7-03，不把 checkpoint 冒充长期 Memory。
 - `M9-Gate`：WS-02、WS-06、WS-07、WS-12；授权、断连和审计至少一个复合事故达到 `RECOVERED_UNDER_FAULT`。
 - `J11-02~06 + FINAL-Gate`：补齐 WS-01~16 中与旗舰有关的全部类别；至少完成一次“告警 → 止损/降级 → 定位 → 修复 → 回归 → 上线/回滚 → postmortem”综合演练。之后 `J11-07/08/Gate` 再把这些证据用于简历、面试和求职就绪复核。
 

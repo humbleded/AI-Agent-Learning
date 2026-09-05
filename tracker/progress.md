@@ -1,6 +1,6 @@
 # AI Agent 学习总进度
 
-最后校准：2026-08-25。
+表结构/规则校准：2026-09-05；各任务状态与证据日期以对应行“最近日期”为准。
 
 状态取值：`TODO`、`DOING`、`RETRY`、`PASS`、`FAIL`。
 
@@ -90,6 +90,6 @@
 | S-01 | 多厂商模型切换 | TODO |  | （A4-Gate 后、J11-02 前） | 先抽 provider 边界，再接第二个真实 provider；按真实项目依赖挂载，不阻塞当前 G8/R6。 |
 | S-02 | 生产向量检索 | TODO |  | （与 R6-02/R6-Gate 共用产物） | pgvector 主线；hybrid、rerank、权限 filter、增量更新与检索指标；正式检查必须单独写回本 ID。 |
 | S-03 | 上下文工程 | PASS | 2026-06-30 | notes/stage2/s03_context_engineering.md ＋ code/stage2/s03_context_experiment.py | 已通过；详见 daily/2026-06-30.md。 |
-| S-04 | 受控多 Agent 协作 | TODO |  | code/stage8/incident_change_review_agent/ | 在单 Agent baseline 后验证带类型约束的角色交接格式、共享/私有 state、预算/停止/升级与质量-成本取舍；无净收益则回退。 |
+| S-04 | 受控多 Agent 协作 | TODO |  | code/stage8/incident_change_review_agent/ | 在单 Agent baseline 后完成最小候选实验，验证交接格式、共享/私有 state、预算/停止/升级与质量-成本取舍；默认采用取决于实测净收益，无净收益则保留单 Agent。 |
 | S-05 | 安全与 Guardrails | TODO |  | code/（复用 R6/D7/M9/J11 产物） | A4 已完成最小基线；R6、D7-03、M9 分别补 RAG/Memory/MCP 安全切片，J11 综合攻击回归后再正式判定。 |
 | S-06 | 微调 vs RAG vs Prompt 判断 | TODO |  | notes/stage6/s06_prompt_rag_finetune_decision.md | 在 R6-03 同集对照后用真实项目案例完成三选一判断；不动手微调。 |
