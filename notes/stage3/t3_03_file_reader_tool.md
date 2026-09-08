@@ -115,7 +115,7 @@ relative_to(SANDBOX) 判断归属；
 
 - 用户能看懂哪里错了。
 - Agent 后续还能把错误当 Observation 继续处理。
-- 程序不会因为异常直接崩掉。
+- 已显式处理的沙箱外、文件不存在、不是文件这三类失败会返回字典。当前单工具代码仍可能抛出读取权限、编码等异常；接入 Agent 时还需由调用层处理这些异常，不能把“返回失败字典”理解成已经覆盖所有异常。
 
 ## 接回 Tool Calling 链路
 
@@ -133,7 +133,7 @@ relative_to(SANDBOX) 判断归属；
 3. 客户端解析模型的工具调用请求。
 4. 客户端执行 read_sandbox_file("sample.txt")。
 5. 工具检查沙箱、检查文件、读取内容，返回 dict。
-6. 客户端把 dict 作为 Observation/tool message 放回上下文。
+6. 客户端用 json.dumps(result, ensure_ascii=False) 把 dict 转成 JSON 字符串，再作为 role="tool" 消息的 content 回填，并关联原 tool_call_id。
 7. 模型读取 Observation，整理成人话回答用户。
 ```
 

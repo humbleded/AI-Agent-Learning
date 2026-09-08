@@ -16,8 +16,8 @@ L1-05 参数实验与成本意识。
 
 提示（和 l1_01 的 call_model 的区别，这就是今天要练的）：
     - 要【接收 temperature 参数】并真的传给 API。
-    - 要【关掉思考模式】：不要写 reasoning_effort / extra_body.thinking，
-      否则温度效果会被干扰、还白烧 token。
+    - 要【显式关掉思考模式】：发送 extra_body={"thinking": {"type": "disabled"}}。
+      当前 DeepSeek 默认开启思考，该模式下 temperature 不生效。
     - 要【同时返回 回答文本 和 usage】，好看 token 用量。
     - 问题选「开放/创意类」，温度差异才看得明显（问 1+1 等于几，看不出区别）。
 """
@@ -45,7 +45,8 @@ def run_once(question: str, temperature: float):
            - messages=[{"role": "user", "content": question}]
            - stream=False
            - temperature=temperature      ← 本关主角，别忘了传
-           - 【不要】写 reasoning_effort / extra_body（关思考模式）
+           - extra_body={"thinking": {"type": "disabled"}}（显式关思考模式）
+           - 不传 reasoning_effort；本实验只比较非思考模式的 temperature
         4. 取回答：response.choices[0].message.content
         5. 取用量：response.usage（含 prompt_tokens / completion_tokens / total_tokens）
         6. return 回答文本, response.usage
@@ -60,7 +61,8 @@ def run_once(question: str, temperature: float):
             model=MODEL,
             messages=[{"role": "user", "content": question}],
             stream=False,
-            temperature=temperature
+            temperature=temperature,
+            extra_body={"thinking": {"type": "disabled"}},
         )
         answer = response.choices[0].message.content
         usage = response.usage

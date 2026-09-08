@@ -20,14 +20,29 @@ ROOT = Path(__file__).resolve().parents[2]
 DATA_FILE = ROOT / "resources" / "p0_gate_learning_log.json"
 
 
+class LogLoadError(ValueError):
+    """现有学习记录无法安全读取；调用方必须停止写入。"""
+
+
 def load_logs():
-    if not DATA_FILE.exists():
-        return []
     try:
-        return json.loads(DATA_FILE.read_text(encoding="utf-8"))
-    except json.JSONDecodeError:
-        print("JSON 文件损坏，先返回空列表。请保留坏文件用于复盘。")
+        logs = json.loads(DATA_FILE.read_text(encoding="utf-8"))
+    except FileNotFoundError:
         return []
+    except (json.JSONDecodeError, UnicodeError, OSError) as exc:
+        raise LogLoadError("记录文件损坏或无法读取，请先备份并修复") from exc
+
+    if not isinstance(logs, list):
+        raise LogLoadError("记录文件必须保存一个列表，请先备份并修复")
+    for item in logs:
+        if (
+            not isinstance(item, dict)
+            or any(not isinstance(item.get(key), str) for key in ("date", "topic", "note"))
+            or type(item.get("minutes")) is not int
+            or item["minutes"] < 0
+        ):
+            raise LogLoadError("每条记录必须包含日期、主题、非负整数分钟数和备注，请先备份并修复")
+    return logs
 
 
 def save_logs(logs):
@@ -62,11 +77,17 @@ def show_recent(logs, limit=7):
 
 
 def main():
-    logs = load_logs()
+    try:
+        logs = load_logs()
+    except LogLoadError as exc:
+        print(f"读取学习记录失败：{exc}。已停止，原文件未修改。")
+        return
     choice = input("1 新增记录 / 2 查看最近 7 条：").strip()
     if choice == "1":
+        original_count = len(logs)
         logs = add_log(logs)
-        save_logs(logs)
+        if len(logs) > original_count:
+            save_logs(logs)
     show_recent(logs)
 
 

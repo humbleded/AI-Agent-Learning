@@ -5,8 +5,8 @@
 ## 事实源
 
 - `tracker/progress.md`：课程状态唯一事实源。
-- `tracker/daily-plan.md`：当前知识单元、Session 起点和主队列。
-- `tracker/weekly-plan.md`：W1–W20 依赖驱动内容块；W 是稳定记账 ID，不是日历周。
+- [tracker/daily-plan.md](tracker/daily-plan.md)：当前知识单元与 Session 起点。
+- [tracker/weekly-plan.md](tracker/weekly-plan.md)：完整学习路径、任务依赖与挂载；W 是稳定记账 ID，不是日历周。
 - `tracker/ai-agent-learning-tracker.md`：任务资料、产物和 PASS rubric。
 - `tracker/job-readiness.md`：岗位资格、技术匹配与作品证据唯一事实源。
 - `tracker/weak-points.md`：复习调度唯一事实源。
@@ -20,30 +20,17 @@
 1. 说 `开始今天的学习` 或 `开始今天的学习计划`，只预览当前知识单元、资料、产物、PASS 标准和 Session 起点。
 2. 说 `开始带读` 或 `开始动手` 才启动实际 Session；此时创建/更新当天 daily，并在真正开始任务时把 `TODO` 改为 `DOING`。
 3. Session 可以跨日期；续接时读取该任务全部前序 daily，从明确起点继续，不重置题量和证据。
-4. 输入/实现完成后说 `开始今天的练习`，只补任务级覆盖缺口。
-5. 说 `检查今天的学习`，按该任务全部 Session 和真实产物执行正式验收；符合授权边界时同步知识库。
+4. 说 `开始今天的练习`，只补已学范围内必要的迁移、操作、订正与复习目标；同一任务跨日累计，已有证据充分时直接接回带读/动手。
+5. 说 `检查今天的学习`，核查当前已学或提交的范围。单元未学完时记录局部结果、剩余与起点，任务继续 `DOING`；完整交付或明确要求整项验收时才判任务 `PASS/RETRY/FAIL`，正式 PASS 后按授权边界同步知识库。
 6. 未开始任务不预建代码、notes、daily 或课程骨架；只在进入实际动手环节时创建当前 TODO 骨架。
 
 ## A4 后依赖主路线
 
 当前入口和任务状态只读 `tracker/daily-plan.md` 与 `tracker/progress.md`，README 不复制会过期的状态。`G8-00` 虽沿用阶段 8 的编号，课程位置实际是阶段 4.5：它只是先把已经 PASS 的 Agent 控制循环迁移到显式 Graph，不代表阶段 5～7 被跳过。
 
-```text
-G8-00 Graph 基础（阶段 4.5）
-  → R6-01 文档导入与切分 → BE5-01 工程结构、日志与测试
-  → B0-01/03/04/Gate → BE5-04 PostgreSQL + pgvector
-  → R6-02/S-02 检索 → R6-03/S-06 RAG 对照与选型
-  → BE5-02/03 并发、FastAPI/Pydantic/SSE
-  → G8-01/02/03 持久化、恢复、HITL 与幂等
-  → BE5-05/BE5-Gate → R6-Gate
-  → D7-02/S-04 多 Agent 取舍与受控对照 → G8-Gate
-  → D7-01/03/Gate 编排模式与长期 Memory
-  → M9 MCP → E10 评估与系统设计
-  → S-01、J11-02～06、S-05 产品化收口 → FINAL-Gate
-  → J11-07/08/Gate 求职材料、面试与最终证据复核
-```
+完整路径图、任务先后、提前学习的局部内容及各项收口条件统一见 [学习路径与内容块](tracker/weekly-plan.md)。README 只做入口，不再复制另一条容易过期的任务链。
 
-`J11-01` 从真实项目开发开始持续累计 Git/PR/CI/review 证据，最晚在 `J11-06` 前收口；`H5-01` 只在真实框架调用链阻塞时触发，不阻塞主线。精确挂载点与状态写回规则见 `tracker/daily-plan.md`。
+`J11-01` 从真实项目开发开始持续累计 Git/PR/CI/review 证据，最晚在 `J11-06` 前收口；`H5-01` 只在真实框架调用链阻塞时触发，不阻塞主线。精确挂载点与状态写回规则见 [weekly-plan](tracker/weekly-plan.md)，当前继续位置见 [daily-plan](tracker/daily-plan.md)。
 
 两个旗舰项目：
 
@@ -66,4 +53,21 @@ W4–W20 共 17 个内容块，最低 52 道新题；每块固定 `3 新 + 1 旧
 
 ## 本地配置
 
-复制 `.env.example` 为 `.env`，填入真实密钥。`.env` 已被 `.gitignore` 忽略，不应提交到 GitHub。
+在项目根目录用 PowerShell 操作。首次使用时先安装 Python 并创建虚拟环境；已有 `.venv` 时直接使用现有解释器：
+
+```powershell
+if (-not (Test-Path -LiteralPath .venv/Scripts/python.exe)) { py -3 -m venv .venv }
+.\.venv\Scripts\python.exe -m pip install -r code/stage8/incident_change_review_agent/requirements.txt requests
+```
+
+这组依赖用于已有基础脚本和 LangGraph 项目。RAG 当前的 Document 演示还使用 `langchain-core==1.6.1`；进入后续实际任务时，按对应资料核验并记录新依赖。
+
+首次配置时复制 `.env.example` 为 `.env`，填入真实密钥；已有 `.env` 时保留原配置。模板的 `DEEPSEEK_MODEL=deepseek-v4-pro` 与当前课程默认模型一致，具体脚本可能直接固定模型名。`.env` 已被 `.gitignore` 忽略，不应提交到 GitHub。
+
+安装后可用现有离线测试验证 Graph 项目环境，无需模型调用：
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest code/stage8/incident_change_review_agent/test_incident_graph.py -q
+```
+
+路线、代码、笔记与验证的最近一次全面检查见 [2026-09-07 项目审查记录](resources/project-audit-2026-09-07.md)。

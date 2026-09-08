@@ -2,13 +2,15 @@
 
 根目录：`C:\Users\26823\Desktop\AI-Agent-Learning`
 
-本清单用于按知识单元与 Session 记录学习、提交代码、回答检查题，并由批改者（Claude / Codex 均可）判定是否通过。日期只用于原始证据归档，不构成每日课表。
+本清单用于按知识单元与 Session 记录学习、提交代码、回答检查题，并按对应学习 skill 核验是否通过；维护范围遵循项目 AGENTS.md。日期只用于原始证据归档，不构成每日课表。
 
 ## 文件夹约定
 
 | 路径                                   | 用途                           |
 | -------------------------------------- | ------------------------------ |
-| `tracker/ai-agent-learning-tracker.md` | 总学习路线、任务清单、通过标准 |
+| `tracker/ai-agent-learning-tracker.md` | 任务资料、产物与通过标准 |
+| `tracker/weekly-plan.md` | 完整依赖顺序、内容块与挂载条件 |
+| `tracker/daily-plan.md` | 当前知识单元与 Session 接力 |
 | `tracker/progress.md`                  | 总进度表，只记录每项状态       |
 | `tracker/job-readiness.md`             | 岗位能力、作品证据与 JD 差距   |
 | `tracker/work-scenario-coverage.md`    | 工作场景、复合故障与实跑证据   |
@@ -30,13 +32,15 @@
 
 ## 判定规则
 
+先区分检查范围：单元未学完时，练习或“检查今天的学习”只核验已学/已提交部分，记录单题结果、任务剩余和接力点，任务保持 `DOING`；未教到的内容不因此判失败。只有完整交付验收，或用户明确把整个任务提交验收时，才按全部适用标准使用下面的任务级判定。
+
 - `PASS`：课程任务的代码能运行，能独立解释核心概念，问答没有明显漏洞。
 - `RETRY`：代码能跑但理解不稳，或答案不完整，需要补答。
 - `FAIL`：代码未跑通，概念混淆，或明显复制材料但不能解释。
 
 课程 `PASS` 只表示当前学习任务达标，不自动等于“已经达到招聘要求”。岗位能力与作品证据另记在 `tracker/job-readiness.md`：只有当能力已经落到可复现项目、测试/评估结果、工程说明和独立讲解时，才可以升为 `JOB_EVIDENCE`；能在限时面试或现场任务中稳定完成，才升为 `INTERVIEW_READY`。
 
-强制顺序关卡没通过时，不进入后续同类阶段：
+下列关卡只有在被列为某项任务的实际前置时，才阻塞该项任务。精确依赖以 `tracker/weekly-plan.md` 为准，不按编号或本列表顺序推断；路线已明确允许的提前切片和跨任务接力可以继续，完整验收门槛不降低：
 
 - `P0-Gate` Python 基础闯关
 - `L1-Gate` 大模型 API 闯关
@@ -64,7 +68,7 @@ Gate 不能只有“题数”，还必须在第一次调参前写清验收阈值
 
 工程基础不再作为进入阶段 1 的整块前置。`B0-01` 到 `B0-04` 改为穿插补课项：P0-Gate 通过后可以先进入 `L1` 大模型 API；后续遇到环境、HTTP、数据库、Docker、Memory、RAG、本地服务部署时，再补对应 B0 项。
 
-`B0-Gate` 改为项目化整合关卡：在需要本地多服务、数据库持久化、Docker Compose、长期 Memory/RAG 或可部署 Agent 项目前完成，不再卡住第一次进入 L1/API。
+`B0-Gate` 是本地多服务、数据库持久化和 Docker Compose 的基础整合关卡，本路线在 BE5-04 前验收；它不阻塞 L1/API，也不阻塞 R6 的文档导入、最小本地检索与固定两步问答切片。正式数据库集成、长期 Memory 和后续部署仍须满足对应工程前置。
 
 ## Session 证据格式
 
@@ -77,7 +81,7 @@ Gate 不能只有“题数”，还必须在第一次调参前写清验收阈值
 
 说明：批改者检查时会根据代码/产物位置实际运行代码并验证结果。只有当代码不是默认入口、需要特殊参数、需要先启动服务或配置环境变量时，才填写“运行提示”。
 
-`本 Session 进度小结`、`任务总进度小结`、`对问题/不确定点的解释`、`问答点评与补充` 由批改者（Claude / Codex 均可）检查后填写。普通任务的 `复核判定` 留空；任何 `JOB_EVIDENCE` 升级、`FINAL-Gate`、`J11-Gate` 结论和正式投递前检查都必须由**另一个**工具交叉复核（Claude 主审 → Codex 复核，反之亦然），未复核只能记录“候选证据”。固定口令 **「交叉复核 <任务/Gate ID>」** 启动复核；复核者必须先独立读取 rubric、全部关联 daily 与真实产物并形成临时结论，之后才能读取主审结论。主审与复核者的同意项、分歧项、各自证据和处理必须记录；分歧未解决不得升级岗位证据或正式投递就绪。
+批改者按 `daily/TEMPLATE.md` 的最小核心与适用模块记录结果，不另写重复小结。普通任务可省略复核模块，已有 `复核判定` 留空；任何 `JOB_EVIDENCE` 升级、`FINAL-Gate`、`J11-Gate` 结论和正式投递前检查都必须由**另一个**工具交叉复核，未复核只能记录“候选证据”，不再指定必须使用 Claude。固定口令 **「交叉复核 <任务/Gate ID>」** 启动复核；复核者必须先独立读取 rubric、全部关联 daily 与真实产物并形成临时结论，之后才能读取主审结论。主审与复核者的同意项、分歧项、各自证据和处理必须记录；分歧未解决不得升级岗位证据或正式投递就绪。同一工具的子代理可审查计划，但不冒充这里要求的另一工具复核。
 
 ---
 
@@ -494,7 +498,7 @@ discover → schedule → execute → independent verify
 
 要做：
 
-- 在 `code/stage0_5/docker_learning_stack/` 创建一个最小 Docker 练习。
+- 在 `code/stage0_5/docker_learning_stack/` 创建一个最小 Docker 练习；后续 B0-Gate 继续使用这份 Compose 与 Python CLI，不另建相似工程。
 - 写一个 Python 脚本，启动后读取环境变量，连接数据库或打印配置摘要。
 - 写 `Dockerfile` 构建镜像。
 - 写 `compose.yaml`，至少包含一个 Python 服务和一个 PostgreSQL 服务。
@@ -525,11 +529,12 @@ discover → schedule → execute → independent verify
 
 任务：
 
-- 做 `code/stage0_5/b0_gate_local_stack/`。
+- 继续演化 B0-04 的 `code/stage0_5/docker_learning_stack/`，保留已有 Compose、Dockerfile 和 Python CLI；不再创建 `b0_gate_local_stack/`。B0-03 保留独立的最小 SQLite 基础练习，本关将其中已证明的 CRUD 思路迁移到 PostgreSQL。
 - 用 Docker Compose 启动 PostgreSQL 和一个 Python CLI 程序。
 - Python 程序支持写入学习记录、查询最近记录、按主题与状态统计记录。
 - README 写清楚启动、停止、查看日志、进入容器、清理 volume 的命令。
 - 在 `notes/stage0_5/b0_gate_engineering_basics.md` 画出：终端命令 -> Docker Compose -> Python 容器 -> Compose 网络 -> PostgreSQL 容器 -> volume。
+- 复用 B0-04 已通过的构建、启动与日志证据，只补本关所需的 CLI 数据读写、持久化和连接故障排查；仍分别对照各任务全部标准验收。后续 BE5-04 沿用并调整这份 PostgreSQL 服务配置，不再为相同依赖维护第二套演示栈。
 
 必须回答：
 
@@ -1206,6 +1211,7 @@ discover → schedule → execute → independent verify
 
 要做：
 
+- 出现模型调用边界时同步核查 S-01 的第二个真实 provider 可用路线，包括已授权凭据或实际可运行的本地模型、所需结构化输出能力；未具备时记录缺口与接力点，继续本任务，不等到产品化阶段才首次核查。
 - 在两个旗舰项目的现有 Python core 中选择真实并发调用链，比较串行与并发行为；不另建脱离项目的 async 教学脚本。
 - 使用 `asyncio.gather`/`TaskGroup`、Semaphore、timeout 和 cancellation；识别会阻塞事件循环的同步调用，并用异步客户端或线程池隔离。
 - 覆盖部分失败、整体超时、用户取消和限流四类场景；对 429 读取 `Retry-After`，实现有上限的指数退避 + jitter，并区分可重试与不可重试错误。
@@ -1318,34 +1324,42 @@ discover → schedule → execute → independent verify
 
 ## R6-01 LangChain 文档导入与切分
 
+教学起点：先用当前项目的同一个问题讲清 RAG 为什么需要、资料准备与查询生成两个阶段，以及“找到相关片段 → 把片段与问题一起交给模型 → 根据资料回答”的连接；说明 RAG、训练模型和 LangChain 的区别，再进入 Document/Loader/Splitter。先展示输入、处理和预期回答，不能用组件示例代替整体原理。若关联 daily 已有补讲和独立理解证据，直接承接；只有补讲、尚无独立证据时，按缺口核对理解，可与正文/来源/版本目标合并，不重启整课或另加题集。
+
 资料：
 
-- 概念主线：本人 Star 中 llm-universe C3 §3.3.2“数据读取”与 §3.3.4“文档分割”；只讲内容/来源、Document/metadata 与切分边界。按资料映射中的订正使用，不复制删除全部空格的清洗或旧接口。
+- RAG 入门：Hello-Agents 第 8 章 §8.3.1（1）“什么是 RAG”、（2）“基本工作流程”及 §8.3.2 的两条流程说明；以当前 [官方 Retrieval](https://docs.langchain.com/oss/python/deepagents/retrieval) 的引言、From retrieval to RAG、2-step RAG 校准，2026-09-07 已核验。这里只讲用途与整体流程，不展开发展史、向量检索实现或长期 Memory，也不因官方页面导航变化新增 Deep Agents 课程。
+- 组件概念主线：完成上述入门后，使用本人 Star 中 llm-universe C3 §3.3.2“数据读取”与 §3.3.4“文档分割”，讲内容/来源、Document/metadata 与切分边界。按资料映射中的订正使用，不复制删除全部空格的清洗或旧接口。
 - 官方实现依据：[Document loaders / Interface](https://docs.langchain.com/oss/python/integrations/document_loaders#interface)、[Text splitters](https://docs.langchain.com/oss/python/integrations/splitters)，2026-09-05 已核验；实际 Session 再核查具体 parser 与包版本。
-- 可选补充：Hello-Agents 第 8 章 §8.3.2 的导入流程、§8.3.4（1）（2）的文档载入与结构感知切分；若主线已讲清则不追加，不扩成长期 Memory。已核验章节、冻结版本、订正和许可见 [GitHub 资料映射](../resources/github-starred-learning-map-2026-09-05.md)。
+- 可选补充：Hello-Agents 第 8 章 §8.3.4（1）（2）的文档载入与结构感知切分；若主线已讲清则不追加，不扩成长期 Memory。已核验章节、冻结版本、订正和许可见 [GitHub 资料映射](../resources/github-starred-learning-map-2026-09-05.md)。
 - Hello-Agents `code/chapter8/04_RAGTool_MarkItDown_Pipeline.py` 只作有需要时的处理链对照；Hugging Face `unit3/agentic-rag/introduction.mdx` 移到 R6-03 的 Agentic 对照语境，不作为本单元额外必读。
 
 要做：
 
 - 在实际动手 Session 创建 `code/stage6/engineering_docs_rag/` 前，先按项目设计分工说明用户决策、助手整理与最终审核的职责；固定目标使用者、一个主要查找/排障场景、公开或已授权资料范围、最小成功例和权限边界。既有证据能唯一确定的内容由助手整理，用户只作新增且影响行为的判断并最终审核。助手把这些决策整理为本项目已有规划的 `problem-contract.md` 最小版本，不要求用户逐节抄写，也不提前设计完整检索/API/部署；后续任务随新增证据更新，R6-Gate 再收口。
-- 然后用 LangChain Loader、Text Splitter 与 Document 对象/metadata 字段建立可运行的导入切片；本任务只实现 Loader、Splitter、Document/chunk 生命周期与轻量确定性测试。
+- 用户已授权助手自行安排时，允许先采用明确标注的助手默认场景继续，完整验收前再审核设计；默认方案不计独立理解证据。必要讲解后，先以一份 Markdown/TXT 展示 Document 正文与来源，再逐步补 Loader、Splitter、Document/chunk 生命周期与轻量确定性测试；不把完整多格式实现和逐字段设计问答都堆到首个小成果之前。
 - `BE5-01` 紧接着在同一目录补 `src/tests/pyproject`、分层、配置、结构化日志、pytest、Ruff 与类型检查，两个任务分别正式验收；R6-01 不能把“已经顺手工程化”当作 BE5-01 自动 PASS。
 - 至少读取 Markdown、TXT 和 PDF；保留 `document_id`、来源、标题、页码/段落、内容 hash、版本与 tenant 等 metadata。
 - 记录解析失败、空页、超长段落、重复文件和编码异常；设计增量导入、更新、删除的文档状态，不把“启动时全量重建”当最终方案。
 
 问答：
 
-1. 为什么不能整篇文档直接塞给模型？
+1. 什么时候可以直接把全文提供给模型，什么时候需要先检索/切分？结合当前资料规模、相关性与上下文限制说明，不把“任何文档都不能整篇提供”当规则。
 2. chunk 太大和太小分别有什么问题？
 3. overlap 有什么作用？
 
 通过标准：
 
+- 能结合当前场景说明检索到的资料怎样进入模型本次输入、R6-01 的导入/切分怎样支撑后续检索与回答；复用本任务已有即时或操作解释证据，不另设一套入门考试。
 - 能展示切分结果。
 - 同一文档重复导入不产生重复 Document/chunk；更新/删除后旧 Document、chunk 和导入状态不会残留，并能展示将来删除向量所需的稳定 `document_id/chunk_id` 边界。
 - 能解释固定长度、递归/结构感知切分各自的适用场景。
 
 ## R6-02 Embedding、pgvector 与检索
+
+执行切片：R6-01 与 BE5-01 完成后，先在同一 `engineering_docs_rag` 项目启动真实 embedding、相似度与 top-k 的最小本地检索切片，得到可运行的相关片段结果后，允许接 R6-03 的最小固定两步问答。B0 数据库基础及 B0-Gate、BE5-04 完成后，再回到本任务迁移 PostgreSQL + pgvector、补齐生产检索与 S-02 的全部标准。本地检索代码随后演化为同一旗舰的检索边界或对照配置，不另建教学 demo。
+
+切片接力规则（R6-02/03 共用）：每次只推进一个当前检查点；切换任务时在 daily 记录已完成证据、未覆盖内容和精确接力点。提前切片完成只代表局部进展，任务继续 DOING；暂停接力不新增状态或任务 ID。各自全部通过标准满足后才正式判 PASS，已有有效证据直接复用。
 
 资料：
 
@@ -1355,6 +1369,7 @@ discover → schedule → execute → independent verify
 要做：
 
 - 在 `engineering_docs_rag` 中先用可解释的小样例/轻量本地索引理解 embedding、top-k 与相似度，再迁移 PostgreSQL + pgvector；本地索引只能作热身或 baseline。
+- 启动最小检索切片时，核验并选择真实可用的 embedding 模型及调用方式（已授权服务或可运行的本地模型），记录模型与向量维度；不假定已配置的 DeepSeek 聊天接口提供 embedding。使用真实文档与问题生成向量并返回 top-k 片段，手造向量或 mock 只用于原理演示/确定性测试，不能替代这项真实验证。
 - 覆盖 exact baseline、HNSW、metadata/tenant filter、增量更新、删除和 migration；说明近似索引与 filter 可能如何影响召回。
 - 实现向量检索与 PostgreSQL 全文/关键词检索的 hybrid search，并接一个 rerank；记录不同 chunk、top-k、filter、索引、融合与 rerank 配置的对照。
 
@@ -1373,6 +1388,8 @@ discover → schedule → execute → independent verify
 - 本任务正式检查时同时核验 `S-02` 的独立通过标准并分别写回状态；复用同一覆盖图、作答、代码与运行证据，不另出第二套题或重复实现。S-02 已达标就在本次收口；若仍有缺口，只补对应缺口并如实保留状态，不能只称作“已隐含覆盖”，也不能无故拖到 R6-Gate。后续 Gate 验新增集成及受改动影响的行为。
 
 ## R6-03 固定两步 RAG、Agentic RAG 与引用
+
+执行切片：R6-02 的真实本地 embedding/top-k 已能返回相关片段后，可先启动本任务的最小固定两步问答，无需等待完整生产检索。复用同一旗舰、同一批少量公开或已授权资料，先检索再真实调用已配置的 DeepSeek，展示至少一个带来源定位的回答和一个资料无答案时的拒答例。此时只记录局部证据并保持 DOING，不要求提前完成查询改写、Agentic RAG、完整指标对照或本任务 PASS。后续在 B0/BE5-04 与 R6-02/S-02 完整收口后，基于同一代码补齐下列全部要求，再以真实同集对照证据衔接 S-06；不创建第二套问答 demo。
 
 资料：
 
@@ -2052,7 +2069,7 @@ discover → schedule → execute → independent verify
 
 要做：
 
-- 算法：主线先完成 50–70 道高质量题（数组 / 字符串 / 哈希 / 双指针 / BFS-DFS），W4 起每个内容块至少“3 道新题 + 1 道旧错题重做”；W4 无旧题时做第 4 道新题，同一块顺延超过 7 个自然日时追加旧题复测，100–150 作为投递期继续累计的长期目标。
+- 算法：主线先完成 50–70 道高质量题（数组 / 字符串 / 哈希 / 双指针 / BFS-DFS），W4 起每个内容块至少“3 道新题 + 1 道旧错题重做”；W4 无旧题时做第 4 道新题。内容块可跨任意日期，固定目标不按天或小知识点重置；旧题按统一复习排期优先占已有席位，不因每过 7 天自动追加。精确配额、复测与欠额规则只读 `algorithm-progress.md`，100–150 作为投递期继续累计的长期目标。
 - 系统设计：复用 BE5/R6/G8 持续维护的设计包，分别对「RAG 问答服务」「多轮可恢复 Agent」做一次 30 分钟限时设计，覆盖 API、数据模型、容量/SLO、缓存/队列、降级、安全、成本和 ADR。
 - AI 八股：RAG 流程、向量检索原理、Agent 循环（ReAct）、幻觉与防护、上下文 / 记忆管理、评估指标、MCP 是什么。
 
@@ -2098,12 +2115,12 @@ discover → schedule → execute → independent verify
 
 ## S-01 多厂商模型切换
 
-挂载：A4-Gate 后、J11-02 前；按真实项目依赖选择接入点，不阻塞当前 G8/R6。
+挂载：A4-Gate 后按真实项目依赖启动，在 BE5-02 出现 provider 边界时核查第二个真实 provider 的可用路线，最晚在 FINAL-Gate 前完整 PASS。缺少凭据或可运行的本地替代时如实保留未完成状态与接力点，不阻断已满足前置的 G8/R6、BE5 或 J11-02 产品化；不能据此免除真实对照或提前通过 FINAL-Gate。
 
 要做：
 
 - 先抽出统一的 `ModelClient`/provider 配置边界，让业务代码不依赖某家 SDK 的字段；DeepSeek 作为当前默认实现。
-- 再接至少第二个真实 provider（OpenAI、Claude、OpenRouter 或本地 Ollama 任选其一），用同一组问题记录成本、延迟、输出和 tool calling/structured output 差异。没有第二家凭据时可先完成适配器与 mock 测试，但真实对比未跑前不判完整 PASS，也不阻塞主线 Gate。
+- 再接至少第二个真实 provider（OpenAI、Claude、OpenRouter 或本地 Ollama 任选其一），用同一组问题记录成本、延迟、输出和 tool calling/structured output 差异。没有第二家凭据时核查本地替代是否实际可运行；仍不可用则可先完成适配器与 mock 测试，但真实对比未跑前不判完整 PASS。已有 DeepSeek 能力满足的课程与产品化工作继续，FINAL-Gate 前必须补齐本项真实证据。
 - 顺带补结构化输出「严格档」：用支持 `json_schema`/strict 严格模式的厂商真跑一次严格 Schema 输出，与 DeepSeek `json_object` 软约束对比（PR2-04 只跑过软约束档）。
 - 建统一错误分类：timeout、429/`Retry-After`、5xx/outage、认证失败、余额/额度耗尽、context overflow 和坏请求；只有可重试错误进入有上限的指数退避 + jitter，认证/坏参数等快速失败。
 - 明确单次/总 timeout、fallback/降级、熔断与单请求/日成本上限；用 mock/fault injection 验证等待策略、重试次数、日志、fallback 和幂等边界。

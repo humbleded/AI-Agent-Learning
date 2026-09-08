@@ -38,8 +38,12 @@ def fetch(url):
       5. 打印 method、status_code、ok、部分 headers、响应体前 500 字符。
     """
     # TODO
-    parsed = urlparse(url)
-    hostname = parsed.hostname
+    try:
+        parsed = urlparse(url)
+        hostname = parsed.hostname
+    except ValueError:
+        print("非法 URL")
+        return
     if not hostname:
         print("非法 URL")
         return
@@ -54,7 +58,7 @@ def fetch(url):
         print(f"Method: GET")
         print(f"Status Code: {response.status_code}")
         print(f"OK: {response.ok}")
-        if(response.ok):
+        if 200 <= response.status_code < 300:
             print("成功")
         else:
             print("服务器返回错误（非 2xx）")

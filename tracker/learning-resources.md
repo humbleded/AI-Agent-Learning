@@ -6,7 +6,7 @@
 - **原路线真正偏薄的是 Python Agent 后端、生产 RAG、可恢复执行、持续评估、安全和 CI/CD。** A4 后按 `G8-00 → R6/BE5/B0 → pgvector 与 RAG 对照 → FastAPI/SSE → durable G8 → BE5/R6 Gate → 多 Agent 对照与 G8-Gate → 长期 Memory → MCP → 评估 → 产品化与 FINAL` 补齐；工程知识在两个真实项目产生依赖时学习，不先完整上完一套孤立后端课。
 - **知识库只保存正式、稳定的沉淀。** 当前结构、既有页面和同步规则必须在实际同步前读取 `D:\AI-Knowledge`；不在本资料页复制会过期的文件数量或日期快照。
 
-2026-09-05 已分页核查本人 `humbleded` 的 8 个 Star 与 0 个 Watch 仓库，具体版本、章节、许可和任务用途见 [GitHub 收藏资料映射](../resources/github-starred-learning-map-2026-09-05.md)。每个当前知识单元选择一份概念主线，必要时加一个解决实际缺口的补充片段；官方 API 用于校准。新增收藏进入此映射，不自动变成整书必读或新框架课程。
+2026-09-07 再次分页核查本人 `humbleded` 的 8 个 Star 与 0 个 Watch 仓库。具体版本、章节、许可和任务用途保留在 [2026-09-05 GitHub 收藏资料映射](../resources/github-starred-learning-map-2026-09-05.md)；本次新读的学习建议、版本和采用理由见 [2026-09-07 学习方法评审](../resources/learning-method-review-2026-09-07.md)。每个当前知识单元选择一份概念主线，必要时加一个解决实际缺口的补充片段；官方 API 用于校准。收藏不自动变成整书必读或新框架课程。
 
 ## 二、你已有的核心资料（都在 repos/，离线可用）
 
@@ -42,14 +42,15 @@
 - **阶段 4 Agent 原理**：HF unit1 `what-are-agents` → HA 第 1–4 章 → ADP 第 4/5/6 章（Reflection/Tool Use/Planning）→ 跑 `HA code/chapter4` 的 ReAct/Plan/Reflection。
 - **G8-00 LangGraph 入门（课程位置阶段 4.5）**：当前官方 Graph API → StateGraph/state/node/edge/条件路由/tool/stream/test → 在新的“故障诊断与变更评审 Agent”业务中重建控制流；复用 A4 已 PASS 的控制原则，不复制 A4 的 research-agent 题目，也暂不读 persistence/interrupt/resume。编号属于后续 LangGraph 旗舰，不代表阶段 5～7 被跳过。
 - **阶段 5 框架源码（可选）**：只有真实调用链阻塞时才沿一个入口追到 Agent/LLM/Tool/Message 并重建一个关键行为；不按目录通读、不阻塞 G8/R6。
-- **R6-01 → BE5-01**：先完成 LangChain Loader/Splitter/Document/metadata、Markdown/TXT/PDF 导入、去重和增量文档状态，再在同一工程文档 RAG 项目内补 Python 项目结构、日志、测试、lint 与类型检查；两个 ID 分别验收。
-- **B0-01 → B0-03 → B0-04 → B0-Gate → BE5-04**：先补命令行/进程/日志、SQL 和 Docker，再通过工程基础 Gate；之后学习 SQLAlchemy/Alembic/PostgreSQL/pgvector。不能让后面的数据库任务倒过来证明前置基础已经完成。
-- **R6-02/S-02 → R6-03/S-06**：先用轻量本地索引理解 embedding/top-k，再迁移 PostgreSQL + pgvector；做 exact/HNSW、filter、关键词/hybrid、rerank 与 Recall@k/MRR。随后在同一评估集比较固定两步 RAG 与 Agentic RAG，并用真实结果判断 Prompt、RAG、微调怎样选；挂载任务必须分别写回状态。
+- **R6-01 → BE5-01**：先用 Hello-Agents 第 8 章 §8.3.1（1）（2）及 §8.3.2 的两流程说明讲清 RAG 为什么需要、“先查资料再带资料回答”、资料准备与查询生成两阶段；当前官方 Retrieval 的引言/From retrieval to RAG/2-step RAG 用于校准，不展开发展史或完整向量检索。再用具体场景说明文档从哪里来、导入后能看到什么；按授权固定最小设计，完成一份 Markdown/TXT → Document/来源的小成果，再补 PDF、切分、去重和增量文档状态。随后在同一项目补结构、日志、测试、lint 与类型检查；两个 ID 分别验收。没有 RAG 入门讲授和理解证据时，不能把 Document/Loader 示例当作已经掌握整体流程。
+- **R6-02 本地检索切片 → R6-03 最小问答切片**：在同一旗舰先讲 embedding/top-k，并验证真实可用的本地模型或服务，不能假定 DeepSeek 聊天接口提供 embedding。由本地检索得到片段，再用真实 DeepSeek 完成带出处的固定两步回答和无答案例。只记局部证据，尚未完成的任务保持 DOING；具体接力统一见 weekly-plan。
+- **B0-01 → B0-03 → B0-04 → B0-Gate → BE5-04**：再补命令行/进程/日志、SQL 和 Docker；B0-03 保留最小 SQLite 练习，B0-04/Gate 复用同一 Compose/CLI，再迁入旗舰。通过工程基础 Gate 后学习 SQLAlchemy/Alembic/PostgreSQL/pgvector；async driver 前仍即时补 await/连接生命周期，不能倒置这些前置。
+- **R6-02 剩余标准/S-02 → R6-03 剩余标准/S-06**：把已有本地检索迁移到 PostgreSQL + pgvector，完成 exact/HNSW、filter、关键词/hybrid、rerank 与 Recall@k/MRR；承接已有问答做同集固定两步与 Agentic 对照、完整引用/拒答和失败分层，再判断 Prompt、RAG、微调怎样选。复用已有产物与证据，挂载任务分别写回状态。
 - **BE5-02/03**：两个纯 Python 核心可运行后，再学习 asyncio、Pydantic、FastAPI、HTTP/SSE、超时、取消、并发和接口测试，把它作为交付层接到两个项目。
 - **G8-01 → G8-02 → G8-03**：LangGraph 官方 persistence/interrupts/durable execution/testing 为主线 → checkpoint/thread、PostgreSQL checkpointer、进程恢复、HITL 与副作用幂等；SQLite 只能作临时学习步骤，最终持久化证据使用 PostgreSQL。这里只说明与长期 Memory 的边界，不等待 D7。
 - **BE5-05 → BE5-Gate → R6-Gate**：Redis、后台任务、认证、负载、CI、Docker 与 smoke 先完成共同后端 Gate，再完成工程文档 RAG 旗舰 Gate；不让后续 G8-Gate 倒补前置工程能力。
-- **D7-02 → S-04 → G8-Gate**：只读取多 Agent 的取舍切片，在同一数据集保留单 Agent baseline，再验证受控协作是否有净收益。G8-Gate 核心是持久恢复、HITL、幂等、评估和可观察状态；需要薄界面时可在任务启动后引入经过审计的开源 Vue 骨架，但完整前端掌握留到 J11-03 复核。
-- **D7-01 → D7-03 → D7-Gate**：项目可运行后，在已有旗舰上判断 chaining/routing/parallelization，并实作跨会话长期 Memory 的完整生命周期、安全和无 Memory 对照；不另起玩具。
+- **D7-01 → D7-02 → S-04 → G8-Gate**：先按 D7-01 的 ADP 第 1–3 章，将已有项目中的串联、路由、并行证据用于适用条件和取舍回顾，只补未证明的判断；再读取 D7-02 的多 Agent 取舍切片，在同一数据集保留单 Agent baseline，验证受控协作是否有净收益。G8-Gate 核心是持久恢复、HITL、幂等、评估和可观察状态；需要薄界面时可在任务启动后引入经过审计的开源 Vue 骨架，但完整前端掌握留到 J11-03 复核。
+- **D7-03 → D7-Gate**：在已有旗舰上实作跨会话长期 Memory 的完整生命周期、安全和无 Memory 对照，再复用前面已完成的模式取舍证据做设计模式验收；不另起玩具、不重读已证明的 D7-01 内容。
 - **阶段 9 MCP**：最新 MCP 官方 specification/SDK 为主线（server capabilities、transport、authorization、安全）→ HA/ADP 作中文解释和框架对照 → 写 M9。可选只读「Skills vs Tools/MCP/Subagents」辨析，不提前陷进 Skills 生态。
 - **阶段 10 评估与系统设计**：LangSmith Evaluation/Observability 官方文档 → HA 第 12 章、ADP 第 19 章、HF `bonus-unit2` 辅助 → 建一套共享 Eval Harness、为两个旗舰分别接领域 dataset/adapter/指标和 baseline/regression，并完成两个项目的系统设计包；这里不提前做 FINAL，也不复制两套评估平台。
 - **J11 产品化 → FINAL → 求职收口**：J11-02 根据 Gate/E10 证据由用户冻结唯一 `product_flagship`，只为它继续建设正式 Vue、公网部署和产品级观测；另一个旗舰保留可复现 API/demo、容器与完整评估。完成作品集组合和 S-05 综合安全收口后做 `FINAL-Gate`；之后才进入简历、面试和 `J11-Gate`。
@@ -62,7 +63,7 @@
 | async/并发（BE5-02） | 阶段5.5 | Python `asyncio` 官方文档；httpx async、FastAPI async tests 官方文档；重点核对 timeout/cancel/TaskGroup/Semaphore |
 | FastAPI/Pydantic（BE5-03） | 阶段5.5 | FastAPI 官方中文/英文；Pydantic v2 官方；Starlette/httpx 官方 SSE/测试资料，不以 CSDN 示例作主线 |
 | 数据/任务（BE5-04/05） | 阶段5.5 | SQLAlchemy 2、Alembic、PostgreSQL、Redis 官方；Celery/RQ/ARQ 任选一个官方 quickstart；Locust 或 k6 官方 |
-| 多厂商模型（S-01） | A4-Gate 后、J11-02 前 | 先抽 provider 接口，再查 Anthropic 文档 `docs.anthropic.com`、OpenRouter `openrouter.ai/docs` 或本地 Ollama；按真实项目依赖接入，不阻塞当前 G8/R6 |
+| 多厂商模型（S-01） | BE5-02 核查可用路线，FINAL-Gate 前收口 | 先抽 provider 接口，再查替代厂商官方文档、OpenRouter `openrouter.ai/docs` 或本地 Ollama；真实凭据/运行条件不足时记录缺口，不阻塞当前 G8/R6 与 J11 产品化；完整 PASS 仍要求真实第二 provider，不用 mock 代替 |
 | Provider 韧性与复合故障（BE5-02/FINAL） | 阶段5.5 起 | HTTP `Retry-After`/429 语义、Python `asyncio`/httpx 官方文档；重点练指数退避+jitter、可重试分类、取消传播、fallback、配额/成本上限和 fault injection，不把无限重试当可靠性 |
 | 生产向量检索（S-02） | 阶段6 | pgvector 官方为主；PostgreSQL full-text/BM25 方案、Qdrant/Milvus 官方按 JD 对照；RAGAS/LangSmith 评估官方资料 |
 | 上下文工程（S-03） | 阶段2/4 | **HA 第 9 章（已有）**；Anthropic《Building effective agents》（Hub 里有链接） |
@@ -121,7 +122,7 @@ R6-01 的当前官方入口（2026-09-05 已读对应正文）：[Document loade
 
 ## 七、怎么用 Agent-Learning-Hub（嫁接 3 样，别照搬）
 
-`repos/Agent-Learning-Hub/README.md`（Datawhale，hello-agents 同作者）是一份「现代生产视角的 Agent 学习路线图 + 项目阶梯 + 资料索引」。它**比本路线更超前、更偏 agent 基础设施**（钻 Claude Code / OpenClaw harness 内部），其原始内容默认读者已有 Python/LLM 基础，因此不能直接拿它的前提套到用户身上。**结论：保留本路线当主干，从 Hub 只嫁接下面 3 样，其余当索引查，别整本照搬**（它资料量巨大，照搬会淹没，且和已有的 hello-agents / agentic-design-patterns / agents-course 重复）。
+`repos/Agent-Learning-Hub/README.md` 是一份 Agent 学习路线图、项目阶梯和资料索引。2026-09-07 实读当前 README 后，我们判断它的粒度更适合导航和工程方向检查，不能代替新手所需的具体讲解；这是本项目的使用判断，不能说成作者明确要求已有 Python/LLM 基础。保留本路线主干，只采用下面三类材料及“小成果先运行、再深入”的组织方式；基础设施内部研究按真实需要选读，不因索引很长就扩成全部必修。
 
 ### 嫁接① Project Ladder = 你的「作品集项目菜单」（最有价值）
 

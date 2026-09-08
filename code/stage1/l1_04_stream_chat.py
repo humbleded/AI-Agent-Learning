@@ -23,11 +23,9 @@ SYSTEM = {"role": "system", "content": "你是一个乐于助人的中文助手�
 
 def stream_answer(messages):
     if not api_key:
-        print("未设置 DEEPSEEK_API_KEY。这里先模拟流式输出：")
-        for chunk in ["这是", " 一个", " stream", " 练习。"]:
-            print(chunk, end="", flush=True)
-        print()
-        return f"这是 一个 stream 练习。"
+        error = "未设置 DEEPSEEK_API_KEY：请配置后重新运行，尚未调用模型。"
+        print(error)
+        return error
     client = OpenAI(api_key=api_key, base_url=base_url,timeout=30)
     try:
         response = client.chat.completions.create(
@@ -51,7 +49,9 @@ def stream_answer(messages):
         print()
         return answer
     except Exception as exc:
-        return f"流式输出失败：{exc}"
+        error = f"流式输出失败：{exc}"
+        print(f"\n{error}")
+        return error
 
 def trim_history(history):
     return history[-MAX_TURNS * 2:]

@@ -1,23 +1,26 @@
 """
-S-03 上下文工程 · token 对比小实验（练习骨架 —— 核心逻辑留给你填）
+S-03 上下文工程 · token 粗略估算对比实验。
 
 运行方式：
     项目根目录，激活 .venv 后：
         python code/stage2/s03_context_experiment.py
     中文乱码时先设：  PowerShell -> $env:PYTHONUTF8=1   /   cmd -> set PYTHONUTF8=1
+    直接运行会真实调用 DeepSeek 生成摘要；fake_summarize 仅保留历史函数名。
 
 任务：
     对同一段「8 条（4 轮）对话历史」，对比三种上下文处理方案的 token 数：
         方案① 全量 full        ：原样全发
         方案② 裁剪 trim        ：只留最近 KEEP_RECENT 条（= 你 L1 的 trim_history，truncation）
         方案③ 压缩 compaction   ：旧历史压成 1 条摘要 + 保留最近 KEEP_RECENT 条
-    打印每个方案的 token 数 + 条数 + 一句结论。
+    打印每个方案的 token 估算值 + 条数 + 按实际结果得出的结论。
+    这里只估算下一次请求携带的上下文，不包括生成摘要本身的调用消耗；
+    不能把粗估值当成模型实际 tokenizer 结果或计费 usage。
 
 通过标准（对照 S-03）：
-    - 三种方案都能算出 token 数并打印对比（预期 token：① > ③ > ②）。
-    - 能在输出里说清：② 最省 token，但最可能丢早期关键信息（第 1 条的“三玖”）；
-      ③ 用“一次摘要 + 一条摘要 token”的代价，换回早期信息的召回。
-    -（可选）把 fake_summarize 换成真调 DeepSeek，看真摘要效果；不调也能用假摘要跑通对比。
+    - 三种方案都能估算 token 并打印对比；最小值及并列按本次实测决定。
+    - 独立检查裁剪/压缩之后是否仍包含“三玖”，不能凭 token 排序推断信息保留。
+    - 摘要过长不一定节省上下文；生成摘要还需要额外调用，效果以实际结果为准。
+    - 离线测试可注入摘要函数；模型失败或摘要为空时停止本次比较。
 
 给你的（不用写）：count_tokens（第 9 章工具）、compact_history（你 C3 的成果）、SAMPLE_HISTORY。
 你要写的：标了 TODO 的 5 处 —— history_tokens / plan_full / plan_trim / plan_compaction / fake_summarize / main。
@@ -37,11 +40,15 @@ def count_tokens(text):
 
 # =========== 已给你：你 C3 写的 mini-Compaction（直接复用） ===========
 def compact_history(history, keep_recent, summarize):
+    if type(keep_recent) is not int or keep_recent <= 0:
+        raise ValueError("keep_recent 必须是正整数")
     if len(history) <= keep_recent:
         return history
     old_history = history[:-keep_recent]
     old_text = "\n".join([msg["content"] for msg in old_history])  # C3 建议：可带上 role
     summary_text = summarize(old_text)
+    if not isinstance(summary_text, str) or not summary_text.strip():
+        raise RuntimeError("摘要为空或格式不正确")
     summary_message = {"role": "system", "content": "之前对话摘要：" + summary_text}
     return [summary_message] + history[-keep_recent:]
 
@@ -72,24 +79,28 @@ def history_tokens(history):
     return sum(count_tokens(msg["content"]) for msg in history)  # 一行写法
 
 
-# =========== 你来写：TODO 2 —— 假摘要（先不花钱跑通对比） ===========
+# =========== 摘要生成：当前实现真实调用 DeepSeek ===========
 def fake_summarize(text):
-    """把一段文本压成“一句话摘要”。先用规则版（如截前 N 字 + …），之后可换真调 DeepSeek。"""
-    # return f"前文压缩自{len(text)} 字: {text[:20]}..." if len(text) > 20 else text
+    """真实调用 DeepSeek 生成摘要；历史函数名保留，失败时抛出可读错误。"""
+    if not api_key or not api_key.strip():
+        raise RuntimeError("未设置 DEEPSEEK_API_KEY，无法生成摘要")
     messages=[
               {"role": "system", "content": "把下面的对话历史压成一句话摘要，保留人名等关键信息，30 字以内。"},
               {"role": "user",   "content": text},
               ]
-    client = OpenAI(api_key=api_key, base_url="https://api.deepseek.com",timeout=30,)
     try:
+        client = OpenAI(api_key=api_key, base_url="https://api.deepseek.com",timeout=30,)
         response = client.chat.completions.create(
             model="deepseek-v4-pro",
             messages=messages,
             stream=False,
         )
-        return response.choices[0].message.content
+        summary = response.choices[0].message.content
     except Exception as exc:
-        return f"调用模型失败：{exc}"
+        raise RuntimeError("调用模型生成摘要失败") from exc
+    if not isinstance(summary, str) or not summary.strip():
+        raise RuntimeError("摘要为空或格式不正确")
+    return summary
 
 
 
@@ -101,6 +112,8 @@ def plan_full(history):
 
 def plan_trim(history, keep_recent):
     """方案②裁剪：只留最近 keep_recent 条（呼应你的 trim_history）。"""
+    if type(keep_recent) is not int or keep_recent <= 0:
+        raise ValueError("keep_recent 必须是正整数")
     return history[-keep_recent:]
 
 
@@ -116,20 +129,22 @@ def main():
     #   2. 用 history_tokens 算每段的 token 数
     #   3. 打印对比：方案名 | 条数 | token 数
     #   4. 打印一句结论：谁最省 token？方案② 里“三玖”那条还在吗（演示裁剪丢信息）？
-    full = plan_full(SAMPLE_HISTORY)
-    trimmed = plan_trim(SAMPLE_HISTORY, KEEP_RECENT)
-    compacted = plan_compaction(SAMPLE_HISTORY, KEEP_RECENT, fake_summarize)
-    print(f"方案① 全量 full：条数 {len(full)}，token 数 {history_tokens(full)}")
-    print(f"方案② 裁剪 trim：条数 {len(trimmed)}，token 数 {history_tokens(trimmed)}")
-    print(f"方案③ 压缩 compaction ：条数 {len(compacted)}，token 数 {history_tokens(compacted)}")
-    conclusion = "结论："
-    if history_tokens(trimmed) < history_tokens(compacted) < history_tokens(full):
-        conclusion += "方案② 最省 token，但最可能丢早期关键信息（第 1 条的“三玖”）"
-    elif history_tokens(compacted) < history_tokens(trimmed) < history_tokens(full):
-        conclusion += "方案③ 最省 token，但最可能丢早期关键信息（第 1 条的“三玖”）"
-    else:
-        conclusion += "方案① 最省 token，但最可能丢早期关键信息（第 1 条的“三玖”）"
-    print(conclusion)
+    try:
+        full = plan_full(SAMPLE_HISTORY)
+        trimmed = plan_trim(SAMPLE_HISTORY, KEEP_RECENT)
+        compacted = plan_compaction(SAMPLE_HISTORY, KEEP_RECENT, fake_summarize)
+    except (ValueError, RuntimeError) as exc:
+        print(f"本次比较已停止：{exc}。没有生成比较结论。")
+        return
+    plans = {"方案① 全量 full": full, "方案② 裁剪 trim": trimmed, "方案③ 压缩 compaction": compacted}
+    token_estimates = {name: history_tokens(history) for name, history in plans.items()}
+    for name, history in plans.items():
+        print(f"{name}：条数 {len(history)}，token 粗略估算 {token_estimates[name]}")
+    minimum = min(token_estimates.values())
+    cheapest = [name for name, value in token_estimates.items() if value == minimum]
+    tie = "并列" if len(cheapest) > 1 else ""
+    print(f"结论：{'、'.join(cheapest)} {tie}最省本次上下文，估算 {minimum} token。")
+    print("以上不包括生成摘要本身的调用消耗，实际用量应查看模型返回的 usage。")
     # 程序实际检查“三玖”有没有被保住
     name_in_trim    = any("三玖" in m["content"] for m in trimmed)
     name_in_compact = any("三玖" in m["content"] for m in compacted)

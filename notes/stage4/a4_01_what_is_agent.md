@@ -41,7 +41,7 @@ Agent：
 | Observation | 工具执行后的真实返回结果 | `{"ok": false, "status_code": 404}` |
 | Final Answer | 模型基于 Observation 写给用户的人话答案 | “请求已到达服务器，但该路径资源不存在。” |
 
-Action 必须是客户端能稳定解析的结构化请求。严格 JSON 里字段名和值要用双引号，最后一个字段后不能有尾逗号。
+Action 必须是客户端能稳定解析的结构化请求。JSON 对象的字段名和字符串值要用双引号；数字、`true/false/null` 不加引号，数组和对象按各自结构书写，最后一个字段后不能有尾逗号。例如上面的 `"ok": false` 和 `"status_code": 404` 都是合法 JSON。
 
 ## Agent Loop
 

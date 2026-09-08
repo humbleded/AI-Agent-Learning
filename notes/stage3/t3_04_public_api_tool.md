@@ -4,6 +4,8 @@
 > 资料：`repos/agents-course/units/zh-CN/unit1/tools.md`、OpenAI Function Calling 文档的 tool calling flow、`code/stage3/t3_04_public_api_tool.py`
 > 关联记录：`daily/2026-07-08.md`
 
+> 2026-09-07 维护订正：校准 Requests 超时含义，以及工具返回字典到模型消息之间的 JSON 序列化步骤；不改写当日原始作答或课程判定。
+
 ## 今日速记
 
 今天练的是 Agent 访问外部 API 时的三个核心问题：
@@ -28,7 +30,7 @@
 -> public_api_tool(url) 发起 requests.get(url, timeout=5, allow_redirects=False)
 -> 成功：返回 ok / status_code / server / rate limit
 -> 失败：返回 ok=False / error
--> 客户端把 dict 作为 Observation/tool message 放回上下文
+-> 客户端把 dict 用 json.dumps 转成 JSON 字符串，放入对应 tool message 的 content，再回填上下文
 -> LLM 根据 Observation 整理成人话回答用户
 ```
 
@@ -70,7 +72,7 @@ def public_api_tool(url=API_URL):
 |---|---|---|
 | `API_URL = "https://api.github.com"` | 默认公开 API 地址 | 直接运行脚本也能验证 |
 | `try: import requests` | 加载 HTTP 请求库 | 没安装第三方包时给清楚提示 |
-| `requests.get(url, timeout=5, allow_redirects=False)` | 发起 GET 请求、最多等 5 秒且不自动跟随跳转 | 防止链路卡死，也防止允许域名通过 302 跳到本地/私网 |
+| `requests.get(url, timeout=5, allow_redirects=False)` | 发起 GET 请求，连接与读取等待分别使用 5 秒超时，不自动跟随跳转；这不是整个请求的总时限 | 限制连接和读取等待，并防止本工具自动跟随 302 到本地/私网 |
 | `response = ...` | 保存响应对象 | 后面要读取 `ok/status_code/headers` |
 | `except requests.Timeout` | 单独捕获超时 | 给用户/模型明确“请求超时” |
 | `except requests.RequestException as exc` | 兜底其他请求异常 | 处理非法 URL、连接失败等网络层错误 |
@@ -79,6 +81,8 @@ def public_api_tool(url=API_URL):
 | `response.headers.get("Server")` | 服务器响应头 | 注意不是 URL 主机名 |
 | `X-RateLimit-Limit` | 当前限流窗口总额度 | 让模型知道 API 调用额度 |
 | `X-RateLimit-Remaining` | 当前限流窗口剩余额度 | 额度快没了时提醒用户 |
+
+`timeout=5` 不是“从开始到结束最多 5 秒”：它限制连接和读取等待；如果对方不断缓慢发送数据，整个请求仍可能超过 5 秒。需要限制整项任务的总耗时时，应在后续并发与取消任务中设置总截止时间。依据：[Requests 超时说明](https://requests.readthedocs.io/en/latest/user/quickstart/#timeouts)（2026-09-07 核验）。工具函数返回的 Python 字典则先由客户端 `json.dumps(..., ensure_ascii=False)` 转成 JSON 字符串，再写入当前 Chat Completions 工具消息的 `content`；实际实现见 [T3-Gate](../../code/stage3/t3_gate_tool_assistant.py)。
 
 ## 返回结构
 
@@ -185,7 +189,7 @@ except requests.RequestException as exc:
 2. 客户端解析工具调用，把 url 传给 public_api_tool。
 3. Gate 分发器先校验 HTTPS、host allowlist 和端口，再由 public_api_tool 用 `requests.get(url, timeout=5, allow_redirects=False)` 请求外部 API。
 4. 工具返回成功摘要或稳定错误 dict。
-5. 客户端把 dict 作为 Observation/tool message 放回上下文。
+5. 客户端用 json.dumps 把 dict 转成 JSON 字符串，写入对应 tool message 的 content，并带回原 tool_call_id。
 6. LLM 读取 Observation，再回答“能访问 / 路径不存在 / 请求超时 / 额度快用完”等信息。
 ```
 

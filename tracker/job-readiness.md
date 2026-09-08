@@ -163,7 +163,7 @@ READY 且 HARD_ELIGIBLE 的岗位数
 
 ## 当前路线与投递动作
 
-- 当前不宣称技术 READY；课程依赖顺序以 `daily-plan.md` 为准，关键链是 `G8-00 → R6/BE5/B0 → pgvector/RAG 对照 → FastAPI/SSE → durable G8 → BE5-05/BE5-Gate → R6-Gate → D7-02/S-04/G8-Gate → D7-01/D7-03/D7-Gate → M9/E10 → J11-02~06 产品化与 S-05 收口 → FINAL-Gate → J11-07/08/Gate`。
+- 当前不宣称技术 READY；完整课程依赖与挂载顺序读取 [weekly-plan.md](weekly-plan.md)，当前知识单元与继续位置读取 [daily-plan.md](daily-plan.md)。本台账只维护岗位资格、能力与作品证据，不复制第二条课程路线。
 - 两个旗舰形成 README、测试、评估、部署和故障证据后，再将相应样本从 `DEVELOPING` 重算为 `NEAR/READY`；不能因为路线已写入 tracker 提前升级。
 - W12/W16/W19 每轮重新打开页面。岗位关闭、正文改变或出现硬门槛冲突时，先改 `UNKNOWN` 再替换，仍保持 10 条硬可投样本。
 - 使用 2026-09-05 已补充的计算机专业、4 年开发及无正式 AI 经历重审候选；英语要求仍逐岗核实。补充事实只影响资格判断，不自动改变技术证据。

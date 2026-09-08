@@ -19,9 +19,9 @@ LLM 的核心工作是根据当前可见的 Token 序列，为下一个候选 To
 ~~~text
 用户目标
   ↓
-客户端保存 messages，并用匹配模型的 Chat Template 格式化
+客户端保存并选取本次 messages，提交给模型服务
   ↓
-Tokenizer 转成 Token ID
+模型服务按匹配的 Chat Template 格式化，再由 Tokenizer 转成 Token ID
   ↓
 LLM 生成回答或 Tool Call
   ↓
@@ -149,6 +149,8 @@ messages = [
 ~~~
 
 模型最终读取的不是 Python 字典，而是 Chat Template 序列化并由 Tokenizer 转换后的 Token ID 序列。
+
+职责边界：本课调用 DeepSeek 托管 API 时，客户端提交结构化 `messages`，模板格式化和分词由模型服务处理；下面的 `apply_chat_template()` 演示的是直接使用本地模型/Tokenizer 时的做法，不应先手工套模板再冒充普通消息发给托管 API。程序保存了历史，也不等于模型本次已看到全部历史；只有被选取并提交的内容才进入本次输入。
 
 ~~~text
 结构化 messages

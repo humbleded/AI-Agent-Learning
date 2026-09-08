@@ -28,7 +28,7 @@
 | B0-02 | 网络基础与 HTTP | PASS | 2026-06-23 | code/stage0_5/b0_02_http_probe.py | 已通过；详见 daily/2026-06-23.md。 |
 | B0-03 | SQL 与关系型数据库 | TODO |  | code/stage0_5/b0_03_learning_db.py | 穿插补课项：做 Memory、学习记录持久化、RAG 数据存储时补。 |
 | B0-04 | Docker 与 Compose | TODO |  | code/stage0_5/docker_learning_stack/ | 穿插补课项：需要本地多服务、数据库容器、部署和日志排错时补。 |
-| B0-Gate | 工程基础闯关 | TODO |  | code/stage0_5/b0_gate_local_stack/ | 项目化整合关卡；当前路线在 B0-01/03/04 完成后、BE5-04 前验收。 |
+| B0-Gate | 工程基础闯关 | TODO |  | code/stage0_5/docker_learning_stack/ | 复用 B0-04 的 Compose/CLI 补整合与故障证据；在 B0-01/03/04 完成后、BE5-04 前分别验收，不另建相似工程。 |
 | L1-01 | API Key 与 SDK | PASS | 2026-06-14 | code/stage1/l1_01_first_call.py | 已通过；详见 daily/2026-06-14.md。 |
 | L1-02 | 单轮问答 | PASS | 2026-06-15 | code/stage1/l1_02_ask.py | 已通过；详见 daily/2026-06-15.md。 |
 | L1-03 | 多轮聊天 | PASS | 2026-06-16 | code/stage1/l1_03_chat.py | 已通过；详见 daily/2026-06-16.md。 |
@@ -59,9 +59,9 @@
 | BE5-04 | PostgreSQL、Alembic 与 pgvector | TODO |  | code/stage6/engineering_docs_rag/ | SQLAlchemy/Alembic、async driver、pgvector、事务、幂等、tenant filter 与 migration；Redis 移到 BE5-05。 |
 | BE5-05 | Redis、后台任务、认证与负载测试 | TODO |  | （复用两个旗舰项目） | Redis 缓存/限流/幂等/任务状态、后台任务、最小授权、取消/重试、p50/p95 压测。 |
 | BE5-Gate | Agent 后端工程闯关 | TODO |  | （复用两个旗舰项目） | 对两个既有项目共用的后端能力做一次可维护、可测试、可并发、可持久化、可部署验证，不建第三个业务项目。 |
-| R6-01 | LangChain 文档导入与切分 | TODO |  | code/stage6/engineering_docs_rag/ | 工程文档 RAG：Loader/Splitter/Document/metadata、Markdown/TXT/PDF、去重与增量状态。 |
-| R6-02 | Embedding、pgvector 与检索 | TODO |  | code/stage6/engineering_docs_rag/ | 本地原理 baseline 后迁移 PostgreSQL+pgvector，覆盖 exact/HNSW、filter、hybrid、rerank、Recall@k/MRR。 |
-| R6-03 | 固定两步 RAG、Agentic RAG 与引用 | TODO |  | code/stage6/engineering_docs_rag/ | 同一数据集对照两种架构；验证引用、拒答及检索/生成/引用失败分层。 |
+| R6-01 | LangChain 文档导入与切分 | DOING | 2026-09-07 | code/stage6/engineering_docs_rag/ | 按用户授权已整理最小设计和首份教学资料；讲解正文/来源与 Document，助手演示已运行，用户独立理解与真实导入待验证，见 daily/2026-09-07.md。 |
+| R6-02 | Embedding、pgvector 与检索 | TODO |  | code/stage6/engineering_docs_rag/ | BE5-01 后先做真实本地 embedding/top-k 切片；BE5-04 后完成 pgvector、exact/HNSW、filter、hybrid、rerank 与指标。提前切片不自动 PASS。 |
+| R6-03 | 固定两步 RAG、Agentic RAG 与引用 | TODO |  | code/stage6/engineering_docs_rag/ | 本地检索后先做带出处的固定两步最小问答；R6-02 完整验收后补同集架构对照、引用/拒答及失败分层。提前切片不自动 PASS。 |
 | R6-Gate | LangChain 工程文档 RAG 闯关 | TODO |  | code/stage6/engineering_docs_rag/ | 用公开/脱敏工程文档、业务验收指标和生产 RAG 链路形成旗舰一。 |
 | D7-01 | 基础编排模式 | TODO |  | notes/stage7/d7_01_orchestration_patterns.md | 在已有旗舰上判断 chaining、routing、parallelization 的适用边界，并用一条真实 trace/测试说明采用或拒绝。 |
 | D7-02 | Agent 核心模式与协作边界 | TODO |  | code/stage8/incident_change_review_agent/ | 复用 A4 已 PASS 概念；S-04 在 G8 项目以单 Agent baseline、带类型约束的角色交接和对照证据落地。 |
@@ -87,7 +87,7 @@
 | J11-07 | 简历与岗位匹配 | TODO |  | notes/stage11/j11_07_resume.md | W6/W12/W16/W19 做“京东/腾讯等大厂标杆 + 10 条真实可投样本”双轨审计；用 Python/FastAPI + Vue Agent 作品证明可迁移工程能力。 |
 | J11-08 | 面试准备 | TODO |  | notes/stage11/j11_08_interview.md | 中等算法 + 系统设计 + AI 八股。 |
 | J11-Gate | 求职冲刺关 | TODO |  | notes/stage11/j11_06_portfolio.md + notes/stage11/j11_07_resume.md + notes/stage11/j11_08_interview.md | 公开作品集 + 简历 + 面试自测；核心岗位能力与旗舰证据须按明确集合交叉复核。 |
-| S-01 | 多厂商模型切换 | TODO |  | （A4-Gate 后、J11-02 前） | 先抽 provider 边界，再接第二个真实 provider；按真实项目依赖挂载，不阻塞当前 G8/R6。 |
+| S-01 | 多厂商模型切换 | TODO |  | （BE5-02 核查路线、FINAL-Gate 前完成） | 先抽 provider 边界，再接第二个真实 provider；外部条件不足记录缺口，不阻塞 G8/R6 与 J11 产品化，FINAL 门槛保留。 |
 | S-02 | 生产向量检索 | TODO |  | （与 R6-02/R6-Gate 共用产物） | pgvector 主线；hybrid、rerank、权限 filter、增量更新与检索指标；正式检查必须单独写回本 ID。 |
 | S-03 | 上下文工程 | PASS | 2026-06-30 | notes/stage2/s03_context_engineering.md ＋ code/stage2/s03_context_experiment.py | 已通过；详见 daily/2026-06-30.md。 |
 | S-04 | 受控多 Agent 协作 | TODO |  | code/stage8/incident_change_review_agent/ | 在单 Agent baseline 后完成最小候选实验，验证交接格式、共享/私有 state、预算/停止/升级与质量-成本取舍；默认采用取决于实测净收益，无净收益则保留单 Agent。 |
