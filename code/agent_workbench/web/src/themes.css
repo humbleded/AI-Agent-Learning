@@ -1,0 +1,278 @@
+/* Import after style.css. Original keeps the existing stylesheet unchanged.
+   Shared --wb-* tokens are also available to new knowledge and project views. */
+:root {
+  --wb-text: #263c3a;
+  --wb-muted: #687e74;
+  --wb-subtle: #73867c;
+  --wb-accent: #167969;
+  --wb-on-accent: #fff;
+  --wb-surface: #fff;
+  --wb-surface-raised: #fff;
+  --wb-surface-soft: #eef3ed;
+  --wb-border: #dce5de;
+  --wb-input: #fff;
+  --wb-canvas: #f4f6f5;
+  --wb-shadow: 0 12px 32px #29493b08;
+}
+
+:root[data-theme="aurora"] {
+  color-scheme: dark;
+  --wb-text: #eeedf8;
+  --wb-muted: #b4b0cd;
+  --wb-subtle: #a19bbb;
+  --wb-accent: #b4a0ff;
+  --wb-on-accent: #201733;
+  --wb-surface: #191a2ce8;
+  --wb-surface-raised: #25263c;
+  --wb-surface-soft: #25243c;
+  --wb-border: #3e3a59;
+  --wb-input: #111324;
+  --wb-canvas: radial-gradient(ellipse at 86% 2%, #4730713b, transparent 49%),
+    radial-gradient(ellipse at 30% 80%, #2239692b, transparent 55%), #10111f;
+  --wb-sidebar: linear-gradient(160deg, #1f1b32f5, #131724fa);
+  --wb-sidebar-text: #d5cfe7;
+  --wb-topbar: #161625db;
+  --wb-nav-active: linear-gradient(100deg, #7452b842, #6954b422);
+  --wb-hero: radial-gradient(ellipse at 88% 6%, #8050ae3b, transparent 56%),
+    linear-gradient(115deg, #252036, #1e2541);
+  --wb-shadow: 0 12px 35px #03051030, inset 0 1px 0 #ffffff03;
+  --wb-radius: 16px;
+  --wb-good: #7cdbc0;
+  --wb-warning: #edc883;
+  --wb-danger: #f49caa;
+}
+
+:root[data-theme="graphite"] {
+  color-scheme: dark;
+  --wb-text: #eeece4;
+  --wb-muted: #b7b8ab;
+  --wb-subtle: #a4a599;
+  --wb-accent: #edb967;
+  --wb-on-accent: #231d10;
+  --wb-surface: #212321;
+  --wb-surface-raised: #2c2e29;
+  --wb-surface-soft: #292c26;
+  --wb-border: #45483f;
+  --wb-input: #181b18;
+  --wb-canvas: linear-gradient(#e1dba803 1px, transparent 1px),
+    linear-gradient(90deg, #e1dba803 1px, transparent 1px), #181b18;
+  --wb-sidebar: #1c1f1b;
+  --wb-sidebar-text: #d3d3c6;
+  --wb-topbar: #1d201df0;
+  --wb-nav-active: #edb96716;
+  --wb-hero: linear-gradient(112deg, #292b24, #202620);
+  --wb-shadow: 0 9px 24px #050a0526;
+  --wb-radius: 5px;
+  --wb-good: #a8ce91;
+  --wb-warning: #edb967;
+  --wb-danger: #f59e94;
+}
+
+:root[data-theme="glacier"] {
+  color-scheme: light;
+  --wb-text: #23445a;
+  --wb-muted: #526f81;
+  --wb-subtle: #627d8b;
+  --wb-accent: #226b99;
+  --wb-on-accent: #fff;
+  --wb-surface: #ffffffd9;
+  --wb-surface-raised: #fff;
+  --wb-surface-soft: #eaf3f8;
+  --wb-border: #c9dce8;
+  --wb-input: #f8fcff;
+  --wb-canvas: radial-gradient(ellipse at 97% 5%, #d4e8f3, transparent 48%),
+    radial-gradient(ellipse at 26% 81%, #ddf0ec80, transparent 60%), #eef4f8;
+  --wb-sidebar: linear-gradient(155deg, #e1edf5f5, #eef5f8f0);
+  --wb-sidebar-text: #365d73;
+  --wb-topbar: #f8fcffbc;
+  --wb-nav-active: #ffffffc7;
+  --wb-hero: radial-gradient(ellipse at 80% 2%, #ffffffa1, transparent 70%),
+    linear-gradient(115deg, #dcecf5, #e4f2f2);
+  --wb-shadow: 0 12px 35px #4168860b, inset 0 1px 0 #fff;
+  --wb-radius: 18px;
+  --wb-good: #227566;
+  --wb-warning: #92621d;
+  --wb-danger: #b44657;
+}
+
+/* Element Plus popovers are mounted under body and inherit these root tokens. */
+:root:is([data-theme="aurora"], [data-theme="graphite"], [data-theme="glacier"]) {
+  color: var(--wb-text);
+  background: var(--wb-canvas);
+  background-attachment: fixed;
+  --el-color-primary: var(--wb-accent);
+  --el-color-primary-light-3: color-mix(in srgb, var(--wb-accent) 73%, var(--wb-surface-raised));
+  --el-color-primary-light-5: color-mix(in srgb, var(--wb-accent) 50%, var(--wb-surface-raised));
+  --el-color-primary-light-7: color-mix(in srgb, var(--wb-accent) 30%, var(--wb-surface-raised));
+  --el-color-primary-light-8: color-mix(in srgb, var(--wb-accent) 20%, var(--wb-surface-raised));
+  --el-color-primary-light-9: color-mix(in srgb, var(--wb-accent) 12%, var(--wb-surface-raised));
+  --el-color-primary-dark-2: color-mix(in srgb, var(--wb-accent) 85%, #000);
+  --el-color-success: var(--wb-good);
+  --el-color-warning: var(--wb-warning);
+  --el-color-danger: var(--wb-danger);
+  --el-color-error: var(--wb-danger);
+  --el-color-info: var(--wb-muted);
+  --el-color-success-light-3: color-mix(in srgb, var(--wb-good) 70%, var(--wb-surface-raised));
+  --el-color-success-light-5: color-mix(in srgb, var(--wb-good) 50%, var(--wb-surface-raised));
+  --el-color-success-light-7: color-mix(in srgb, var(--wb-good) 30%, var(--wb-surface-raised));
+  --el-color-success-light-8: color-mix(in srgb, var(--wb-good) 20%, var(--wb-surface-raised));
+  --el-color-success-light-9: color-mix(in srgb, var(--wb-good) 10%, var(--wb-surface-raised));
+  --el-color-warning-light-3: color-mix(in srgb, var(--wb-warning) 70%, var(--wb-surface-raised));
+  --el-color-warning-light-5: color-mix(in srgb, var(--wb-warning) 50%, var(--wb-surface-raised));
+  --el-color-warning-light-7: color-mix(in srgb, var(--wb-warning) 30%, var(--wb-surface-raised));
+  --el-color-warning-light-8: color-mix(in srgb, var(--wb-warning) 20%, var(--wb-surface-raised));
+  --el-color-warning-light-9: color-mix(in srgb, var(--wb-warning) 10%, var(--wb-surface-raised));
+  --el-color-danger-light-3: color-mix(in srgb, var(--wb-danger) 70%, var(--wb-surface-raised));
+  --el-color-danger-light-5: color-mix(in srgb, var(--wb-danger) 50%, var(--wb-surface-raised));
+  --el-color-danger-light-7: color-mix(in srgb, var(--wb-danger) 30%, var(--wb-surface-raised));
+  --el-color-danger-light-8: color-mix(in srgb, var(--wb-danger) 20%, var(--wb-surface-raised));
+  --el-color-danger-light-9: color-mix(in srgb, var(--wb-danger) 10%, var(--wb-surface-raised));
+  --el-color-error-light-9: var(--el-color-danger-light-9);
+  --el-color-info-light-3: color-mix(in srgb, var(--wb-muted) 70%, var(--wb-surface-raised));
+  --el-color-info-light-5: color-mix(in srgb, var(--wb-muted) 50%, var(--wb-surface-raised));
+  --el-color-info-light-7: color-mix(in srgb, var(--wb-muted) 30%, var(--wb-surface-raised));
+  --el-color-info-light-8: color-mix(in srgb, var(--wb-muted) 20%, var(--wb-surface-raised));
+  --el-color-info-light-9: color-mix(in srgb, var(--wb-muted) 10%, var(--wb-surface-raised));
+  --el-text-color-primary: var(--wb-text);
+  --el-text-color-regular: var(--wb-text);
+  --el-text-color-secondary: var(--wb-muted);
+  --el-text-color-placeholder: var(--wb-subtle);
+  --el-text-color-disabled: var(--wb-subtle);
+  --el-bg-color: var(--wb-surface-raised);
+  --el-bg-color-page: var(--wb-input);
+  --el-bg-color-overlay: var(--wb-surface-raised);
+  --el-border-color: var(--wb-border);
+  --el-border-color-light: var(--wb-border);
+  --el-border-color-lighter: var(--wb-border);
+  --el-border-color-extra-light: color-mix(in srgb, var(--wb-border) 60%, transparent);
+  --el-border-color-dark: var(--wb-muted);
+  --el-border-color-darker: var(--wb-muted);
+  --el-fill-color: var(--wb-surface-soft);
+  --el-fill-color-light: var(--wb-surface-soft);
+  --el-fill-color-lighter: var(--wb-surface-soft);
+  --el-fill-color-extra-light: var(--wb-surface-soft);
+  --el-fill-color-dark: var(--wb-border);
+  --el-fill-color-darker: var(--wb-border);
+  --el-fill-color-blank: var(--wb-input);
+  --el-mask-color: color-mix(in srgb, var(--wb-input) 80%, transparent);
+  --el-box-shadow-light: var(--wb-shadow);
+  --el-border-radius-base: 8px;
+}
+
+html[data-theme]:not([data-theme="original"]) body { color: var(--wb-text); }
+html[data-theme]:not([data-theme="original"]) .workbench { background: transparent; }
+html[data-theme]:not([data-theme="original"]) .sidebar {
+  background: var(--wb-sidebar); color: var(--wb-sidebar-text);
+  border-right: 1px solid var(--wb-border); backdrop-filter: blur(20px);
+}
+html[data-theme]:not([data-theme="original"]) .brand { color: var(--wb-text); }
+html[data-theme]:not([data-theme="original"]) .brand-icon {
+  color: var(--wb-accent); background: var(--wb-surface-soft);
+  border: 1px solid var(--wb-border);
+}
+html[data-theme]:not([data-theme="original"]) :is(.brand-sub, .workspace-label, .sidebar-note, .sidebar-note .eyebrow, .sidebar-note > span:last-child, .profile span) { color: var(--wb-subtle); }
+html[data-theme]:not([data-theme="original"]) .workspace-label span { border-color: var(--wb-border); }
+html[data-theme]:not([data-theme="original"]) .nav-link { color: var(--wb-sidebar-text); border: 1px solid transparent; }
+html[data-theme]:not([data-theme="original"]) .nav-link:hover { background: var(--wb-surface-soft); }
+html[data-theme]:not([data-theme="original"]) .nav-link.active {
+  background: var(--wb-nav-active); color: var(--wb-accent);
+  border-color: color-mix(in srgb, var(--wb-accent) 26%, transparent);
+}
+html[data-theme]:not([data-theme="original"]) :is(.nav-dot, .next-dot) { background: var(--wb-accent); }
+html[data-theme]:not([data-theme="original"]) .sidebar-note p { color: var(--wb-text); }
+html[data-theme]:not([data-theme="original"]) .profile { border-color: var(--wb-border); }
+html[data-theme]:not([data-theme="original"]) .avatar { background: var(--wb-accent); color: var(--wb-on-accent); }
+html[data-theme]:not([data-theme="original"]) .topbar {
+  background: var(--wb-topbar); border-color: var(--wb-border); backdrop-filter: blur(18px);
+}
+html[data-theme]:not([data-theme="original"]) :is(.breadcrumb, .breadcrumb span, .api-link) { color: var(--wb-muted); border-color: var(--wb-border); }
+html[data-theme]:not([data-theme="original"]) .breadcrumb strong { color: var(--wb-text); }
+html[data-theme]:not([data-theme="original"]) .connection { color: var(--wb-warning); }
+html[data-theme]:not([data-theme="original"]) .connection.online { color: var(--wb-good); }
+html[data-theme]:not([data-theme="original"]) :is(.page-intro h1, .hero-copy h2, .flow-tile strong, .next-strip strong, .timeline-title strong, .result-card h3, .learning-callout strong, .empty-state h3) { color: var(--wb-text); }
+html[data-theme]:not([data-theme="original"]) :is(.page-intro p, .hero-copy p, .project-card p, .flow-tile small, .field-help, .field-label, .field, .input-details summary, details summary, .conclusion, .evidence, .learning-callout p, .roadmap-item p, .next-strip p, .empty-state p, .quiet-note, .caption, footer) { color: var(--wb-muted); }
+html[data-theme]:not([data-theme="original"]) :is(.eyebrow, .flow-label, .project-bottom, .panel-heading h2 svg, .document-flow, .document-card pre, .metadata strong, .document-source, .roadmap-item > svg) { color: var(--wb-accent); }
+html[data-theme]:not([data-theme="original"]) :is(.section-heading > span, .counter, .timeline-title time, .timeline details summary, .roadmap-task, .flow-index, .roadmap-number, .empty-state, .empty-state > svg, .next-strip > svg, .document-flow svg) { color: var(--wb-subtle); }
+html[data-theme]:not([data-theme="original"]) .hero-panel {
+  background: var(--wb-hero); border-color: var(--wb-border);
+  border-radius: calc(var(--wb-radius) + 3px); box-shadow: var(--wb-shadow);
+}
+html[data-theme]:not([data-theme="original"]) .hero-tag {
+  background: color-mix(in srgb, var(--wb-accent) 13%, transparent); color: var(--wb-accent);
+  border: 1px solid color-mix(in srgb, var(--wb-accent) 20%, transparent);
+}
+html[data-theme]:not([data-theme="original"]) .primary-link {
+  color: var(--wb-on-accent); background: var(--wb-accent);
+  box-shadow: 0 5px 20px color-mix(in srgb, var(--wb-accent) 12%, transparent);
+}
+html[data-theme]:not([data-theme="original"]) .primary-link:hover { filter: brightness(1.1); }
+html[data-theme]:not([data-theme="original"]) .flow-tile {
+  background: color-mix(in srgb, var(--wb-surface) 75%, transparent);
+  border-color: var(--wb-border); box-shadow: var(--wb-shadow); backdrop-filter: blur(12px);
+}
+html[data-theme]:not([data-theme="original"]) .flow-tile > svg { color: var(--wb-accent); }
+html[data-theme]:not([data-theme="original"]) .flow-connector { background: var(--wb-border); }
+html[data-theme]:not([data-theme="original"]) :is(.panel, .project-card, .roadmap-item) {
+  color: var(--wb-text); background: var(--wb-surface); border-color: var(--wb-border);
+  border-radius: var(--wb-radius); box-shadow: var(--wb-shadow);
+}
+html[data-theme]:not([data-theme="original"]) .project-card:hover {
+  border-color: var(--wb-accent); box-shadow: 0 10px 30px color-mix(in srgb, var(--wb-accent) 8%, transparent);
+}
+html[data-theme]:not([data-theme="original"]) .amber { background: color-mix(in srgb, var(--wb-warning) 13%, transparent); color: var(--wb-warning); }
+html[data-theme]:not([data-theme="original"]) .teal { background: color-mix(in srgb, var(--wb-good) 13%, transparent); color: var(--wb-good); }
+html[data-theme]:not([data-theme="original"]) :is(.project-bottom, .evidence) { border-color: var(--wb-border); }
+html[data-theme]:not([data-theme="original"]) :is(.next-strip, .result-card, .learning-callout, .model-hint, .waiting-message, .subtle-pill) {
+  background: var(--wb-surface-soft); border-color: var(--wb-border); color: var(--wb-muted);
+}
+html[data-theme]:not([data-theme="original"]) :is(.input-details pre, .timeline pre, .document-source, .metadata) {
+  background: var(--wb-input); color: var(--wb-muted); border-color: var(--wb-border);
+}
+html[data-theme]:not([data-theme="original"]) .document-card { background: var(--wb-surface); border-color: var(--wb-border); }
+html[data-theme]:not([data-theme="original"]) .document-flow span { background: var(--wb-surface-soft); border-color: var(--wb-border); }
+html[data-theme]:not([data-theme="original"]) .timeline li:not(:last-child)::before { background: var(--wb-border); }
+html[data-theme]:not([data-theme="original"]) .timeline-mark { color: var(--wb-good); }
+html[data-theme]:not([data-theme="original"]) .tiny-dot { background: var(--wb-good); }
+html[data-theme]:not([data-theme="original"]) :is(a, button, summary, input, textarea, select):focus-visible { outline: 2px solid var(--wb-accent); outline-offset: 3px; }
+html[data-theme]:not([data-theme="original"]) ::selection { background: color-mix(in srgb, var(--wb-accent) 30%, transparent); }
+html[data-theme]:not([data-theme="original"]) .el-button--primary:not(.is-plain, .is-text, .is-link) { --el-button-text-color: var(--wb-on-accent); --el-button-hover-text-color: var(--wb-on-accent); --el-button-active-text-color: var(--wb-on-accent); --el-button-disabled-text-color: var(--wb-on-accent); }
+html[data-theme]:not([data-theme="original"]) .el-tag { --el-tag-border-color: color-mix(in srgb, var(--el-tag-text-color) 30%, transparent); }
+html[data-theme]:not([data-theme="original"]) :is(.field, .panel) :is(input, textarea, select):not([type="checkbox"], [type="radio"], [type="range"], .el-input__inner, .el-select__input, .el-textarea__inner) {
+  background: var(--wb-input); color: var(--wb-text); border: 1px solid var(--wb-border); border-radius: 8px;
+}
+html[data-theme]:not([data-theme="original"]) :is(.field, .panel) :is(input, textarea)::placeholder { color: var(--wb-subtle); opacity: 1; }
+html[data-theme]:not([data-theme="original"]) input:is([type="checkbox"], [type="radio"], [type="range"]) { accent-color: var(--wb-accent); }
+
+/* Geometry and material differ as well as color. */
+html[data-theme="aurora"] .brand-icon { box-shadow: 0 0 24px #9774de16; }
+html[data-theme="aurora"] .hero-copy h2 { color: #e3d5ff; }
+html[data-theme="aurora"] .hero-flow { transform: rotate(-2deg); }
+html[data-theme="aurora"] .flow-tile { border-radius: 13px; }
+html[data-theme="aurora"] .project-icon { border: 1px solid #b3a0ed26; border-radius: 14px; }
+html[data-theme="graphite"] { background-size: 28px 28px; --el-border-radius-base: 4px; }
+html[data-theme="graphite"] :is(.brand-icon, .nav-link, .flow-tile, .project-icon, .primary-link, .result-card, .learning-callout, .next-strip) { border-radius: 4px; }
+html[data-theme="graphite"] .nav-link.active { box-shadow: inset 2px 0 var(--wb-accent); }
+html[data-theme="graphite"] :is(.eyebrow, .brand-sub, .workspace-label, .counter, .flow-label, .flow-index, .roadmap-number, .roadmap-task) { font-family: "Cascadia Code", Consolas, "Microsoft YaHei", monospace; font-style: normal; }
+html[data-theme="graphite"] .hero-panel { border-left: 3px solid var(--wb-accent); }
+html[data-theme="graphite"] .hero-copy h2 { letter-spacing: .2px; }
+html[data-theme="graphite"] .flow-tile { box-shadow: 3px 3px 0 #11151050; }
+html[data-theme="graphite"] .panel-heading { border-bottom: 1px solid var(--wb-border); padding-bottom: 17px; }
+html[data-theme="glacier"] :is(.panel, .project-card, .roadmap-item) { backdrop-filter: blur(14px); }
+html[data-theme="glacier"] .nav-link.active { box-shadow: 0 4px 14px #4676930c; }
+html[data-theme="glacier"] .brand-icon { background: #ffffffa6; border-color: #fff; }
+html[data-theme="glacier"] .hero-panel { border-color: #ffffffc9; }
+html[data-theme="glacier"] .flow-tile { border-color: #fff; background: #ffffffa8; border-radius: 14px; }
+html[data-theme="glacier"] .primary-link { border-radius: 20px; padding-left: 21px; padding-right: 21px; }
+
+@media (max-width: 760px) {
+  html[data-theme]:not([data-theme="original"]) .sidebar { border-right: 0; border-bottom: 1px solid var(--wb-border); }
+  html[data-theme]:not([data-theme="original"]) .sidebar nav { flex-wrap: wrap; gap: 5px; }
+  html[data-theme]:not([data-theme="original"]) .nav-link { flex: 1 1 auto; }
+  html[data-theme]:not([data-theme="original"]) .page-intro { flex-wrap: wrap; }
+  html[data-theme="aurora"] .hero-flow { transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-theme]:not([data-theme="original"]) :is(.nav-link, .project-card, .el-button, .primary-link) { transition: none; }
+  html[data-theme]:not([data-theme="original"]) .project-card:hover { transform: none; }
+}

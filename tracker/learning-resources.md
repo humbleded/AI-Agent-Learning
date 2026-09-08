@@ -3,7 +3,7 @@
 ## 一、够不够用？结论先说
 
 - **现有概念教材足够，甚至偏多；生产工程资料必须以任务启动时的官方文档为主。** `repos/` 里的书和课程负责解释原理，FastAPI/Pydantic/SQLAlchemy/Redis/LangGraph/MCP/评估/安全等快速变化内容在开始任务当天核对官方文档，不能只照本地旧示例。
-- **原路线真正偏薄的是 Python Agent 后端、生产 RAG、可恢复执行、持续评估、安全和 CI/CD。** A4 后按 `G8-00 → R6/BE5/B0 → pgvector 与 RAG 对照 → FastAPI/SSE → durable G8 → BE5/R6 Gate → 多 Agent 对照与 G8-Gate → 长期 Memory → MCP → 评估 → 产品化与 FINAL` 补齐；工程知识在两个真实项目产生依赖时学习，不先完整上完一套孤立后端课。
+- **原路线真正偏薄的是 Python Agent 后端、生产 RAG、可恢复执行、持续评估、安全和 CI/CD。** A4 后按 `G8-00 → R6/BE5/B0 → pgvector 与 RAG 对照 → FastAPI/SSE 工程补齐 → durable G8 → BE5/R6 Gate → 多 Agent 对照与 G8-Gate → 长期 Memory → MCP → 评估 → 产品化与 FINAL` 补齐；当前已授权的统一界面/HTTP 小切片先连接可运行成果，完整工程知识仍在两个真实项目产生依赖时学习，不先完整上完一套孤立后端课。
 - **知识库只保存正式、稳定的沉淀。** 当前结构、既有页面和同步规则必须在实际同步前读取 `D:\AI-Knowledge`；不在本资料页复制会过期的文件数量或日期快照。
 
 2026-09-07 再次分页核查本人 `humbleded` 的 8 个 Star 与 0 个 Watch 仓库。具体版本、章节、许可和任务用途保留在 [2026-09-05 GitHub 收藏资料映射](../resources/github-starred-learning-map-2026-09-05.md)；本次新读的学习建议、版本和采用理由见 [2026-09-07 学习方法评审](../resources/learning-method-review-2026-09-07.md)。每个当前知识单元选择一份概念主线，必要时加一个解决实际缺口的补充片段；官方 API 用于校准。收藏不自动变成整书必读或新框架课程。
@@ -33,6 +33,10 @@
 
 核验来源的优先级不等于课堂叙述顺序：概念课仍先用已选中文片段讲清原理，再看当前 API。官方链接发生重定向时记录最终页面与实际范围，不因导航换了产品名称就换课程主框架。2026-09-05 实际发现旧 LangChain Retrieval 路径跳到 `deepagents/retrieval`，`langgraph/durable-execution` 跳到 `langgraph/persistence`；保留其中相关内容，分别限定为 RAG 架构与持久化，不自动加入 Deep Agents 全套课程。
 
+2026-09-08 用户明确要求后续项目统一使用 LangChain 现成组件 + LangGraph 显式应用流程，包括文件读取。两旗舰共享框架组合，分别保留 RAG 与可恢复工作流的业务和验收重点；已有 G8-00 基础图证据直接迁移，不重学节点/边。API、SQL、认证、配置和测试继续使用各自专业库，应用核心可以脱离 HTTP 单独运行；没有合适现成集成时只补必要适配。具体当前组件版本与范围见下方官方源码切片。
+
+同日按用户授权已建立唯一集成产品 `product_flagship=agent_workbench`：一个 Vue 应用与共享 FastAPI 入口承载两个业务及后续实际完成的 Memory、MCP、评估和工具能力，不为每个历史脚本机械建页面。直接从 [工作台启动与数据流说明](../code/agent_workbench/README.md) 查看当前功能、运行和验证方法；[统一工作台选型记录](../resources/unified-workbench-review-2026-09-08.md) 保存 Vue 官方工程 + Element Plus 的采用依据、候选比较、固定来源及官方 Vue AI 接法的适用边界，[第三方来源声明](../code/agent_workbench/THIRD_PARTY_NOTICES.md) 保存实际模板与依赖许可。工作台先连接已 PASS 的故障诊断核心与真实步骤输出；样本预览由助手准备，RAG G3 导入仍由用户完成，未实现时明确未就绪。助手搭建不计学习 PASS；BE5/J11 保留完整标准并复用后续实际形成的独立证据。J11-02 再冻结发布范围和默认展示业务 `default_showcase`，不二选一排除另一业务的前端、上线或共享观测。
+
 英文资料采用渐进式训练：阶段 0–3 以中文建立直觉；阶段 4–5 保留英文原始标题、参数名与报错，让用户自己定位关键段落；从 BE5 起，短篇英文官方文档先由用户提取 2–3 条事实，卡住时再逐段翻译，不再默认整篇代译。
 
 - **阶段 0 Python**：廖雪峰对应小节 → CS50P 对应 Week → 写 `code/stage0/` 练习；是否完成只读 `progress.md`。
@@ -42,18 +46,18 @@
 - **阶段 4 Agent 原理**：HF unit1 `what-are-agents` → HA 第 1–4 章 → ADP 第 4/5/6 章（Reflection/Tool Use/Planning）→ 跑 `HA code/chapter4` 的 ReAct/Plan/Reflection。
 - **G8-00 LangGraph 入门（课程位置阶段 4.5）**：当前官方 Graph API → StateGraph/state/node/edge/条件路由/tool/stream/test → 在新的“故障诊断与变更评审 Agent”业务中重建控制流；复用 A4 已 PASS 的控制原则，不复制 A4 的 research-agent 题目，也暂不读 persistence/interrupt/resume。编号属于后续 LangGraph 旗舰，不代表阶段 5～7 被跳过。
 - **阶段 5 框架源码（可选）**：只有真实调用链阻塞时才沿一个入口追到 Agent/LLM/Tool/Message 并重建一个关键行为；不按目录通读、不阻塞 G8/R6。
-- **R6-01 → BE5-01**：先用 Hello-Agents 第 8 章 §8.3.1（1）（2）及 §8.3.2 的两流程说明讲清 RAG 为什么需要、“先查资料再带资料回答”、资料准备与查询生成两阶段；当前官方 Retrieval 的引言/From retrieval to RAG/2-step RAG 用于校准，不展开发展史或完整向量检索。再用具体场景说明文档从哪里来、导入后能看到什么；按授权固定最小设计，完成一份 Markdown/TXT → Document/来源的小成果，再补 PDF、切分、去重和增量文档状态。随后在同一项目补结构、日志、测试、lint 与类型检查；两个 ID 分别验收。没有 RAG 入门讲授和理解证据时，不能把 Document/Loader 示例当作已经掌握整体流程。
-- **R6-02 本地检索切片 → R6-03 最小问答切片**：在同一旗舰先讲 embedding/top-k，并验证真实可用的本地模型或服务，不能假定 DeepSeek 聊天接口提供 embedding。由本地检索得到片段，再用真实 DeepSeek 完成带出处的固定两步回答和无答案例。只记局部证据，尚未完成的任务保持 DOING；具体接力统一见 weekly-plan。
+- **R6-01 → BE5-01**：先用 Hello-Agents 第 8 章 §8.3.1（1）（2）及 §8.3.2 的两流程说明讲清 RAG 为什么需要、“先查资料再带资料回答”、资料准备与查询生成两阶段；当前官方 Retrieval 的引言/From retrieval to RAG/2-step RAG 用于校准，不展开发展史或完整向量检索。再用具体场景说明文档从哪里来、导入后能看到什么；按授权固定最小设计，用现成 LangChain Loader 经最小 LangGraph 读入一份 Markdown/TXT，通过既有工作台展示真实 Document 正文与来源，之后逐步接入处理/切分节点，补 PDF、去重和增量文档状态。当前统一界面/HTTP 连接与用户 G3 实作分别记录，不重置检查点；随后在同一项目补结构、日志、测试、lint 与类型检查，两个 ID 分别验收。已有 RAG 入门与 G8-00 证据直接承接；没有整体理解证据时，不能把组件示例当作已经掌握整体流程。
+- **R6-02 本地检索切片 → R6-03 最小问答切片**：在同一旗舰先讲 embedding/top-k，验证真实可用的本地模型或服务，并优先使用 LangChain 对应集成，不能假定 DeepSeek 聊天接口提供 embedding。沿用导入图建立索引，再用查询图连接检索、模型上下文整理和真实 DeepSeek 回答，完成带出处的固定两步回答和无答案例；不在每次提问时重新读入与索引所有资料。只记局部证据，尚未完成的任务保持 DOING；具体接力统一见 weekly-plan。
 - **B0-01 → B0-03 → B0-04 → B0-Gate → BE5-04**：再补命令行/进程/日志、SQL 和 Docker；B0-03 保留最小 SQLite 练习，B0-04/Gate 复用同一 Compose/CLI，再迁入旗舰。通过工程基础 Gate 后学习 SQLAlchemy/Alembic/PostgreSQL/pgvector；async driver 前仍即时补 await/连接生命周期，不能倒置这些前置。
-- **R6-02 剩余标准/S-02 → R6-03 剩余标准/S-06**：把已有本地检索迁移到 PostgreSQL + pgvector，完成 exact/HNSW、filter、关键词/hybrid、rerank 与 Recall@k/MRR；承接已有问答做同集固定两步与 Agentic 对照、完整引用/拒答和失败分层，再判断 Prompt、RAG、微调怎样选。复用已有产物与证据，挂载任务分别写回状态。
-- **BE5-02/03**：两个纯 Python 核心可运行后，再学习 asyncio、Pydantic、FastAPI、HTTP/SSE、超时、取消、并发和接口测试，把它作为交付层接到两个项目。
+- **R6-02 剩余标准/S-02 → R6-03 剩余标准/S-06**：把已有本地检索迁移到 PostgreSQL + pgvector，完成 exact/HNSW、filter、关键词/hybrid、rerank 与 Recall@k/MRR；在同一查询流程中比较固定两步与 LangChain Agentic 检索路径，明确图节点与 Agent 各控制哪些步骤，完成完整引用/拒答和失败分层，再判断 Prompt、RAG、微调怎样选。复用已有产物与证据，挂载任务分别写回状态。
+- **BE5-02/03**：复用工作台已有 FastAPI 入口与两个独立业务路由，读取早期 HTTP/界面的独立证据，按缺口补齐 asyncio、Pydantic、HTTP/SSE、超时、取消、并发和接口测试；两个 LangChain + LangGraph 核心始终可脱离 HTTP 独立运行，不重建两套产品服务，也不把助手的早期连接当作完整验收。
 - **G8-01 → G8-02 → G8-03**：LangGraph 官方 persistence/interrupts/durable execution/testing 为主线 → checkpoint/thread、PostgreSQL checkpointer、进程恢复、HITL 与副作用幂等；SQLite 只能作临时学习步骤，最终持久化证据使用 PostgreSQL。这里只说明与长期 Memory 的边界，不等待 D7。
 - **BE5-05 → BE5-Gate → R6-Gate**：Redis、后台任务、认证、负载、CI、Docker 与 smoke 先完成共同后端 Gate，再完成工程文档 RAG 旗舰 Gate；不让后续 G8-Gate 倒补前置工程能力。
-- **D7-01 → D7-02 → S-04 → G8-Gate**：先按 D7-01 的 ADP 第 1–3 章，将已有项目中的串联、路由、并行证据用于适用条件和取舍回顾，只补未证明的判断；再读取 D7-02 的多 Agent 取舍切片，在同一数据集保留单 Agent baseline，验证受控协作是否有净收益。G8-Gate 核心是持久恢复、HITL、幂等、评估和可观察状态；需要薄界面时可在任务启动后引入经过审计的开源 Vue 骨架，但完整前端掌握留到 J11-03 复核。
-- **D7-03 → D7-Gate**：在已有旗舰上实作跨会话长期 Memory 的完整生命周期、安全和无 Memory 对照，再复用前面已完成的模式取舍证据做设计模式验收；不另起玩具、不重读已证明的 D7-01 内容。
+- **D7-01 → D7-02 → S-04 → G8-Gate**：先按 D7-01 的 ADP 第 1–3 章，将已有项目中的串联、路由、并行证据用于适用条件和取舍回顾，只补未证明的判断；再读取 D7-02 的多 Agent 取舍切片，在同一数据集保留单 Agent baseline，验证受控协作是否有净收益。G8-Gate 在既有统一 Vue/FastAPI 工作台中验证持久恢复、HITL、幂等、评估和可观察状态；新增组件再按需审查，完整前端能力在 J11-03 复核时承认此前独立证据，只补缺口。
+- **D7-03 → D7-Gate**：按 2026-09-08 用户要求，把工作/情景/语义/感知四类记忆和真实图片/音频记忆接入工程文档助手既有 LangGraph 流程，优先复用 LangChain/LangGraph 组件，补齐具体业务的长期生命周期与安全规则，比较无记忆/仅文本/完整配置。再复用前面已完成的模式取舍证据做设计模式验收；不另起玩具或平行编排、不重读已证明的 D7-01 内容。
 - **阶段 9 MCP**：最新 MCP 官方 specification/SDK 为主线（server capabilities、transport、authorization、安全）→ HA/ADP 作中文解释和框架对照 → 写 M9。可选只读「Skills vs Tools/MCP/Subagents」辨析，不提前陷进 Skills 生态。
 - **阶段 10 评估与系统设计**：LangSmith Evaluation/Observability 官方文档 → HA 第 12 章、ADP 第 19 章、HF `bonus-unit2` 辅助 → 建一套共享 Eval Harness、为两个旗舰分别接领域 dataset/adapter/指标和 baseline/regression，并完成两个项目的系统设计包；这里不提前做 FINAL，也不复制两套评估平台。
-- **J11 产品化 → FINAL → 求职收口**：J11-02 根据 Gate/E10 证据由用户冻结唯一 `product_flagship`，只为它继续建设正式 Vue、公网部署和产品级观测；另一个旗舰保留可复现 API/demo、容器与完整评估。完成作品集组合和 S-05 综合安全收口后做 `FINAL-Gate`；之后才进入简历、面试和 `J11-Gate`。
+- **J11 产品化 → FINAL → 求职收口**：唯一集成产品已固定为 `agent_workbench`，J11-02 根据两个 Gate/E10 证据冻结发布范围、`default_showcase` 与质量要求，由用户最终审核。复用现有 Vue/FastAPI 补齐独立能力与产品标准，两个业务共享正式前端、公网发布链和观测入口，各自保留领域评估与回归。完成作品集组合和 S-05 综合安全收口后做 `FINAL-Gate`；之后才进入简历、面试和 `J11-Gate`。
 
 ## 四、工程化与补充资料（BE5 + S-01~S-07 + J11）
 
@@ -63,18 +67,18 @@
 | async/并发（BE5-02） | 阶段5.5 | Python `asyncio` 官方文档；httpx async、FastAPI async tests 官方文档；重点核对 timeout/cancel/TaskGroup/Semaphore |
 | FastAPI/Pydantic（BE5-03） | 阶段5.5 | FastAPI 官方中文/英文；Pydantic v2 官方；Starlette/httpx 官方 SSE/测试资料，不以 CSDN 示例作主线 |
 | 数据/任务（BE5-04/05） | 阶段5.5 | SQLAlchemy 2、Alembic、PostgreSQL、Redis 官方；Celery/RQ/ARQ 任选一个官方 quickstart；Locust 或 k6 官方 |
-| 多厂商模型（S-01） | BE5-02 核查可用路线，FINAL-Gate 前收口 | 先抽 provider 接口，再查替代厂商官方文档、OpenRouter `openrouter.ai/docs` 或本地 Ollama；真实凭据/运行条件不足时记录缺口，不阻塞当前 G8/R6 与 J11 产品化；完整 PASS 仍要求真实第二 provider，不用 mock 代替 |
+| 多厂商模型（S-01） | BE5-02 核查可用路线，FINAL-Gate 前收口 | 优先使用 LangChain 模型/provider 集成与配置边界，再查替代厂商官方文档、OpenRouter `openrouter.ai/docs` 或本地 Ollama；只为真实差异补必要适配。真实凭据/运行条件不足时记录缺口，不阻塞当前 G8/R6 与 J11 产品化；完整 PASS 仍要求真实第二 provider，不用 mock 代替 |
 | Provider 韧性与复合故障（BE5-02/FINAL） | 阶段5.5 起 | HTTP `Retry-After`/429 语义、Python `asyncio`/httpx 官方文档；重点练指数退避+jitter、可重试分类、取消传播、fallback、配额/成本上限和 fault injection，不把无限重试当可靠性 |
 | 生产向量检索（S-02） | 阶段6 | pgvector 官方为主；PostgreSQL full-text/BM25 方案、Qdrant/Milvus 官方按 JD 对照；RAGAS/LangSmith 评估官方资料 |
 | 上下文工程（S-03） | 阶段2/4 | **HA 第 9 章（已有）**；Anthropic《Building effective agents》（Hub 里有链接） |
 | 多 Agent（S-04/G8） | G8 单 Agent baseline 后、D7-02 评审 | [LangChain Multi-agent 官方概览](https://docs.langchain.com/oss/python/langchain/multi-agent)；[Subagents](https://docs.langchain.com/oss/python/langchain/multi-agent/subagents)；ADP 第 7 章辅助。重点是何时不需要多 Agent、context engineering、带类型约束的角色交接格式、共享/私有 state、停止/预算/升级与单 Agent 对照；不默认采用 supervisor helper 库 |
-| Agent 长期 Memory（D7-03/FINAL） | 两个项目可运行后 | [LangGraph Memory](https://docs.langchain.com/oss/python/langgraph/add-memory) 与 [Persistence](https://docs.langchain.com/oss/python/langgraph/persistence) 官方文档；PostgreSQL 作为事实源；OWASP Agentic Applications 的 Memory & Context Poisoning。重点区分 history、checkpoint、RAG 与跨会话 Memory，并实作 CRUD/TTL/provenance/隔离/删除/poisoning/baseline |
+| 四类记忆与图片/音频 Memory（D7-03/FINAL） | 前置见 weekly-plan；在工程文档助手内分 Session 实现 | [Hello-Agents 第八章](../repos/hello-agents/docs/chapter8/第八章%20记忆与检索.md) §8.1.3、§8.2.1、§8.2.3–§8.2.5 负责架构、生命周期、管理器及四类实现；[LangGraph Memory](https://docs.langchain.com/oss/python/langgraph/add-memory) 与 [Persistence](https://docs.langchain.com/oss/python/langgraph/persistence) 在任务启动时校准状态/存储接口及长期记忆/执行恢复边界，向工程文档助手既有图增加记忆步骤。优先使用合适的 LangChain/LangGraph 组件，四类业务规则与缺少的媒体能力补必要适配，不引入教材的另一套编排。PostgreSQL/pgvector 沿用；图片/音频模型、转写、中文支持、许可证及官方 API 在实际实现时选定核验。结合 OWASP Memory & Context Poisoning 完成来源/隔离/删除/污染与三配置对照，具体标准见 D7-03 |
 | Guardrails / 注入（S-05） | R6/D7/M9/J11 分段挂载，FINAL 前收口 | OWASP Top 10 for LLM/Agentic Applications 与 Threats and Mitigations（主线）；MCP Security Best Practices；ADP 第 18 章辅助 |
 | 微调 vs RAG（S-06） | 阶段6/10 | 概念为主：搜「RAG vs 微调 选型」；HA 第 8 章相关讨论 |
-| FastAPI 服务化（J11-02） | 阶段11 | 复用 BE5 官方资料；先根据两个 Gate/E10 证据冻结唯一 `product_flagship`，再重点查认证、部署、SSE、取消、health/readiness、API 文档和负载测试，不重新学入门或建设第二套产品服务 |
-| Vue + 流式（J11-03） | 阶段11 | 只为 `product_flagship` 建正式前端。用户会一些 Vue，先用最小切片复核组件、状态、异步请求和浏览器调试；已证明的部分不重复。助手可在任务启动时审计许可证、维护状态、依赖与安全风险后组合 GitHub 开源 Vue 骨架；用户审核关键 diff，并解释/修改状态、SSE、认证、错误处理和前后端边界。再按缺口读取 Vue 官方文档和 MDN `EventSource` / `fetch` 流式资料 |
-| Docker 部署（J11-04） | 阶段11 | **B0-04 已有 Docker 中文文档 + 黑马视频**；只强化 `product_flagship` 的公网产品链，上线平台 Railway `docs.railway.app` 或 Render `render.com/docs` |
-| 可观测/评估（E10/J11-05） | 阶段10/11 | E10 用一套共享评估基础设施服务两个领域 adapter；J11-05 只为 `product_flagship` 强化线上 tracing/告警。资料使用 LangSmith Evaluation/Observability 官方或 Langfuse 官方、OpenTelemetry GenAI conventions、代码 evaluator + LLM-as-judge + baseline/regression |
+| FastAPI 服务化（J11-02） | 阶段11 | 复用 BE5 官方资料与 `agent_workbench/api`；根据两个 Gate/E10 证据冻结集成产品的发布范围、default_showcase 与质量，再重点查认证、部署、SSE、取消、health/readiness、API 文档和负载测试。两个业务共享入口，不重新学入门或建设第二套产品服务 |
+| Vue + 流式（J11-03） | 当前授权切片逐步积累，阶段11 完整验收 | 复用 `agent_workbench/web` 的统一 Vue 应用及上述选型/来源记录，先核对已有独立证据，再补组件、状态、异步请求、浏览器调试、SSE、认证、错误处理和前后端边界的真实解释/修改。新增组件按需审查，助手搭建不计 PASS。按缺口读取 Vue 官方文档和 MDN `EventSource` / `fetch` 流式资料；不因默认展示业务不同重建或排除另一业务页面 |
+| Docker 部署（J11-04） | 阶段11 | **B0-04 已有 Docker 中文文档 + 黑马视频**；强化 `agent_workbench` 唯一公网发布链，发布范围内两个业务共同交付；上线平台 Railway `docs.railway.app` 或 Render `render.com/docs` |
+| 可观测/评估（E10/J11-05） | 阶段10/11 | E10 用一套共享评估基础设施服务两个领域 adapter；J11-05 为 `agent_workbench` 建统一线上 tracing/告警入口，以业务模块区分运行与指标，保留两个领域各自回归。资料使用 LangSmith Evaluation/Observability 官方或 Langfuse 官方、OpenTelemetry GenAI conventions、代码 evaluator + LLM-as-judge + baseline/regression |
 | MCP（M9） | 阶段9 | `modelcontextprotocol.io/specification` 最新 revision 与官方 SDK；重点看 STDIO/Streamable HTTP、authorization/security，不以 HelloAgents 实现代替规范 |
 | CI/CD/上线（J11-04） | 工程上线 | GitHub Actions、Docker、目标云平台官方；health/readiness、secret、non-root、smoke、回滚、备份、Locust/k6 官方 |
 | 算法（J11-08） | 阶段11（W4 起启动） | **原理教材：《Hello 算法》`hello-algo.com`**（免费开源，动画图解＋Python 代码一键可跑，非科班友好）——W4 算法启动先读复杂度/数组与链表/哈希表打底，之后刷到哪个专题回头补哪章原理；刷题路线：代码随想录 `programmercarl.com`（含视频，按专题刷）＋ LeetCode 热题 100 `leetcode.cn`（题单） |
@@ -84,6 +88,10 @@
 
 R6-01 的当前官方入口（2026-09-05 已读对应正文）：[Document loaders 的 Interface](https://docs.langchain.com/oss/python/integrations/document_loaders#interface)、[Text splitter integrations](https://docs.langchain.com/oss/python/integrations/splitters)。只覆盖读入统一文档、按长度/结构切分、metadata 和文档生命周期；具体 PDF/Markdown 依赖在实际 Session 再按文件类型核验，不从整页集成清单批量安装。
 
+2026-09-08 当前 G3 采用 `langchain-community==0.4.2` 的 `TextLoader`（从 `langchain_community.document_loaders.text` 导入），配合 `langchain-core==1.6.1` 与 `langgraph==1.2.11`。已核验 [TextLoader 官方源码](https://github.com/langchain-ai/langchain-community/blob/main/libs/community/langchain_community/document_loaders/text.py)、[0.4.2 包信息](https://pypi.org/project/langchain-community/0.4.2/) 和 [community 停止维护公告](https://github.com/langchain-ai/langchain-community/issues/674)：这是仅用于当前教学 Markdown/TXT 的固定版本选择，不作为仍在维护的推荐依赖。助手实际验证 UTF-8 全文、Markdown 代码围栏/缩进、source 和缺文件失败行为；`pip check` 无冲突，core/graph 版本保持不变。这些是环境准备证据，不计用户实现 PASS。PDF 和上线前重新核验维护中的独立集成及迁移方案。
+
+[LangGraph Workflows and agents](https://docs.langchain.com/oss/python/langgraph/workflows-agents) 已于 2026-09-08 核验，用来校准固定流程与由模型决定步骤的区别；当前先把现成 Loader 放进最小图，后续在原图上增加处理、索引和查询节点。既有 G8-00 能力直接迁移，持久化/恢复仍按原依赖到 G8-01～03 学习，不能由一个读取节点提前判作已掌握。
+
 以下来源只在对应知识单元真正开始时读取或浅克隆；路线修订阶段不提前创建 `repos/` 副本、未来代码或课程骨架。GitHub 星标和 trending 只用于发现线索，不能单独决定课程主线。
 
 | 来源 | 当前路线中的用法 | 明确不采用 |
@@ -91,7 +99,7 @@ R6-01 的当前官方入口（2026-09-05 已读对应正文）：[Document loade
 | [LangChain 官方概览](https://docs.langchain.com/oss/python/langchain/overview)、[Retrieval](https://docs.langchain.com/oss/python/langchain/retrieval) | 核对当前 `create_agent`/组件边界，区分固定两步、Agentic 与 Hybrid RAG | 不把三种架构默认叠加；不把 `create_agent` 隐藏的 LangGraph runtime 当作直接掌握 StateGraph 的证据 |
 | [langchain-ai/langchain](https://github.com/langchain-ai/langchain) | 查当前入口、核心抽象、错误边界和测试设计 | 不从头通读巨型仓库，不复制内部实现 |
 | [rag-from-scratch](https://github.com/langchain-ai/rag-from-scratch) | 选择 indexing、retrieval、generation、query transformation 切片重建心智模型 | 不照抄旧 notebook API；执行时以官方文档和已安装版本为准 |
-| [LangGraph 官方概览](https://docs.langchain.com/oss/python/langgraph/overview)、[Graph API](https://docs.langchain.com/oss/python/langgraph/graph-api)、[Persistence](https://docs.langchain.com/oss/python/langgraph/persistence)、[Interrupts](https://docs.langchain.com/oss/python/langgraph/interrupts)、[Streaming](https://docs.langchain.com/oss/python/langgraph/streaming)、[Testing](https://docs.langchain.com/oss/python/langgraph/test) | G8 的显式编排、持久化、HITL、流式与测试事实源 | 不把 runtime 源码阅读扩成框架开发主线 |
+| [LangGraph 官方概览](https://docs.langchain.com/oss/python/langgraph/overview)、[Graph API](https://docs.langchain.com/oss/python/langgraph/graph-api)、[Persistence](https://docs.langchain.com/oss/python/langgraph/persistence)、[Interrupts](https://docs.langchain.com/oss/python/langgraph/interrupts)、[Streaming](https://docs.langchain.com/oss/python/langgraph/streaming)、[Testing](https://docs.langchain.com/oss/python/langgraph/test) | 两个旗舰的显式编排事实源；R6 迁移已有基础图，G8 再深入持久化、HITL、流式与恢复测试 | 不把 runtime 源码阅读扩成框架开发主线，不为迁移重复教授已 PASS 的图概念 |
 | [langchain-ai/langgraph](https://github.com/langchain-ai/langgraph)、[langgraph-101](https://github.com/langchain-ai/langgraph-101) | 精读 101 基础和一个与 persistence/HITL 对应的 201 示例 | 不机械完成全部 notebook |
 | [local-deep-researcher](https://github.com/langchain-ai/local-deep-researcher) | 只吸收来源进入 state、查询循环上限、反思次数限制和 trace 结构 | 不复制研究主题，不与 A4 重复造第三个 research agent |
 | [pgvector/pgvector](https://github.com/pgvector/pgvector) | exact/HNSW、filter、迭代扫描、PostgreSQL FTS/hybrid 与数据一致性 | 不用热度替代 Recall@k/MRR、故障或迁移证据 |
@@ -104,7 +112,7 @@ R6-01 的当前官方入口（2026-09-05 已读对应正文）：[Document loade
 - 画出入口、核心 State/数据必须包含哪些字段与遵守哪些规则、主控制路径、错误边界和测试策略的源码地图。
 - 用自己的最小代码重建一个关键行为，再迁移到当前项目，并由测试或 trace 证明。
 - 写清一个采用的设计、一个拒绝的设计和拒绝原因。
-- 已归档仓库（包括 `rag-research-agent-template`）不得作为主教材或当前 API 依据。
+- 已归档仓库（包括 `rag-research-agent-template`）不作为维护中的推荐主线或未来 API 承诺。当前 TextLoader 仅按上文明确范围采用已安装、固定版本且实跑核验的教学切片；不能据此默认引入其他旧 community 组件，后续扩大格式或交付范围时重新选型。
 
 ## 五、视频清单（中文，按需补，不是主线）
 
@@ -132,7 +140,7 @@ Hub 的 11 级项目阶梯，大半正好能套在你已有的 Gate / J11 上—
 | --- | --- | --- |
 | L1 计算器 Agent | T3-02 计算器工具 | 已有 |
 | L2 Web 研究 Agent | 阶段4 A4-Gate | 已 PASS 的手写 Agent Loop 证据，不再演化成第二个研究项目 |
-| L3 PDF 问答 Agent | 阶段6 工程文档 RAG + FastAPI；若被选为 `product_flagship` 再接 Vue | 只借鉴文档导入模式；旗舰一采用公开/脱敏工程资料与可定位引用 |
+| L3 PDF 问答 Agent | 阶段6 工程文档 RAG 核心，经 `agent_workbench` 的共享 FastAPI/Vue 展示 | 只借鉴文档导入模式；旗舰一采用公开/脱敏工程资料与可定位引用，能力实现后直接加入统一界面 |
 | L4 代码审查 Agent | 额外可选 | 可使用 Python 项目或通用 Git diff 做代码审查场景；不引入第二套后端技术栈 |
 | L9 多 Agent 写作 | S-04 / D7-02 / G8 | 只借鉴协作拓扑；真实证据放进故障诊断项目，并与单 Agent 对照 |
 | L11 生产级 Harness | 阶段10 + J11-05 可观测 | 给最强旗舰补齐生产能力，不另起作品集④ |

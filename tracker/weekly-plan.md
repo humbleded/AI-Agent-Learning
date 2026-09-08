@@ -2,38 +2,43 @@
 
 本文件把课程任务按知识依赖组织成内容块。W1–W20 是兼容 tracker、历史证据和算法台账的稳定 ID，不是日历周、完成期限或学习时长；一个内容块可以跨任意数量的日期与 Session。课程状态只读 `tracker/progress.md`，当前入口只读 `tracker/daily-plan.md`。
 
-最后路线校准：2026-09-07。此次学习方法、收藏教材依据和反思见 [评审记录](../resources/learning-method-review-2026-09-07.md)。
+最后路线校准：2026-09-08，按用户明确要求把后续项目统一为 LangChain 组件 + LangGraph 流程，并从当前切片开始通过一个 Vue + FastAPI 产品展示真实结果；业务课程依赖顺序不变，提前的界面/HTTP 局部证据由后续 BE5/J11 复用。此前学习方法、收藏教材依据和反思见 [评审记录](../resources/learning-method-review-2026-09-07.md)。
 
 ## 路线原则
 
 - 主目标是初级/初中级 Agent 应用开发，次目标是大模型应用后端与 RAG/知识库工程，AI 全栈只作邻接优势。
 - A4-Gate 已证明 Agent Loop、ReAct、Plan-and-Solve、Reflection、工具边界、停止与受控恢复；后续只迁移和组合这些能力，不换名字重复教学。
 - A4 后先接触 LangGraph，再进入 LangChain/RAG；工程基础在两个真实项目需要时即时补齐，不等待完整 BE5 前置课。
-- FastAPI 是两个纯 Python 核心的交付层，不是 Agent 编排框架，也不再单独创建聊天玩具。
-- LangChain 与 LangGraph 可以互用组件，但两个旗舰必须分别有明确主框架、业务问题、目录、测试和 Gate 证据。
+- 后续 Agent/RAG 项目统一优先使用 LangChain 生态现成组件处理文档读取、切分、模型、检索和工具，使用 LangGraph 显式连接应用步骤；两个旗舰分别保留业务问题、目录、测试和 Gate 证据，框架一致不等于验收互相替代。已 PASS 的手写代码保留，后续真实改动时再按需要迁移。
+- 共享 FastAPI 应用通过独立业务路由负责两个项目的 HTTP/SSE 交付；“Python core”指能脱离 HTTP 独立运行、测试的 LangChain + LangGraph 应用核心。最小行为可运行后即可接到界面，完整异步/接口工程仍按 BE5 验收。SQL、认证、配置、测试等使用对应专业库，业务规则和组件之间缺少的连接只补必要代码，不要求先手写框架已有功能。
 - PostgreSQL + pgvector 是向量检索主线；轻量本地索引只用于理解原理，Qdrant/Milvus 只在 JD 或架构取舍需要时短对照。
 - 多 Agent 不自动成为产品默认方案。先建立单 Agent baseline，再在 `S-04` 做最小受控候选实验；是否采用由同集结果和成本决定，没有净收益就保留单 Agent。
 - checkpoint/thread state 负责一次工作流的执行状态；`D7-03` 的长期 Memory 负责跨会话事实生命周期。二者不得混称。
 - H5 保持可选：只在真实框架问题需要时追一条源码路径，不阻塞主线。
-- 用户会一些 Vue，前端不扩成独立主线：先做最小独立复核；真正进入界面任务时，助手可审计许可证、维护状态、依赖和安全风险后组合 GitHub 开源 Vue 骨架。若 G8-Gate 提前采用，用户当场做第三方代码最小准入审核；完整状态/SSE/认证/错误处理和亲自修改能力留到 J11-03。助手搭建不算用户独立掌握证据，也不提前克隆。J11-02 冻结唯一 `product_flagship`，不建设两套正式前端/公网产品链。
+- 用户已授权从当前 Session 创建统一界面/HTTP 切片。助手审查来源、许可证、维护状态、依赖和安全边界后采用 Vue 官方工程与组件，负责初始化和必要连接；用户沿真实链路完成数据流、密钥边界和最小修改证明，不逐字段等待审批。已有 Vue 能力按实际操作复核，完整状态/SSE/认证/错误处理能力仍在 J11-03 验收；助手搭建不计用户 PASS。
+- 唯一 `product_flagship=agent_workbench` 已按用户要求确定，包含 `code/agent_workbench/web/` 的 Vue 3 + TypeScript + Vite + Vue Router + Element Plus 应用，以及 `code/agent_workbench/api/` 的共享 FastAPI 入口。两个旗舰均在同一产品中持续演化，J11-02 再冻结发布范围、默认展示业务 `default_showcase` 与质量要求；只有一套前端/公网发布链，不将唯一产品误解为只能有一个业务模块。
 
 ## 两个旗舰项目
 
-| 主框架 | 项目 | 规划目录 | 需要证明的核心能力 |
+| 框架组合 | 项目 | 规划目录 | 需要证明的核心能力 |
 | --- | --- | --- | --- |
-| LangChain | 工程文档 RAG 助手 | `code/stage6/engineering_docs_rag/` | Loader/Splitter/Document/metadata、检索、固定两步 RAG、Agentic RAG、引用、权限、评估、API 与部署 |
-| LangGraph | 故障诊断与变更评审 Agent | `code/stage8/incident_change_review_agent/` | 显式 State/Node/Edge、route/loop/stop、stream、checkpoint、interrupt/resume、幂等、受控多 Agent、评估与恢复 |
+| LangChain + LangGraph | 工程文档 RAG 助手 | `code/stage6/engineering_docs_rag/` | 重点验证 Loader/Splitter/Document/metadata、检索、固定两步 RAG、Agentic RAG、引用、权限、评估、API 与部署；导入与查询由显式图连接，D7-03 向既有流程增加四类记忆及图片/音频记忆 |
+| LangChain + LangGraph | 故障诊断与变更评审 Agent | `code/stage8/incident_change_review_agent/` | 重点验证显式 State/Node/Edge、route/loop/stop、stream、checkpoint、interrupt/resume、幂等、受控多 Agent、评估与恢复；模型和工具优先复用 LangChain 组件 |
 
-两个项目的交付层统一为：
+两个业务核心共用一个持续演化的产品入口，原目录和各自测试保留：
 
 ```text
-HTTP / SSE / Auth / Validation / 统一错误返回规则
-                       │
-                 Application Adapter
-              ┌────────┴─────────┐
-              │                  │
-      LangChain RAG Core   LangGraph Workflow Core
+             agent_workbench/web：统一 Vue 应用
+                                │ HTTP / SSE
+             agent_workbench/api：共享 FastAPI 应用
+                                │ 各业务路由 / 校验 / 错误返回
+               ┌────────────────┴────────────────┐
+         工程文档 RAG 助手                 故障诊断与变更评审 Agent
+         LangGraph 导入/查询图             LangGraph 可恢复工作流
+         LangChain 资料/检索/模型组件       LangChain 模型/工具组件
 ```
+
+当前界面/HTTP 切片先接已 PASS 的故障诊断运行与真实 stream；RAG G3 尚未实现时显示未就绪，保留同一 TODO 与接力，完成后接入真实导入结果。后续 Memory、MCP、评估和工具等功能在各自实际任务中加入同一应用；历史学习脚本按真实展示需要接入，不为每个脚本机械建立页面。页面功能、助手连接工作与用户独立证据分别记录。
 
 ## 学习路径总览
 
@@ -42,15 +47,15 @@ HTTP / SSE / Auth / Validation / 统一错误返回规则
 ```mermaid
 flowchart TD
     A["Python 基础 → 模型 API → 提示词、结构化输出与上下文"] --> B["工具调用 → 手写 Agent → LangGraph 基础流程"]
-    B --> C["RAG 全貌 → 资料读入、来源与切分 → 项目结构和测试"]
-    C --> D["本地找出相关片段 → 最小真实问答与出处"]
+    B --> C["统一 Vue/FastAPI 入口 → RAG 全貌、Loader 最小图 → 处理/切分与项目测试"]
+    C --> D["导入图建立索引 → 查询图找出片段、真实问答与出处"]
     D --> E["命令行、SQL、Docker → 数据库存储 → 检索质量与 RAG 方案对照"]
     E --> F["并发与 FastAPI 接口 → 工作流保存、恢复和人工处理"]
     F --> G["后台任务、认证、负载与部署 → 后端验收和 RAG 项目验收"]
-    G --> H["顺序、分支、并行的取舍 → 多 Agent 对照 → LangGraph 项目验收"]
-    H --> I["跨会话长期记忆 → 更新、遗忘、隔离与效果验证"]
+    G --> H["顺序、分支、并行的取舍 → 多 Agent 对照 → 故障诊断项目验收"]
+    H --> I["四类记忆与图片/音频 → 跨会话、更新、遗忘、隔离与效果验证"]
     I --> J["MCP 工具连接 → 两个项目的系统评估与设计"]
-    J --> K["选择一个产品主项目 → Vue、上线、观测与综合安全"]
+    J --> K["冻结集成产品发布范围与默认展示 → Vue 能力补齐、上线、观测与综合安全"]
     K --> L["作品集 → 综合答辩 → 简历、面试与求职验收"]
 ```
 
@@ -66,23 +71,24 @@ W1–W5 是已发生的历史学习块，精确任务状态和证据仍以 `prog
 | W4 | Tool Calling 与算法启动 | T3-Gate；算法首块 4 道新题替代无旧题的复测位 |
 | W5 | Agent 基础与 A4-Gate | 手写 Agent Loop、ReAct、Plan-and-Solve、Reflection、正式 14-case Gate |
 | W6 | `G8-00`（课程位置：阶段 4.5）；并行开启 `J11-01` 的证据积累与首轮岗位审计 | LangGraph 故障诊断与变更评审 Agent v1：typed state、node/edge、条件路由、工具、停止、stream、测试；这不是直接跳到完整阶段 8。岗位样本不足保持 RETRY 并继续独立补齐，不阻塞已满足技术依赖的 W7/R6-01 |
-| W7 | `R6-01 → BE5-01`（同一项目、分别验收） | 助手先给完整可修改的最小场景，讲清 RAG 的用途、资料准备与查询生成两阶段，并核对资料怎样交给模型的理解；按授权固定设计，读入一份 Markdown/TXT 并展示内容和来源，再逐步补 PDF、切分、metadata、去重和文档状态；随后补项目分层、日志、pytest、Ruff 与类型检查 |
-| W8 | `R6-02 本地检索切片 → R6-03 最小问答切片 → B0-01 → B0-03 → B0-04 → B0-Gate → BE5-04 → R6-02 剩余标准/S-02` | 先用真实 embedding 找到相关片段，再用真实 DeepSeek 回答一个问题并定位出处、验证无答案例；随后补数据库基础和生产检索。B0-04/Gate 共用一份 Compose/CLI，再迁入旗舰；完成 pgvector、migration、filter、hybrid、rerank 与检索指标 |
-| W9 | `R6-03 剩余标准 → S-06` | 承接 W8 已有问答，不重写；补查询改写/拆分、同集固定两步与 Agentic 对照、完整引用/拒答和失败分层，再用真实证据判断 Prompt/RAG/微调怎样选 |
-| W10 | `BE5-02 → BE5-03`；`S-01` 可从 provider 边界开始但不阻塞本块 | 两个纯 Python 核心分别接 FastAPI/Pydantic/SSE；timeout、cancel、并发限制、系统出错时怎样返回结果与接口测试；Graph 的 HITL 决策接口留到 G8-03 增量实现 |
+| W7 | `R6-01 → BE5-01`（同一项目、分别验收）；挂载已授权的统一界面/HTTP 切片 | 助手审查后初始化统一 Vue/FastAPI 应用，先接已 PASS 的故障诊断与真实步骤输出；G3 未实现时如实显示未就绪。R6 复用已有整体理解与图证据，完成现成 Loader 最小图后立即展示真实正文与来源，再逐步接处理/切分、PDF、metadata、去重和文档状态；随后补项目分层、日志、pytest、Ruff 与类型检查。界面/HTTP 局部独立证据由 BE5/J11 复用，助手搭建不计 PASS |
+| W8 | `R6-02 本地检索切片 → R6-03 最小问答切片 → B0-01 → B0-03 → B0-04 → B0-Gate → BE5-04 → R6-02 剩余标准/S-02` | 在同一旗舰把导入图扩到真实 embedding 与索引，再建立“检索 → 整理模型上下文 → 真实 DeepSeek 回答”的查询图，通过既有统一界面展示片段、出处和无答案例；两图使用 LangChain 组件，不在每次提问时重新导入全部文档。随后补数据库基础和生产检索；B0-04/Gate 共用一份 Compose/CLI，再迁入旗舰，完成 pgvector、migration、filter、hybrid、rerank 与检索指标 |
+| W9 | `R6-03 剩余标准 → S-06` | 承接 W8 已有查询图，不重写；补查询改写/拆分，以同集比较固定两步与 LangChain Agentic 检索路径，明确图节点与 Agent 各自控制哪些步骤，完成完整引用/拒答和失败分层，再用真实证据判断 Prompt/RAG/微调怎样选 |
+| W10 | `BE5-02 → BE5-03`；`S-01` 可从 provider 边界开始但不阻塞本块 | 在共享 FastAPI 入口中完善两个业务路由，复用早期 HTTP/界面独立证据，补齐 Pydantic/SSE、timeout、cancel、并发限制、错误返回与接口测试；核心仍独立可测。Graph 的 HITL 决策接口留到 G8-03 增量实现，不另建演示服务 |
 | W11 | `G8-01 → G8-02 → G8-03` | LangGraph v2：PostgreSQL 持久 checkpoint、thread 隔离、重启恢复、approve/edit/reject API、幂等副作用和故障注入 |
 | W12 | `BE5-05 → BE5-Gate`；第二轮岗位审计；挂载 `J11-07` 早期求职材料校准 | Redis、后台任务、认证、重复提交、负载、CI、Docker、smoke 与生产后端 Gate；复用两个项目，不建第三个教学项目。Gate 后用新增证据校准项目描述和 2–3 条硬门槛已核清岗位的差距，不替代正式岗位审计或提前判 J11-07 PASS |
-| W13 | `R6-Gate`；完成 `S-05` 的 RAG/ACL/间接注入切片 | LangChain 工程文档 RAG 旗舰：完整导入/检索/问答/API/权限/评估/部署证据 |
-| W14 | `D7-01 → D7-02 → S-04 → G8-Gate` | 先复用 G8-00、BE5-02 与已有旗舰的证据，完成串联、路由、并行的适用条件和取舍回顾，只补 D7-01 未证明的判断；随后以单 Agent baseline 冻结协作实验问题、预算与回退条件，用最小候选实验完成交接格式、共享/私有 state、预算/停止/升级与同集对照；默认采用取决于实测净收益。G8-Gate 复用协作实验并验收 FastAPI/SSE 与可观察状态输出，可用 curl/调试页或启动后引入的已审计 Vue 薄界面；完整 Vue 掌握仍在 J11-03 复核 |
-| W15 | `D7-03 → D7-Gate`；完成 `S-05` 的 Memory/PII/poisoning 切片 | 复用前面的模式取舍证据，在已有项目完成跨会话 Memory CRUD/TTL/provenance/delete/隔离/poisoning 与无 Memory 对照，再做设计模式验收，不另建玩具 |
+| W13 | `R6-Gate`；完成 `S-05` 的 RAG/ACL/间接注入切片 | 工程文档 RAG 旗舰：LangChain 组件经 LangGraph 导入/查询流程串起完整导入、检索、问答、API、权限、评估与部署证据 |
+| W14 | `D7-01 → D7-02 → S-04 → G8-Gate` | 先复用 G8-00、BE5-02 与已有旗舰的证据，完成串联、路由、并行的适用条件和取舍回顾，只补 D7-01 未证明的判断；随后以单 Agent baseline 冻结协作实验问题、预算与回退条件，用最小候选实验完成交接格式、共享/私有 state、预算/停止/升级与同集对照；默认采用取决于实测净收益。G8-Gate 复用协作实验，在统一 Vue/FastAPI 应用中验收可观察状态、工具与人工处理输出；完整 Vue 掌握仍在 J11-03 复核 |
+| W15 | `D7-03 → D7-Gate`；完成 `S-05` 的 Memory/PII/poisoning 切片 | 向工程文档助手既有图逐步接入工作/情景/语义/感知四类记忆、真实图片/音频检索、生命周期与隔离/poisoning；比较无记忆/仅文本/完整配置，再做设计模式验收 |
 | W16 | `M9-01 → M9-02 → M9-03 → M9-Gate`；第三轮岗位审计 | MCP 与外部工具连接、授权、断连与审计证据；补齐 `S-05` 的 MCP 授权/恶意 server 切片 |
 | W17 | `E10-01 → E10-02` | 一套共享 Eval Harness + 两个领域 adapter；两个旗舰分别完成 baseline/candidate、回归门禁和系统设计包，不复制两套评估平台 |
-| W18 | `J11-02 → J11-03 → J11-04 → J11-05 → S-05 正式收口`；并行补齐待完成 `S-01` | 先冻结唯一 `product_flagship`，再为它完成产品 API、Vue、公网部署和产品级观测；另一旗舰保留可复现 API/demo、容器与 E10 评估，随后收口权限、恢复、幂等、SLO、成本、回滚与生产事故闭环。缺少第二 provider 不阻塞这些产品化任务，但 FINAL 前仍须完成 S-01 |
+| W18 | `J11-02 → J11-03 → J11-04 → J11-05 → S-05 正式收口`；并行补齐待完成 `S-01` | 对已确定的集成产品 agent_workbench 冻结发布模块、default_showcase 与质量要求，复用已有 Vue/API 补齐独立能力与产品标准，再经同一发布链上线并接公共观测；两个旗舰均保留各自 E10 评估与回归。随后收口权限、恢复、幂等、SLO、成本、回滚与生产事故闭环。缺少第二 provider 不阻塞这些产品化任务，但 FINAL 前仍须完成 S-01 |
 | W19 | `J11-01 收口 → J11-06 → FINAL-Gate → J11-07 → J11-08 → J11-Gate`；第四轮岗位审计 | 先完成作品工程化、部署和持续评估，再做综合答辩；随后收束作品集、简历、模拟面试与正式岗位证据 |
 | W20 | 证据债务、算法债务、交叉复核与投递前收口 | 不新增课程主题，只闭合既有缺口并稳定投递 |
 
 ## 挂载任务与状态写回
 
+- 统一 Vue/HTTP 切片已在当前 R6-01 Session 获用户授权启动，由助手准备工程连接，用户沿当前真实链路补最小数据流、密钥边界与修改证据。G3 延续原检查点，不重置题量或通过状态；BE5-03/J11-03 完整验收仍按各自标准执行，已有独立证据直接承认，助手完成部分只记录产物，不自动改学习状态。
 - `R6-02/03` 的提前切片只证明当前已运行的行为，完整标准未齐仍为 `DOING`。每次只推进一个当前检查点；切换到下一依赖时记录已有证据、剩余标准和恢复条件，依靠同一旗舰复用结果，不新增任务 ID 或第二套 demo。R6-02 在 BE5-04 后收口，R6-03 在 W9 收口；W8 算法配额只计算一次，不随内部切片增加。embedding 在该切片启动时验证可用的真实本地模型或服务，不能把 DeepSeek 聊天接口当作 embedding 接口。
 - `J11-01` 从 W6 累计真实 README、分支/PR/CI/review/revert 和 AI 协作审查，最晚在 `J11-06` 前收口。接手陌生模块、依赖版本候选评估和 J11-06 反馈迭代复用已有实质性改动，不重复建设项目或 PR。
 - `J11-07` 在 BE5-Gate 后按该任务已有标准做一次早期材料校准：复用新项目证据和已核清硬门槛的 2–3 条岗位，仅形成项目描述与差距记录；若当前正式岗位样本已包含合适条目，直接复用，不再重复采样。外部资料不足时记录缺口并行补齐，不阻塞技术主线；局部结果不替代 W12 正式审计，J11-07 完整验收仍留到 W19。
@@ -104,9 +110,12 @@ W1–W5 是已发生的历史学习块，精确任务状态和证据仍以 `prog
 
 ### `D7-03` 长期 Memory
 
-- 覆盖跨会话显式写入、检索注入、更新、冲突、TTL、删除/忘记、provenance、租户隔离、PII 与 poisoning。
-- PostgreSQL 是长期事实源；Redis 只作缓存。未受信工具输出或 RAG 文本不得自动晋升为长期记忆。
-- 用同一数据集比较有/无 Memory 的任务成功、误记、遗漏、延迟和成本；checkpoint 的恢复证据不能冒充长期 Memory 证据。
+- 2026-09-08 按用户明确要求扩展，并固定到 `code/stage6/engineering_docs_rag/`：完整工作/情景/语义/感知四类架构，以及图片、音频记忆。具体行为与六个检查点在项目设计，产物和通过标准在任务 tracker；任务未启动，当前 R6-01 的入口与验收不变。
+- 沿用前面 RAG 检索/引用、PostgreSQL/pgvector、权限和可恢复执行的已验证前置，再依次推进统一入口与工作记忆 → 情景/语义长期记录 → 图片 → 音频 → 整理/确认/遗忘 → 故障与效果对照。每段先讲概念再动手，可跨多个 Session；不把扩展压成一次学习，也不新增独立项目或算法配额。
+- 记忆读取、候选确认、回答注入与写入/删除接到工程文档助手既有 LangGraph 流程；优先使用适合当前职责的 LangChain/LangGraph 现成组件，四类记忆的业务规则与尚无合适集成的媒体能力补必要适配。教材架构不意味着引入另一套编排，也不意味着框架已自动完成所有四类记忆。
+- 四类各有职责；长期部分覆盖显式写入、检索注入、更新、冲突、TTL、删除/忘记、provenance、租户隔离、PII 与 poisoning。工作记忆是有边界的当前上下文，checkpoint 是执行恢复，二者不冒充长期记忆。
+- PostgreSQL/pgvector 是长期记录与检索主线，原始媒体由文件/对象存储接口管理，Redis 若使用只作缓存；不因教材示例而追加整套数据库。未受信工具、RAG 文本、截图文字或转写不得自动成为确认事实，删除/过期须覆盖媒体衍生数据及引用。
+- 用同一小数据集比较无记忆、仅文本记忆、完整四类记忆的任务成功、误记、遗漏、媒体检索/定位、延迟与成本，复用项目测试及紧凑表格。图片/音频必须有真实编码检索与原件定位证据，不以文字转写或 checkpoint 恢复代替。
 
 ## 算法保护项
 

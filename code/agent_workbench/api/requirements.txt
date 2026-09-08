@@ -1,0 +1,7 @@
+# API 直接依赖；核心依赖继续由课程项目维护。核验日期：2026-09-08。
+fastapi==0.141.1
+uvicorn==0.52.4
+httpx==0.28.1
+-r ../../stage8/incident_change_review_agent/requirements.txt
+-r ../../stage6/engineering_docs_rag/requirements.txt
+-r ../../stage6/engineering_docs_rag/knowledge-requirements.txt

@@ -19,15 +19,22 @@
 
 岗位样本不足时保留审计未完成、不生成正式匹配率，作为独立事项继续补齐；它不阻塞已满足技术前置的课程。J11-Gate 与投递前就绪仍须完成岗位审计。历史快照不因继续学习而清除，下一审计须复查未关闭原因。学习计划/skill 的质量评分只评价方案，不是用户能力分或课程/岗位 PASS。
 
-教学与验收一律按零基础新手处理：在职和既往技术经历不作为任何技术已经掌握的证据，不得因此跳过定义、基础练习或验证。只有 `tracker/progress.md` 已 PASS，或用户在当前任务中独立证明过的内容，才可按已学处理；拿不准就从零讲。后续课程与作品的后端统一使用 Python/FastAPI，不安排第二套后端实现或集成任务。用户已说明会一些 Vue：后续先用最小切片复核，已经独立证明的部分不机械重学；真正进入界面任务时，助手可先核查许可证、维护状态、依赖和安全风险，再从 GitHub 选择并组合开源 Vue 骨架。若在 G8-Gate 提前采用第三方 Vue，用户当场完成来源/许可证/依赖/关键 diff 的最小准入审核，并说明数据流和密钥边界；完整组件状态、SSE、认证、错误处理和亲自修改能力仍在 J11-03 验收。助手完成的机械搭建不计为用户独立证据，也不得在任务开始前提前克隆。J11-02 必须冻结唯一 `product_flagship`；只有它继续建设正式 Vue、公网部署和产品级观测，另一个旗舰保留可复现 API/demo、容器与 E10 评估证据。
+教学与验收一律按零基础新手处理：在职和既往技术经历不作为任何技术已经掌握的证据，不得因此跳过定义、基础练习或验证。只有 `tracker/progress.md` 已 PASS，或用户在当前任务中独立证明过的内容，才可按已学处理；拿不准就从零讲。后续课程与作品的后端统一使用 Python/FastAPI，不安排第二套后端实现或集成任务。用户已说明会一些 Vue：先通过当前真实界面的最小操作复核，已经独立证明的部分不机械重学；完整组件状态、SSE、认证、错误处理和亲自修改能力仍在 J11-03 验收。
+
+用户于 2026-09-08 明确要求所有项目通过一个完整前端持续整合、随学习看到真实前后端效果，并授权助手审查后选择开源组件与安排实现。唯一集成产品固定为 `product_flagship=agent_workbench`：`code/agent_workbench/web/` 使用 Vue 3 + TypeScript + Vite + Vue Router + Element Plus，`code/agent_workbench/api/` 为共享 FastAPI 入口；复用阶段 6/8 的业务核心及各自测试，不复制第三套业务实现。两个旗舰均可在同一界面、发布链和观测入口中运行；J11-02 再按证据冻结发布范围、默认展示业务 `default_showcase` 与质量要求，不再二选一排除另一业务的前端。后续 Memory、MCP、评估和工具等成果按实际任务接入统一应用，不给每个历史脚本机械新建页面。
+
+当前已授权的界面/HTTP 切片在审查来源、许可证、维护状态、依赖与安全边界后即可创建和接入，不必等 G8-Gate/J11；助手负责审查记录、开源工程初始化和必要连接，用户随后沿同一真实链路证明数据流、密钥边界和最小修改能力，不逐字段等待审批。助手完成的搭建、演示与 API 适配不计用户 PASS；后续 BE5/J11 读取已有独立证据，只补未覆盖标准。未启动功能仍只保留规划，不提前创建完整实现。
+
+同日用户进一步要求接入已有 `D:/AI-Knowledge` 并由 Agent 检索，且明确“模板”指整体布局、交互效果和功能组织，不能只提供颜色主题。比较结构原型后，用户明确要求三种全部保留：任务指挥台、知识研究工作室、可视流程画布成为同一产品的三个工作模式，共享同一知识库后端与当前浏览器页内查询。现有 Home 统一进入 `/studio`，`/gallery` 是工作模式入口；无 `layout` 参数时恢复上次模式，首次使用默认 `research`，显式 `layout=cockpit|research|canvas` 可切换并记住。模式偏好只向 localStorage 保存模式 ID，问题、答案和资料不写入浏览器 storage，刷新后问答清空；换色仍是独立的辅助外观设置。旧 `/knowledge` 页面保留兼容，不继续扩展功能。此次采用三个模式不表示全部未来业务已实现，未启动功能仍按任务接入。知识库只读范围、数据去向和查询预算在工程文档设计与工作台 README 维护；助手实现的真实知识库演示与未完成的 G3 教学骨架分开记录，后续课程复用同一业务核心，不把检索到笔记或助手答案当作用户已掌握。
 
 A4 后的完整依赖顺序与挂载任务只在 `tracker/weekly-plan.md` 维护，当前入口与接力点只在 `tracker/daily-plan.md` 维护，本文件不复制未来队列。`J11-01` 随真实项目持续积累并在 `J11-06` 前收口；H5 只按真实 debug 触发。A4 已 PASS 的 Agent Loop、ReAct、Plan-and-Solve、Reflection 只作迁移前置，不重新教学或重考。
 
-- LangChain 旗舰是 `code/stage6/engineering_docs_rag/` 的工程文档 RAG 助手；主证据是 Document/Loader/Splitter、Retriever、Tool/Agent Harness、固定两步与 Agentic RAG 对照、引用、权限、评估和部署。
-- LangGraph 旗舰是 `code/stage8/incident_change_review_agent/` 的故障诊断与变更评审 Agent；主证据是显式 StateGraph、route/loop/stop、stream、persistence、interrupt/resume、幂等与恢复。
-- FastAPI 是两个项目的 HTTP/SSE/认证/输入校验交付层，并统一规定系统出错时返回什么、调用方怎样处理；它不是 Agent 编排框架。先让 Python core 可运行、可测试，再接 API。
+- 用户于 2026-09-08 明确要求后续学习及所有 Agent/RAG 项目统一使用 **LangChain 生态现成组件 + LangGraph 工作流**，文件读取也优先使用现成 Loader。新功能先核验对应组件的维护状态、版本、接口及实际行为，直接接入真实项目；只有缺少合适能力或业务规则确实需要时才补必要适配，不默认先手写一套组件再迁框架。已 PASS 的原生代码保留学习证据，后续实际扩展相关模块时迁入框架并验证，不为统一路线批量重写历史作业。
+- 两个旗舰共用上述框架组合，各自保留业务、目录、测试和验收重点。`code/stage6/engineering_docs_rag/` 的工程文档 RAG 助手重点证明 Document/Loader/Splitter、Retriever、Tool/Agent Harness、固定两步与 Agentic RAG 对照、引用、权限、评估和部署；资料导入与用户查询通过显式 LangGraph 流程逐步连接。
+- `code/stage8/incident_change_review_agent/` 的故障诊断与变更评审 Agent 重点证明显式 StateGraph、route/loop/stop、stream、persistence、interrupt/resume、幂等与恢复，模型和工具接入优先复用 LangChain 组件。已 PASS 的 G8-00 编排能力在其他项目直接迁移，不重教或重考同一概念。
+- FastAPI 是统一产品的 HTTP/SSE/认证/输入校验交付层，通过各业务路由接到阶段 6/8 核心，统一规定系统出错时返回什么、调用方怎样处理；每个包含 LangChain/LangGraph 的最小核心行为可独立运行后即可接入当前界面，不等待整个核心单元或 BE5 全部完成。API 不把未实现行为伪装成成功，核心仍可脱离 HTTP 测试。SQL、数据库迁移、认证、媒体编码等由相应专业库完成，在需要处接到应用流程，不把“使用框架”理解为每行代码都必须变成图节点。
 - `S-04` 在现有旗舰内做一次最小受控多 Agent 候选实验，以同一数据集的单 Agent 为 baseline，验证带类型约束的交接格式、共享/私有 state、`max_handoffs`、总预算、停止和人工升级。实验用于掌握和判断，不要求产品采用；无可测净收益就保留单 Agent 默认路径，G8-Gate 复用实验与取舍证据。
-- `D7-03` 负责跨会话长期 Memory 的 CRUD、TTL、provenance、冲突、删除、隔离、PII 和 poisoning；G8 checkpoint/thread state 只负责一次工作流的可恢复执行，不能冒充长期 Memory。
+- `D7-03` 固定在工程文档 RAG 助手中实现工作、情景、语义、感知四类记忆，以及图片、音频记忆；包含长期 Memory 的 CRUD、TTL、provenance、冲突、删除、隔离、PII 和 poisoning。用户于 2026-09-08 明确要求此扩展，具体范围与验收只在任务 tracker 和项目设计维护；工作记忆是短期上下文，G8 checkpoint/thread state 是工作流恢复状态，二者都不能冒充跨会话长期 Memory。
 
 DeepSeek 环境已经验证，不要重复询问或预检：`.env` → 环境变量 → `os.environ.get("DEEPSEEK_API_KEY")`，`base_url=https://api.deepseek.com`，`model="deepseek-v4-pro"`。需要真实调用时直接运行，只有实际报错再排查 key、model 或网络。
 
@@ -40,6 +47,7 @@ DeepSeek 环境已经验证，不要重复询问或预检：`.env` → 环境变
 - 进入当前任务的实际动手 Session 时才建 TODO 骨架；设计类 Gate 也只在真正启动其设计/实现 Session 时创建。建前先读本单元资料、核对当前官方 API 和已 PASS 代码。
 - 骨架最多含模块 docstring（运行方式 + 任务/通过标准）、必要 import、给定数据、函数签名、步骤 `# TODO` 与 `raise NotImplementedError`，不含可用答案。已独立证明同类操作后，减少步骤 TODO，让用户连续完成一个可运行行为；不因进入新任务就恢复逐行指导，卡住时只补对应帮助。
 - 默认独立练习时，只创建当前检查点所需骨架，不替用户补答案。切换检查点时，保留已有用户改动并记录暂停原因和接力点；只有助手创建、没有用户改动且已废弃的空骨架才可移除。用户明确要求助手实现、修复或给完整答案时按请求执行，并记录助手完成的部分；这些部分不计作用户独立证据，后续只验证尚未证明的能力。
+- 用户已授权的统一界面与 API 连接可由助手实现可运行代码；这不授权覆盖用户仍在完成的业务检查点答案。比如 G3 的 Loader/图实作尚未完成时，只调整可导入结构并显示未就绪，保留原 TODO 和接力证据；不能为页面演示伪造导入结果或把助手实现算作 G3 通过。
 
 ## 设计文档的用户 / 助手分工
 

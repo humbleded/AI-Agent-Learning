@@ -59,13 +59,13 @@
 | BE5-04 | PostgreSQL、Alembic 与 pgvector | TODO |  | code/stage6/engineering_docs_rag/ | SQLAlchemy/Alembic、async driver、pgvector、事务、幂等、tenant filter 与 migration；Redis 移到 BE5-05。 |
 | BE5-05 | Redis、后台任务、认证与负载测试 | TODO |  | （复用两个旗舰项目） | Redis 缓存/限流/幂等/任务状态、后台任务、最小授权、取消/重试、p50/p95 压测。 |
 | BE5-Gate | Agent 后端工程闯关 | TODO |  | （复用两个旗舰项目） | 对两个既有项目共用的后端能力做一次可维护、可测试、可并发、可持久化、可部署验证，不建第三个业务项目。 |
-| R6-01 | LangChain 文档导入与切分 | DOING | 2026-09-07 | code/stage6/engineering_docs_rag/ | 按用户授权已整理最小设计和首份教学资料；讲解正文/来源与 Document，助手演示已运行，用户独立理解与真实导入待验证，见 daily/2026-09-07.md。 |
+| R6-01 | LangChain 文档导入与切分 | DOING | 2026-09-07 | code/stage6/engineering_docs_rag/ | 按用户授权已整理设计和教学资料；09-08 G2 资料进入模型输入的解释单题通过，G3 已按要求调整为现成 Loader + LangGraph 的 ingest.py TODO 骨架，用户真实实现及其余标准待验证，见 daily/2026-09-07.md、daily/2026-09-08.md。 |
 | R6-02 | Embedding、pgvector 与检索 | TODO |  | code/stage6/engineering_docs_rag/ | BE5-01 后先做真实本地 embedding/top-k 切片；BE5-04 后完成 pgvector、exact/HNSW、filter、hybrid、rerank 与指标。提前切片不自动 PASS。 |
 | R6-03 | 固定两步 RAG、Agentic RAG 与引用 | TODO |  | code/stage6/engineering_docs_rag/ | 本地检索后先做带出处的固定两步最小问答；R6-02 完整验收后补同集架构对照、引用/拒答及失败分层。提前切片不自动 PASS。 |
 | R6-Gate | LangChain 工程文档 RAG 闯关 | TODO |  | code/stage6/engineering_docs_rag/ | 用公开/脱敏工程文档、业务验收指标和生产 RAG 链路形成旗舰一。 |
 | D7-01 | 基础编排模式 | TODO |  | notes/stage7/d7_01_orchestration_patterns.md | 在已有旗舰上判断 chaining、routing、parallelization 的适用边界，并用一条真实 trace/测试说明采用或拒绝。 |
 | D7-02 | Agent 核心模式与协作边界 | TODO |  | code/stage8/incident_change_review_agent/ | 复用 A4 已 PASS 概念；S-04 在 G8 项目以单 Agent baseline、带类型约束的角色交接和对照证据落地。 |
-| D7-03 | 可靠性、长期 Memory 与工程模式 | TODO |  | （复用两个旗舰项目中更需要 Memory 的一个） | 在现有旗舰实现跨会话 Memory 生命周期、隔离/poisoning 测试和无 Memory baseline，不另建 Memory 玩具。 |
+| D7-03 | 可靠性、长期 Memory 与工程模式 | TODO |  | code/stage6/engineering_docs_rag/ | 2026-09-08 用户授权扩展：在工程文档助手实现四类记忆及真实图片/音频存储与检索，覆盖生命周期、隔离/poisoning 和有/无记忆对照；已纳入规划，尚未启动。 |
 | D7-Gate | 设计模式闯关 | TODO |  | notes/stage7/d7_gate_architecture_review.md | 实施一个真实模式变更并用同一 eval 比较质量、延迟、成本和失败分组。 |
 | G8-01 | 持久化与恢复边界 | TODO |  | notes/stage8/g8_01_durable_boundary.md | 区分 checkpoint/thread state、长期 Memory、replay 与副作用幂等。 |
 | G8-02 | 持久化 Graph | TODO |  | code/stage8/incident_change_review_agent/ | 在 G8-00 项目增量使用持久化 checkpointer、thread 隔离并验证进程重启恢复。 |
@@ -79,11 +79,11 @@
 | E10-02 | 综合项目设计 | TODO |  | notes/stage10/e10_02_project_design.md + notes/stage10/e10_02_system_design.md | 为两个现有旗舰分别把评估结论映射到架构、容量/SLO、安全、成本与 ADR，不新建第三个项目。 |
 | FINAL-Gate | 综合项目答辩 | TODO |  | notes/stage10/final_defense.md | 执行位置在 J11-02~06 与 S-05 收口后；使用已冻结并产品化的 `product_flagship` 完成上线、评估、恢复和事故答辩。 |
 | J11-01 | GitHub 与工程习惯 | TODO |  | （整理 code/ 现有项目） | 随真实项目持续积累；W6 起纳入正式 README/branch/PR/CI/review/revert 证据记录，最晚在 J11-06 前收口。 |
-| J11-02 | Agent 后端服务（FastAPI） | TODO |  | （复用两个旗舰项目） | 根据 Gate/E10 证据由用户冻结唯一 `product_flagship`，强化其认证、持久化、可观测和产品 API；另一旗舰保留可复现 API/demo。 |
-| J11-03 | Vue 前端界面 | TODO |  | （复用 `product_flagship` 的前端目录） | 用户会一些 Vue，先用最小切片复核；助手可在任务启动时审计并组合 GitHub 开源 Vue 骨架，用户审核关键 diff 并解释/修改组件状态、SSE、认证、错误处理和安全边界，不建第二套正式前端。 |
+| J11-02 | Agent 后端服务（FastAPI） | TODO |  | code/agent_workbench/api/ + 两个旗舰核心 | 唯一集成产品已固定为 `agent_workbench`；根据 Gate/E10 证据冻结发布范围、默认展示业务 `default_showcase` 与质量要求，强化共享认证、持久化、观测和产品 API。 |
+| J11-03 | Vue 前端界面 | TODO |  | code/agent_workbench/web/ | 复用现有三模式界面与真实独立证据，补齐用户解释/修改组件状态、SSE、认证、错误处理和密钥边界的能力；两个业务共用一套正式前端，助手搭建不计用户 PASS。 |
 | J11-04 | CI/CD、容器化与上线强化 | TODO |  | （复用 `product_flagship`） | BE5-Gate 先完成最小 CI/Docker/测试部署/smoke；本任务只为冻结的产品旗舰补 secret、告警、负载、备份、回滚和公网 demo。 |
-| J11-05 | 可观测与持续评估 | TODO |  | （复用 `product_flagship`；另一旗舰保留 E10 adapter） | 产品旗舰完成 tracing、线上失败回灌和产品级告警；另一旗舰维持版本化 eval/baseline/regression，不复制观测栈。 |
-| J11-06 | 作品集组合（2 旗舰 + 1 小项目） | TODO |  | notes/stage11/j11_06_portfolio.md | RAG 与可控 Agent 两个旗舰持续演化，另保留一个结构化抽取小项目；只有 `product_flagship` 要求正式前端和公网部署，另一旗舰保留可复现 API/demo、容器与完整评估。 |
+| J11-05 | 可观测与持续评估 | TODO |  | agent_workbench + 两个领域 E10 adapter | 共享 tracing、线上失败回灌和产品级告警；两个业务分别维持版本化 eval/baseline/regression，不复制观测栈。 |
+| J11-06 | 作品集组合（2 旗舰 + 1 小项目） | TODO |  | notes/stage11/j11_06_portfolio.md | 一个集成产品展示 RAG 与可控 Agent 两个领域旗舰，另保留结构化抽取小项目；两业务共用正式前端/公网发布链，分别提供可复现 API、容器与领域评估，不重复计算共享实现。 |
 | J11-07 | 简历与岗位匹配 | TODO |  | notes/stage11/j11_07_resume.md | W6/W12/W16/W19 做“京东/腾讯等大厂标杆 + 10 条真实可投样本”双轨审计；用 Python/FastAPI + Vue Agent 作品证明可迁移工程能力。 |
 | J11-08 | 面试准备 | TODO |  | notes/stage11/j11_08_interview.md | 中等算法 + 系统设计 + AI 八股。 |
 | J11-Gate | 求职冲刺关 | TODO |  | notes/stage11/j11_06_portfolio.md + notes/stage11/j11_07_resume.md + notes/stage11/j11_08_interview.md | 公开作品集 + 简历 + 面试自测；核心岗位能力与旗舰证据须按明确集合交叉复核。 |

@@ -1,0 +1,5 @@
+# R6-01 当前已核验依赖；在实际进入后续功能时增量更新。
+langchain-core==1.6.1
+langgraph==1.2.11
+# 仅当前教学 Markdown/TXT 的现成 TextLoader；已停止维护，参见 problem-contract.md。
+langchain-community==0.4.2

@@ -22,6 +22,8 @@
 
 代码文件采用“即时建骨架”：未来任务只在本清单中预留目标路径，不提前批量生成 `code/` 文件。真正启动当前任务的动手/设计 Session 时，先核对本单元资料、当前官方 API 和已 PASS 代码，再创建只含 TODO 的当前任务骨架；PASS 后保留用户完成的代码。
 
+2026-09-08 用户已授权启动统一界面/HTTP 切片：`product_flagship=agent_workbench` 固定为唯一集成产品，`code/agent_workbench/web/` 是 Vue 3 + TypeScript + Vite + Vue Router + Element Plus 应用，`code/agent_workbench/api/` 是共享 FastAPI 入口。助手审查后可初始化与连接真实已有能力，两个业务核心仍保留在 stage6/stage8 及各自测试中；这不属于新建第三个业务项目，也不计用户独立 PASS。后续所有项目成果按真实使用需要接入同一产品，不给每个旧脚本机械建页面；未启动功能不提前实现。J11-02 再冻结发布范围、默认展示业务 `default_showcase` 和质量要求，两个旗舰均可进入同一前端、发布链与观测入口。
+
 已放入 `repos/` 的参考仓库：
 
 - `hello-agents`：Datawhale《从零开始构建智能体》
@@ -1176,7 +1178,7 @@ discover → schedule → execute → independent verify
 
 # 阶段 5.5：Python 工程化与 Agent 后端
 
-目标：把两个已经出现真实需求的 Python core 升级为可维护、可测试、可并发、可持久化、可交付的服务。BE5 不再整段挡在 RAG 前面：BE5-01/04 在工程文档 RAG 中即时学习，BE5-02/03 在两个 core 都可运行后统一学习，BE5-05/Gate 再验证通用生产后端能力。
+目标：把两个已经出现真实需求的 LangChain + LangGraph 核心与共享 FastAPI 入口升级为可维护、可测试、可并发、可持久化、可交付的应用。BE5 不整段挡在 RAG 前面：BE5-01/04 在工程文档 RAG 中即时学习；已授权的界面/HTTP 小切片可以先接入可运行核心，BE5-02/03 再统一补齐异步与完整接口工程，BE5-05/Gate 验证通用生产后端能力。读取当前及前序 daily 的独立证据，仅补未证明标准，不把助手搭建或薄接口能跑当作完整 PASS。
 
 主资料：
 
@@ -1189,7 +1191,7 @@ discover → schedule → execute → independent verify
 
 - 不把 Python 重新从零学一遍；重点补和生产后端直接相关的类型、分层、测试、异步、配置、日志和持久化。
 - 不在本阶段堆微服务、Kubernetes 或复杂分布式理论；先做单体但边界清晰、可测、可部署的服务。
-- FastAPI 只作 application adapter；核心 RAG/Graph 必须可脱离 HTTP 独立运行和测试。
+- `code/agent_workbench/api/` 的 FastAPI 只作共享应用入口，按 RAG/故障诊断等业务拆路由；核心 RAG/Graph 必须可脱离 HTTP 独立运行和测试。早期 Vue/HTTP 切片沿用到本阶段，不重建演示 API。
 - Redis 放在 BE5-05，覆盖缓存、限流/幂等键和任务状态；Celery/RQ/ARQ 任选其一做最小后台任务，不要求全部学习。
 
 ## BE5-01 Python 工程化基础
@@ -1228,7 +1230,7 @@ discover → schedule → execute → independent verify
 
 要做：
 
-- 分别为 `engineering_docs_rag` 与 `incident_change_review_agent` 增加薄 FastAPI adapter；RAG 提供导入、查询、流式查询与任务状态，Graph 先提供运行、流式状态/工具轨迹和统一错误返回；不另写无关聊天玩具。
+- 在 `code/agent_workbench/api/` 中完善 `engineering_docs_rag` 与 `incident_change_review_agent` 的独立业务路由；RAG 提供导入、查询、流式查询与任务状态，Graph 提供运行、流式状态/工具轨迹和统一错误返回，均由同一 Vue 应用消费。复用已授权早期切片的接口和独立证据，不另建两套服务或无关聊天玩具。
 - `approve/edit/reject` 属于 `G8-03` 的持久化 interrupt 增量：G8-03 在同一 Graph adapter 中补决策接口及重启恢复测试，`BE5-Gate` 再统一验收完整 REST/SSE/HITL 链路。BE5-03 不能提前要求尚未实现的 HITL。
 - 使用 Pydantic v2 校验请求/响应，统一错误结构，区分 4xx 与 5xx；API Key 只在服务端读取。
 - 加 request ID、health/readiness endpoint、超时与客户端断开处理；用 FastAPI TestClient/httpx 写接口测试。
@@ -1278,7 +1280,7 @@ discover → schedule → execute → independent verify
 任务：
 
 - 对工程文档 RAG 与故障诊断 Graph 的共同后端能力做一次 Gate；复用两个既有项目，不创建第三个教学业务。
-- 两个项目分别提供可运行 REST + SSE adapter、Pydantic v2 schema、分层结构、PostgreSQL 持久化；共用一次 Redis、后台任务、最小认证、结构化日志和 health/readiness 的通用能力验证。
+- 共享 FastAPI 应用为两个业务分别提供可运行 REST + SSE 路由、Pydantic v2 schema、分层结构和 PostgreSQL 持久化，真实连接统一 Vue 应用；共用一次 Redis、后台任务、最小认证、结构化日志和 health/readiness 的通用能力验证，业务特有行为仍各自验收。
 - `pytest` 覆盖单元/接口/数据库集成测试；Ruff + 类型检查通过。执行小规模负载测试，并在 README 或 daily 用紧凑表格保存命令、负载参数、吞吐、p50/p95、错误率、瓶颈和结论，不另建报告系统。
 - 配最小 CI 门禁（pytest、Ruff、类型检查、Docker build），部署一个临时或公开可访问的后端测试环境并执行 health/API smoke；这是求职反馈用的薄纵切，不提前建设完整告警、备份和回滚平台。
 - README 包含架构图、环境变量、迁移、启动、测试、负载验证和常见排错；依赖可锁定，陌生人能从空环境运行。
@@ -1318,7 +1320,7 @@ discover → schedule → execute → independent verify
 
 框架边界：
 
-- 项目主角是 LangChain 的 Document、Loader/Splitter、Retriever、Tool、Agent Harness 与组合接口。
+- 本项目统一采用 LangChain 现成 Document/Loader/Splitter、Retriever、模型、Tool/Agent 接口，并用显式 LangGraph 连接应用步骤；与故障诊断旗舰共用框架组合，分别保留 RAG 和可恢复工作流的验收重点。后续新增项目及功能沿用此组合，框架未覆盖的业务规则只补必要适配。
 - 当前 LangChain `create_agent` 底层建立在 LangGraph 上；使用该高层接口必须说明依赖关系，但隐藏 runtime 不算已经掌握显式 StateGraph。
 - 固定两步 RAG 是可预测 baseline；在完成 chunk、retrieval、引用和失败分层前，不用 Agentic RAG 跳过基础。
 
@@ -1337,7 +1339,8 @@ discover → schedule → execute → independent verify
 要做：
 
 - 在实际动手 Session 创建 `code/stage6/engineering_docs_rag/` 前，先按项目设计分工说明用户决策、助手整理与最终审核的职责；固定目标使用者、一个主要查找/排障场景、公开或已授权资料范围、最小成功例和权限边界。既有证据能唯一确定的内容由助手整理，用户只作新增且影响行为的判断并最终审核。助手把这些决策整理为本项目已有规划的 `problem-contract.md` 最小版本，不要求用户逐节抄写，也不提前设计完整检索/API/部署；后续任务随新增证据更新，R6-Gate 再收口。
-- 用户已授权助手自行安排时，允许先采用明确标注的助手默认场景继续，完整验收前再审核设计；默认方案不计独立理解证据。必要讲解后，先以一份 Markdown/TXT 展示 Document 正文与来源，再逐步补 Loader、Splitter、Document/chunk 生命周期与轻量确定性测试；不把完整多格式实现和逐字段设计问答都堆到首个小成果之前。
+- 用户已授权助手自行安排时，允许先采用明确标注的助手默认场景继续，完整验收前再审核设计；默认方案不计独立理解证据。按 2026-09-08 用户要求，首个小成果即由现成 LangChain Loader 读取一份 Markdown/TXT，通过最小 LangGraph 返回 Document 正文与来源；复用 G8-00 已 PASS 的状态/节点/边，不重学图基础，也不先安排手写 read_text/Document 的平行产品实现。再逐步接入处理/切分节点，补多格式、Document/chunk 生命周期与轻量确定性测试；不把完整实现和逐字段设计问答堆到首个小成果之前。
+- 当前并行启动的统一 Vue/HTTP 切片由助手审查后搭建，先连接已 PASS 的故障诊断及真实步骤输出。R6-01-G3 继续同一个待实现检查点；TODO 未完成时页面如实显示未就绪，完成后通过共享 API 显示真实导入结果，不伪造 Document 或替用户完成本题。必要时只整理可导入入口；用户沿这条链路补最小数据流、密钥边界和界面修改证据，BE5/J11 以后复用，当前 R6-01 的其余标准和题量不重置。
 - `BE5-01` 紧接着在同一目录补 `src/tests/pyproject`、分层、配置、结构化日志、pytest、Ruff 与类型检查，两个任务分别正式验收；R6-01 不能把“已经顺手工程化”当作 BE5-01 自动 PASS。
 - 至少读取 Markdown、TXT 和 PDF；保留 `document_id`、来源、标题、页码/段落、内容 hash、版本与 tenant 等 metadata。
 - 记录解析失败、空页、超长段落、重复文件和编码异常；设计增量导入、更新、删除的文档状态，不把“启动时全量重建”当最终方案。
@@ -1351,6 +1354,7 @@ discover → schedule → execute → independent verify
 通过标准：
 
 - 能结合当前场景说明检索到的资料怎样进入模型本次输入、R6-01 的导入/切分怎样支撑后续检索与回答；复用本任务已有即时或操作解释证据，不另设一套入门考试。
+- 真实 LangChain Loader 的结果进入 LangGraph 状态，并经图运行入口返回；文档处理/切分逐步接到同一导入流程，用户能解释组件输出怎样传给下一步。G8-00 的图基础证据直接复用，本任务新增验证聚焦文档行为。
 - 能展示切分结果。
 - 同一文档重复导入不产生重复 Document/chunk；更新/删除后旧 Document、chunk 和导入状态不会残留，并能展示将来删除向量所需的稳定 `document_id/chunk_id` 边界。
 - 能解释固定长度、递归/结构感知切分各自的适用场景。
@@ -1369,6 +1373,7 @@ discover → schedule → execute → independent verify
 要做：
 
 - 在 `engineering_docs_rag` 中先用可解释的小样例/轻量本地索引理解 embedding、top-k 与相似度，再迁移 PostgreSQL + pgvector；本地索引只能作热身或 baseline。
+- 现成 LangChain embedding、向量存储与 Retriever 集成优先；LangGraph 导入流程负责建立/更新索引，查询流程接检索节点。共享文档编号、版本与索引边界，不让每次用户提问触发全量重新导入。原理演示不另变成长期平行检索实现。
 - 启动最小检索切片时，核验并选择真实可用的 embedding 模型及调用方式（已授权服务或可运行的本地模型），记录模型与向量维度；不假定已配置的 DeepSeek 聊天接口提供 embedding。使用真实文档与问题生成向量并返回 top-k 片段，手造向量或 mock 只用于原理演示/确定性测试，不能替代这项真实验证。
 - 覆盖 exact baseline、HNSW、metadata/tenant filter、增量更新、删除和 migration；说明近似索引与 filter 可能如何影响召回。
 - 实现向量检索与 PostgreSQL 全文/关键词检索的 hybrid search，并接一个 rerank；记录不同 chunk、top-k、filter、索引、融合与 rerank 配置的对照。
@@ -1399,6 +1404,7 @@ discover → schedule → execute → independent verify
 要做：
 
 - 先实现固定两步 RAG：检索完成后再生成，作为可预测 baseline；支持查询改写/拆分中的至少一种，但必须保留原始问题用于 trace。
+- 通过同一项目的 LangGraph 查询流程连接“检索 → 组织问题与资料 → 调用 LangChain 模型组件 → 核验引用”；只将实际选中的正文及必要来源说明交给模型，保留缺资料和失败分支。使用 LangGraph 不意味着必须采用 Agentic RAG；固定步骤与动态决策分别保留可运行对照。
 - 再把 Retriever 作为 LangChain Tool，让 Agent 决定是否以及如何检索；与固定两步 RAG 使用同一数据集、模型、引用必须满足的规则和预算比较，不以“更智能”代替指标。
 - 引用必须可定位到原文页码/段落；回答、引用、无答案拒答和越权拒绝分别评估。
 
@@ -1423,12 +1429,13 @@ discover → schedule → execute → independent verify
 - 继续演化 `code/stage6/engineering_docs_rag/`，不另建 Gate 仓库。资料只使用公开、脱敏或明确授权的 API 文档、README、ADR、runbook 与排障材料，不默认读取个人知识库或公司未授权资料。
 - 核查并更新从 R6-01 开始的 `problem-contract.md`：以已确认的开发/运维用户、主要场景和资料边界为基础，补齐查找工程事实和排障依据的原流程、输入/输出、权限、引用必须满足的规则、验收、人工接管，以及至少 1 个可测业务/操作指标；不在实现完成后才第一次决定用户问题。
 - 功能 Gate 导入至少 20 篇或 50 页、多种长度/格式资料，支持增量导入、更新、删除、去重、问答、可定位引用和无答案拒答；不得只证明 3 篇玩具样例能跑。
+- 导入与查询主流程均能通过真实 LangGraph 入口运行，可观察 LangChain 组件在各节点的输入/输出；引用、权限和质量标准不因使用框架而省略。部署前核验实际组件维护状态、依赖和安全修复，不能把早期固定教学版本自动视为生产选型通过。
 - 主线使用 pgvector；实现 metadata/权限 filter、hybrid search 和 rerank，并保留只做向量检索的 baseline 对照。
 - 保留固定两步 RAG 与 Agentic RAG 的同集对照；根据指标选择默认路径，不能默认叠加所有架构。
 - 每个 chunk 保留 `document_id`、来源、标题、页码/段落、hash、知识库/用户归属；重复导入不重复，更新/删除不残留旧向量。
 - 记录数据血缘与版本：解析器、chunk 配置、embedding/index 版本、导入任务、更新时间和删除审计；敏感文档/metadata 进入日志、trace、评估集前先脱敏。
 - 配版本化评估集至少 20 条，覆盖正常、跨文档、多跳/改写、无答案、解析失败、越权和注入输入；复用项目 tests 和一个小型领域指标脚本，分别记录 Recall@k/MRR、答案正确/忠实、引用正确、拒答、安全、延迟和成本，结果保存为设计笔记/daily 的紧凑快照，E10 前不另建通用 evaluator 或报告归档。
-- 接入项目自己的 FastAPI/SSE adapter、PostgreSQL/pgvector、认证和后台导入任务；复用并更新 BE5-Gate 的 Redis/CI/Docker/测试部署/smoke，不把 R6 当第一次上线。
+- 经 `agent_workbench/api` 的 RAG 路由与统一 Vue 界面接入 FastAPI/SSE、PostgreSQL/pgvector、认证和后台导入任务；复用并更新 BE5-Gate 的 Redis/CI/Docker/测试部署/smoke，不把 R6 当第一次上线或另建 RAG 专属前端。
 - 注入至少一个复合事故，例如 embedding/index 版本混用 + ACL filter 顺序错误 + 缓存 key 漏 tenant + 文档间接注入；要求根据检索/引用/trace/审计证据找齐根因并回归。
 - 扩展系统设计包：分别画导入与查询数据流，估算文档/chunk/并发规模，定义检索质量与 p95 延迟 SLO，说明索引更新一致性、成本、ACL 和降级策略，并记录关键 ADR。
 
@@ -1519,6 +1526,7 @@ discover → schedule → execute → independent verify
 资料：
 
 - Chapter 8 Memory Management
+- Hello-Agents [第八章 记忆与检索](../repos/hello-agents/docs/chapter8/第八章%20记忆与检索.md) §8.1.3（分层架构）、§8.2.1（生命周期）、§8.2.3–§8.2.5（工具、管理器与四类实现）；2026-09-08 核对本地 HEAD `c869791653fa634e368af174b91364a7e6ea3484`。架构与机制作为参考，具体模型/API 在实现时核对当前官方资料，不照搬教材数据库组合或示例评分权重。
 - Chapter 12 Exception Handling and Recovery（只读与 Memory 失败/恢复相关切片）
 - Chapter 18 Guardrails/Safety Patterns（只读 PII、隔离与 poisoning 相关切片）
 - Chapter 19 Evaluation and Monitoring（只读 Memory A/B 所需指标切片）
@@ -1526,26 +1534,32 @@ discover → schedule → execute → independent verify
 
 要做：
 
-- 保留模式阅读和 `notes/stage7/d7_03_reliability_patterns.md`，但不能只写笔记。
-- 在已有旗舰项目中实现最小生产级长期 Memory，不另起玩具：区分 thread/history/checkpoint/RAG 与跨会话 Memory；定义 `owner/source/type/created_at/updated_at/ttl/provenance`，支持显式写入、检索注入、更新、冲突处理、删除/忘记和 token 预算。
-- PostgreSQL 作为长期事实源，Redis 只能作为缓存；未受信工具/RAG 文本不得自动晋升为长期记忆。
-- 测试重启后保留、跨用户隔离、陈旧/冲突记忆、删除生效、secret/PII 不落库和 memory poisoning；用同一小数据集与“无 Memory”配置做 A/B，对比任务成功、误记、遗漏、延迟和成本，结果写入设计笔记的紧凑表格，不单独建设 runner 或 baseline 管理系统。
+- 根据用户 2026-09-08 的明确扩展要求，固定在 `code/stage6/engineering_docs_rag/` 实现四类记忆、图片与音频记忆；业务例子和六个检查点见该项目 [设计文档](../code/stage6/engineering_docs_rag/problem-contract.md#已授权的后续扩展四类记忆图片与音频)。先讲对应概念再实现，分 Session 完成；不另起 Memory 玩具或提前创建代码。保留模式阅读和 `notes/stage7/d7_03_reliability_patterns.md`。
+- 建立统一记忆管理入口、记录/配置、四类实现、存储与编码接口。工作记忆负责当前对话及容量/过期限制；情景记忆负责跨会话事件及时间检索；语义记忆负责经确认的事实、偏好和最小实体/关系查询；感知记忆负责真实图片与音频的保存、编码和找回。区分这些职责与 history/checkpoint/RAG，不用四个标签包装同一个无差别存储列表。
+- 四类记忆及图片/音频能力接入工程文档助手已有的 LangGraph 流程，优先复用 LangChain 模型、工具、检索集成和 LangGraph 状态/存储接口；业务生命周期或媒体编码缺少适用组件时补必要适配。记忆检索注入、候选确认与遗忘通过真实流程验证，不再建设另一套平行编排。
+- 长期记录定义 `owner/source/type/created_at/updated_at/ttl/provenance`，支持显式写入、检索注入、更新、冲突、删除/忘记和输入长度预算；加入记忆整理与候选确认，保留“候选 → 确认事实”的依据。工作记忆不要求永久保留；未受信工具/RAG/图片文字/音频转写不得自动晋升为长期事实。
+- 图片保留原件，提取文字/内容描述并使用真实图像编码；音频保留原件、带时间位置的转写并使用真实音频编码。分别完成文字找图片、图片找相似图片、文字找音频、音频找相似音频；结果附原图或音频片段定位。只保存路径、描述或转写文字不算多模态完成；不要求图像与音频直接互搜。
+- PostgreSQL/pgvector 沿用为长期记录与检索主线，实体/关系先用关系表；媒体原件由文件/对象存储接口管理，Redis 若使用只能缓存。衍生文本、向量和原件通过稳定编号关联；按模型、模态和维度分开向量空间，跨模态查询使用与目标空间对齐的编码器或经过验证的转换链路。具体模型、中文支持、许可与资源需求在该检查点验证，不假定现有 DeepSeek 文本接口能处理图片/音频或生成向量。
+- 测试重启保留、跨用户/团队隔离、陈旧/冲突记忆、secret/非授权 PII 不落库和 memory poisoning。图片/录音中的恶意指令也按数据处理；检查原件访问权限，删除/过期后关联文本、向量、缓存与引用联动失效，并验证损坏媒体、转写/编码失败和重试不会留下半条可检索记忆或重复记录。
+- 复用项目测试和同一小数据集，覆盖文本事实、图片证据、音频证据、过期/冲突及隔离案例；比较“无记忆”“仅文本记忆”“完整四类记忆”三种配置的任务成功、误记、遗漏、媒体找回及定位、延迟和成本。记录真实收益、代价与启用/回退条件，不预设完整配置一定更好；结果写进设计笔记的紧凑表格，不单独建设 runner 或 baseline 管理系统。
 
 问答：
 
-1. Memory 和上下文历史有什么区别？
-2. Guardrails 防什么风险？
-3. Evaluation 应该评估什么？
+1. 同一次截图/语音交接中，四类记忆分别负责什么？哪些是本轮上下文，哪些可以跨会话保留，与 RAG 和 checkpoint 有什么区别？
+2. 为什么图片文字或语音转写不能直接当作已确认事实？怎样控制来源、访问、冲突及删除后的衍生数据？
+3. 只有转写文本检索为什么还不足以证明图片/音频记忆？如何用同一数据集判断新增能力的收益和代价？
 
 产出：
 
 - `notes/stage7/d7_03_reliability_patterns.md`
-- 在 `code/stage6/engineering_docs_rag/` 或 `code/stage8/incident_change_review_agent/` 中选择更需要长期事实的一项做增量，不另建 Memory 玩具目录
+- `code/stage6/engineering_docs_rag/` 内的四类记忆增量、真实图片/音频样例与项目测试；使用自制或许可明确的非敏感材料，记录可复跑的演示方法与紧凑对照结果。材料和代码在各自检查点实际开始时创建。
 
 通过标准：
 
-- 真实完成写入、检索、更新、删除、TTL/过期和跨会话持久化；跨租户与 poisoning 测试全部通过。
-- 能用 baseline 证明 Memory 是否真正改善任务，而不是只增加 token、延迟和错误记忆。
+- 四类记忆都有可执行且不同的职责证据，共用管理入口实际接入助手回答；工作记忆有上下文预算/过期行为，长期记忆真实完成写入、检索、整理与确认、更新、删除、TTL/过期和跨会话持久化，语义记忆含可核对的实体/关系例子。
+- 使用真实图片和音频及真实编码/转写链路完成上述四条检索路径；回答能引用原图和准确的录音片段。示例须包含相关与不相关候选，并记录预期证据及位置；只跑固定文件命中、mock 编码或文本转写检索不能替代这部分验收。
+- 跨用户/团队、原件访问、poisoning、冲突/过期、删除联动、媒体处理失败及重试测试通过；重启后有效长期记录可找回，已删除/过期内容不再出现在正常检索与回答中。
+- 同一数据集的三种配置对照可复跑，能用结果解释何时采用记忆、何时限制或关闭某种记忆；如实记录负收益，不把图片/音频样例成功等同于所有多模态任务已解决。
 
 ## D7-Gate 设计模式闯关
 
@@ -1660,7 +1674,7 @@ discover → schedule → execute → independent verify
 - 使用持久化 checkpointer、thread_id、结构化 state、timeout/retry/cancel、checkpoint resume 和 HITL approve/edit/reject；至少一次在进程退出后恢复未完成任务。
 - 需要写文件、更新数据库或调用有副作用工具时使用幂等键；用故障注入验证恢复不会重复副作用。
 - 配版本化评估集至少 20 条，分别评估任务完成、节点/工具轨迹、恢复、HITL、安全、延迟和成本；对影响控制流、恢复、HITL、安全或成本的关键修改，复用同一数据集和项目 tests 做对比并把结果写 daily/设计笔记，E10 前不另建通用评估平台。
-- 接入旗舰二的 FastAPI/SSE，并提供可观察的工具/状态界面，不把 Graph 留在单文件脚本。界面可以是 curl/API 客户端/极薄调试页；也允许助手在真正进入本任务时，从 GitHub 选择许可证兼容、维护状态可接受且依赖可审计的 Vue 开源骨架后组合成薄界面。若采用第三方 Vue，本 Gate 当场保留来源/版本/许可证/维护状态/依赖风险和采用理由，用户审核关键 diff，并能说明数据流与密钥不进前端等最小安全边界；这只是第三方代码准入审核，不冒充完整 Vue 掌握。J11-03 再做独立 Vue 能力复核、用户亲自解释/修改和产品化演进。
+- 复用 `agent_workbench/api` 的故障诊断路由与统一 Vue 应用，展示真实工具、状态和人工处理流程，不把 Graph 留在单文件脚本。沿用当前授权切片的来源/版本/许可证/维护状态/依赖审查记录，新增第三方组件再按需审查；用户能说明真实数据流与密钥不进前端等最小边界，并对当前功能完成必要的亲自修改。助手的开源组合与 API 连接不冒充完整 Vue 掌握，J11-03 读取已有证据后只补未覆盖标准。
 - 在单 Agent baseline 通过后，复用 `S-04` 已完成的最小受控多 Agent 候选实验与同集对照：只拆分能被独立验证的诊断/风险审查职责，使用带类型约束的交接格式、共享/私有 state、最大 handoff 次数、预算、停止和人工升级。Gate 只补新增集成或受改动影响的验证，不再重建一套协作实验；是否默认采用按预设质量、成本与延迟门槛决定，无净收益则保留单 Agent 并记录回退，完整实作证据仍须保留。
 - 正式运行前冻结分组阈值与至少 20% 且不少于 5 条 holdout；恢复、HITL、关键越权/泄漏和重复副作用固定案例必须 100% 通过。正常任务成功、轨迹、延迟和成本分别按预设门槛判定，不能用总平均掩盖关键失败。
 - 扩展系统设计包：明确 state/checkpoint 的存储与生命周期、恢复目标、幂等边界、超时/人工等待 SLO、成本上限和至少 2 条控制流 ADR。
@@ -1677,7 +1691,7 @@ discover → schedule → execute → independent verify
 
 - 从空环境可启动 API 与持久化 Graph；自动测试、固定评估、进程重启恢复、HITL 三分支、取消/错误分类和无重复副作用验证可重复运行。
 - WS-02/04/08/11 达到 `work-scenario-coverage.md` 要求的对应切片等级；每个复合事故的全部根因、修复、全量回归和再次故障注入都有定位证据。
-- 用户能独立解释 state/checkpoint/thread、崩溃窗口、幂等边界、单/多 Agent 取舍和界面/API 边界；若使用第三方 Vue，最小准入审核齐全。由助手组合的前端代码不计作独立 Vue 掌握证据，完整组件状态/SSE/认证/错误处理能力仍由 J11-03 验收。
+- 用户能独立解释 state/checkpoint/thread、崩溃窗口、幂等边界、单/多 Agent 取舍和界面/API 边界；采用的第三方代码来源与审查记录齐全。助手组合的前端代码不计作独立 Vue 掌握证据，当前已独立证明的能力由 J11-03 直接复用，完整组件状态/SSE/认证/错误处理仍须验收。
 
 ---
 
@@ -1825,7 +1839,7 @@ discover → schedule → execute → independent verify
 
 ## E10-02 综合项目设计
 
-设计对象固定为两个现有旗舰：`code/stage6/engineering_docs_rag/` 与 `code/stage8/incident_change_review_agent/`。不得从通用候选清单再起第三个旅行、研究、文件整理或助教项目。
+设计对象固定为两个现有旗舰：`code/stage6/engineering_docs_rag/` 与 `code/stage8/incident_change_review_agent/`，共享交付与模块连接复用 `code/agent_workbench/`。集成产品不算第三个业务核心，不从通用候选清单再起旅行、研究、文件整理或助教项目。
 
 必须回答：
 
@@ -1860,8 +1874,8 @@ discover → schedule → execute → independent verify
 
 产出：
 
-- 使用 J11-02 已冻结并完成产品化的 `product_flagship` 作为综合答辩对象，不在 FINAL 临时换项目或新建第三个综合项目目录；若确需改选，必须先按 J11-02 的改选规则补齐前端、部署、观测和回归证据。
-- 所选旗舰项目的 README、架构/数据流/信任边界、版本化评估和部署证据
+- 使用既定 `product_flagship=agent_workbench` 及 J11-02 冻结的发布范围/default_showcase 作为综合答辩对象，不在 FINAL 临时新建产品或替换业务实现；若发布范围或默认展示业务改变，按 J11-02 的变更规则补齐受影响的前端、部署、观测和回归证据。
+- 集成产品及两个领域模块的 README、架构/数据流/信任边界、版本化评估和部署证据
 - `notes/stage10/final_defense.md`
 
 通过标准：
@@ -1939,9 +1953,9 @@ discover → schedule → execute → independent verify
 
 要做：
 
-- 先读取 R6-Gate、G8-Gate 与 E10 的质量、风险、演示价值和维护成本证据，由用户冻结唯一 `product_flagship`（阶段 6 RAG 或阶段 8 可控 Agent）并写一条 ADR；J11-03、J11-04、J11-05、J11-06 与 FINAL-Gate 都复用这个选择。若后续改选，必须新增 ADR 并补齐新对象缺失的前端、部署、观测和回归证据，不能静默切换。
-- 复用 `BE5-Gate` 的工程骨架，把 `product_flagship` 强化为正式产品服务；此任务不再负责第一次学习 async/FastAPI。另一个旗舰保留其 Gate 已通过的可复现 API/demo 和 E10 评估 adapter，不再做第二套产品前端。
-- 另一个旗舰进入维护状态：其代码、依赖、共享模块或评估配置变化时，按影响范围复跑相关验证；作品交付前再做可复现检查。主产品的无关修改不触发另一旗舰的全量真实模型评估。
+- 唯一集成产品已按用户要求固定为 `product_flagship=agent_workbench`。读取 R6-Gate、G8-Gate 与 E10 的质量、风险、演示价值和维护成本证据，冻结发布模块、默认展示业务 `default_showcase` 与质量门槛并写 ADR，由用户最终审核；两个旗舰都可进入同一产品，不做二选一排除另一业务前端。J11-03～06 与 FINAL 复用该范围；后续变更范围或默认展示须更新 ADR，并补齐受影响的前端、部署、观测和回归证据。
+- 复用 `agent_workbench` 现有 Vue/FastAPI 和 `BE5-Gate` 工程结果，把同一产品强化为正式服务；此任务不负责第一次搭前端或学习 async/FastAPI。阶段 6/8 保留独立核心、可复现 API 调用和各自 E10 adapter，不复制第二套前端或产品服务。
+- 两个业务及共享代码按影响范围维护：业务专属改动复跑相关验证；公共接口、依赖、认证、数据或展示组件变化覆盖全部受影响模块。作品交付前验证发布范围可复现；某模块的无关改动不触发另一模块的全量真实模型评估。
 - 补齐产品接口：知识库/会话/任务资源、SSE、后台导入、认证授权、限流、request ID、health/readiness、统一错误和 API 文档。
 - 处理并发、超时、取消、幂等和错误恢复；区分 4xx（用户/权限问题）和 5xx（服务内部问题）。
 
@@ -1960,11 +1974,11 @@ discover → schedule → execute → independent verify
 
 要做：
 
-- 用户已说明自己会一些 Vue；先用一个最小诊断切片复核组件、props/emit、响应式状态、异步请求、错误/加载状态和浏览器网络调试。通过的部分不重复上完整入门课，未独立验证的部分仍按零基础补齐。
-- 助手可以在本任务真正启动时，从 GitHub 选择许可证兼容、维护状态可接受、依赖与安全边界可审计的 Vue 开源项目/组件作为骨架并负责机械组合；不得提前克隆或把未知许可证/过时依赖直接并入旗舰。
-- 用户负责审核采用/拒绝的组件、关键 diff 与依赖，亲自完成或解释状态流、SSE、认证、错误/加载状态和前后端安全边界；“开源项目能跑”本身不算用户学习证据。
-- 只为 J11-02 冻结的 `product_flagship` 建正式前端：若选择 G8 且 G8-Gate 已有薄界面就复用演化；其他情况在已审计骨架上组合。不得同时为另一个旗舰重建第二套前端。
-- 两类产品都支持流式显示；选择 G8 时重点展示工具/状态/HITL，选择 RAG 时重点展示引用来源、无答案和文档权限。界面只实现当前产品真实存在的能力。
+- 用户已说明自己会一些 Vue；先读取当前统一界面、BE5/G8 及前序 Session 的独立证据，对组件、props/emit、响应式状态、异步请求、错误/加载状态和浏览器网络调试建立覆盖图。证据充分的部分直接复用，只对未证明的部分做最小诊断与补练，不重上完整入门课。
+- 复用 `code/agent_workbench/web/` 已授权创建的 Vue 3 + TypeScript + Vite + Vue Router + Element Plus 应用。助手维护来源、许可证、维护状态、依赖与安全边界的审查记录；新增组件时按真实需要再次审查，不要求等到本任务才初始化前端，也不整体推倒重建。
+- 用户亲自解释并修改代表性真实功能，证明组件状态、SSE、认证、错误/加载状态和前后端安全边界；必要时审核相关关键 diff 与依赖取舍，不逐字段等待确认。“开源项目能跑”和助手接线本身不算用户学习证据，已完成的当前切片证明不换题重复。
+- 唯一正式前端是 `agent_workbench/web`，承载 RAG、故障诊断及已实际完成的记忆、MCP、评估、工具等模块；按 J11-02 冻结的发布范围补齐产品行为，默认展示业务只决定入口与演示重点，不排除另一业务。不得为各旗舰分别再建前端或为每个旧脚本机械建页面。
+- 两个业务按真实能力支持流式显示：故障诊断展示工具/状态/HITL，RAG 展示引用来源、无答案和文档权限。功能未实现时明确未就绪，不用固定数据伪装成功；后续已完成能力沿同一应用增量接入。
 
 问答：
 
@@ -1974,7 +1988,7 @@ discover → schedule → execute → independent verify
 
 通过标准：
 
-- 一个别人打开浏览器就能用的 Web 应用；能独立解释组件、状态、流式消费、错误处理和前后端安全边界。
+- 一个别人打开浏览器就能使用其发布范围内真实功能的统一 Web 应用；两个业务入口和共享部分边界清楚，能独立解释并修改组件、状态、流式消费、错误处理和前后端安全边界。
 
 ## J11-04 CI/CD、容器化与上线强化
 
@@ -1984,8 +1998,8 @@ discover → schedule → execute → independent verify
 
 要做：
 
-- 用 `Dockerfile` + `compose.yaml` 把 `product_flagship` 的前端、后端、（可选）向量库 / 数据库打包。
-- 把 BE5-Gate 与对应旗舰 Gate 的测试部署演化为唯一公网产品 demo（便宜云主机 / Railway / Render 等任一），补齐前端、域名/HTTPS、负载、备份、告警和回滚；另一个旗舰只维持可复现 API/demo、容器和评估证据，不建设第二套公网产品工程。
+- 用 `Dockerfile` + `compose.yaml` 把 `agent_workbench` 的统一前端、共享后端与所需向量库/数据库打包，包含发布范围内两个业务的必要依赖与配置。
+- 把 BE5-Gate 与两个旗舰 Gate 的测试部署演化为唯一公网集成产品 demo（便宜云主机 / Railway / Render 等任一），补齐统一前端、域名/HTTPS、负载、备份、告警和回滚；两个业务可共用这条发布链，分别保留可复现 API 调用和领域评估，不建设第二套公网产品工程。
 - 配置 CI/CD：测试、Ruff、类型检查、eval regression、Docker build、部署后 smoke test；失败不得发布。
 - 加 health/readiness、非 root 用户、secret 注入、持久化 volume、日志与备份/恢复说明；使用 HTTPS，记录一次部署失败或回滚演练。
 - 用 k6/Locust 做部署前后小规模负载测试，记录 p50/p95、错误率、吞吐和资源瓶颈。Kubernetes 只作可选加分，不作为主线门槛。
@@ -2011,7 +2025,7 @@ discover → schedule → execute → independent verify
 
 要做：
 
-- 给 `product_flagship` 接入产品级 tracing：能看到每一步 LLM / 工具调用、token 消耗、耗时；另一个旗舰继续通过 E10 adapter 与 Gate trace 保留回归证据，不复制完整线上观测栈。
+- 给集成产品 `agent_workbench` 接入共享的产品级 tracing：按业务模块、request/run 关联每一步 LLM / 工具调用、token 消耗和耗时；发布范围内两个业务都进入同一观测入口，同时保留各自 E10 adapter、领域指标与回归证据，不复制两套线上观测栈。
 - 接 E10 的版本化评估集与 baseline，记录组件/端到端质量、token/成本、p50/p95、错误率和安全分组；配置离线回归门禁。
 - 对线上 trace 做脱敏、采样和异常分组；把真实失败样例回灌离线 dataset，并演示一次“发现问题 → 修复 → 回归 → 上线”的闭环。
 - 建立 logs/metrics/traces 的 request/run 关联与最小 dashboard/告警；演练一次 provider 429、DB/Redis 下线、队列积压、SSE 中断或成本突增引发的复合事故。
@@ -2035,16 +2049,16 @@ discover → schedule → execute → independent verify
 
 - 整理成“1 个小而完整 + 2 个旗舰”而不是 3–5 个都重做：
   1. 小项目：结构化信息抽取工具（阶段 2，轻量 README + 测试）。
-  2. 旗舰一：`code/stage6/engineering_docs_rag/` 工程文档 RAG 助手（LangChain 主项目，FastAPI、引用、技术/业务指标、可复现部署；只有被选为 `product_flagship` 时才要求 Vue 与公网产品）；默认使用公开或脱敏的 API 文档、README、ADR、runbook 和排障资料，不以个人知识库作为业务题目。
-  3. 旗舰二：`code/stage8/incident_change_review_agent/` 故障诊断与变更评审 Agent（LangGraph 主项目，持久工作流、HITL、受控多 Agent 对照、trace、失败恢复与可复现 API/demo；只有被选为 `product_flagship` 时才要求正式 Vue 与公网产品）；A4 只作为已 PASS 的手写 Agent Loop 参照，不复制为新研究 Agent。
+  2. 旗舰一：`code/stage6/engineering_docs_rag/` 工程文档 RAG 核心（LangChain + LangGraph，侧重 RAG、引用、技术/业务指标与可复现调用），通过 `agent_workbench` 提供统一 Vue/FastAPI 界面并按发布范围上线；默认使用公开或脱敏的 API 文档、README、ADR、runbook 和排障资料，不以个人知识库作为业务题目。
+  3. 旗舰二：`code/stage8/incident_change_review_agent/` 故障诊断与变更评审核心（LangChain + LangGraph，侧重持久工作流、HITL、受控多 Agent 对照、trace、失败恢复与可复现调用），通过同一 `agent_workbench` 提供界面与发布；A4 只作为已 PASS 的手写 Agent Loop 参照，不复制为新研究 Agent。
 - 每个项目写清楚：为谁解决什么流程问题、基线是什么、用了哪些技术、难点、取舍和指标结果；没有改善的指标也要解释原因和下一实验。
 - 已要求的真实迭代中，至少一次由使用者反馈或明确标注的模拟需求变更触发：说明原流程哪里不便、验收条件怎样改变，在现有旗舰做最小修改并回归验证；保留到已有 issue/PR 或设计记录，不另建课程或反馈管理系统。助手整理记录，用户亲自作影响行为的取舍；模拟反馈不冒充真实客户验证。
 - 每个旗舰附：架构/数据流/信任边界图、版本化评估报告、负载报告、威胁模型、失败复盘、CI 状态和可复现部署说明；至少记录一次真实迭代前后对比。
-- 冻结的 `product_flagship` 展示 Python/FastAPI Agent 后端与 Vue 前端的真实集成边界（SSE/HTTP、认证、系统出错时怎样返回结果、任务状态）；另一个旗舰保留可复现 API/demo、完整评估和部署说明。只把项目中已经验证的部分写成差异化，不引入第二套后端技术栈。
+- `product_flagship=agent_workbench` 展示两个业务核心与统一 Python/FastAPI + Vue 的真实集成边界（SSE/HTTP、认证、错误返回、任务状态），分别保留两个旗舰的完整领域评估和可复现说明。作品集清楚区分“一个集成产品、两个领域旗舰证据、一个历史小项目”，不把共享代码重复计算为多套独立实现；只把已验证部分写成能力，不引入第二套后端技术栈。
 
 通过标准：
 
-- `product_flagship` 必须「带前端 + 部署上线」，另一个至少有可复现 API/demo、容器启动方式和完整评估，不是只能在终端跑的脚本；两个项目不得各建一套正式前端/公网发布链。
+- `agent_workbench` 必须有统一前端并按 J11-02 冻结范围部署上线，两个旗舰均有真实可操作入口、可复现 API 调用/容器启动方式及各自完整评估。默认展示业务不替代另一业务的证据，也不创建第二套正式前端/公网发布链。
 
 ## J11-07 简历与岗位匹配
 
@@ -2119,7 +2133,7 @@ discover → schedule → execute → independent verify
 
 要做：
 
-- 先抽出统一的 `ModelClient`/provider 配置边界，让业务代码不依赖某家 SDK 的字段；DeepSeek 作为当前默认实现。
+- 优先使用 LangChain ChatModel 及对应厂商集成建立模型/配置边界，DeepSeek 作为当前默认实现；业务通过该边界接入已有 LangGraph 流程。真实厂商差异才补必要适配，不默认再造平行 ModelClient 抽象；已 PASS 的直接 SDK 代码在实际扩展相应模块时迁移并复跑相关验证。
 - 再接至少第二个真实 provider（OpenAI、Claude、OpenRouter 或本地 Ollama 任选其一），用同一组问题记录成本、延迟、输出和 tool calling/structured output 差异。没有第二家凭据时核查本地替代是否实际可运行；仍不可用则可先完成适配器与 mock 测试，但真实对比未跑前不判完整 PASS。已有 DeepSeek 能力满足的课程与产品化工作继续，FINAL-Gate 前必须补齐本项真实证据。
 - 顺带补结构化输出「严格档」：用支持 `json_schema`/strict 严格模式的厂商真跑一次严格 Schema 输出，与 DeepSeek `json_object` 软约束对比（PR2-04 只跑过软约束档）。
 - 建统一错误分类：timeout、429/`Retry-After`、5xx/outage、认证失败、余额/额度耗尽、context overflow 和坏请求；只有可重试错误进入有上限的指数退避 + jitter，认证/坏参数等快速失败。
