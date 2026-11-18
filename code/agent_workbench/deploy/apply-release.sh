@@ -70,11 +70,8 @@ target = Path(sys.argv[2])
 text = target.read_bytes()
 for service in (b"web", b"api"):
     prefix = b"ai-workbench-" + service + b":"
-    pattern = rb'(?m)^([ \t]*image:[ \t]*)(["\']?)' + prefix + rb'[\w.-]+\2([ \t]*(?:#[^\r\n]*)?\r?)$'
-    def update(match):
-        indent, quote, suffix = match.groups()
-        return indent + quote + prefix + b"git-" + sys.argv[1].encode() + quote + suffix
-    text, count = re.subn(pattern, update, text)
+    pattern = rb"(?m)^([ \t]*image:[ \t]*['\"]?" + prefix + rb")[\w.-]+(?=['\"\s#]|$)"
+    text, count = re.subn(pattern, rb"\g<1>git-" + sys.argv[1].encode(), text)
     if count != 1:
         sys.exit(f"Expected exactly one {prefix.decode()} image in compose.yaml")
 target.write_bytes(text)
@@ -90,6 +87,14 @@ elif [[ -f compose.previous.yaml ]] && ! cmp -s compose.yaml compose.previous.ya
     rollback=1
 fi
 up
+for service in web api; do
+    container=$("${docker[@]}" compose ps -q "$service")
+    running=$("${docker[@]}" inspect --format '{{.Config.Image}}' "$container")
+    if [[ $running != "ai-workbench-$service:git-$sha" ]]; then
+        echo "Unexpected running image for $service: $running" >&2
+        exit 1
+    fi
+done
 check
 rollback=0
 echo "Applied git-$sha."
