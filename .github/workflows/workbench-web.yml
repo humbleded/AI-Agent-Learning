@@ -2,22 +2,27 @@ name: Workbench CI and CD
 
 on:
   pull_request:
-    paths: &workbench_paths
-      - ".github/workflows/workbench-web.yml"
-      - "code/agent_workbench/**"
-      - "code/stage6/engineering_docs_rag/**"
-      - "code/stage8/incident_change_review_agent/**"
   push:
-    paths: *workbench_paths
+    branches: ["**"]
   workflow_dispatch:
     inputs:
       deploy:
-        description: Deploy the tested images to the production workbench
+        description: Deploy the checked images to production (main only)
         type: boolean
         default: false
+      scope:
+        description: Select changed services automatically or rebuild a specific service
+        type: choice
+        options: [auto, web, api, both]
+        default: auto
 
 permissions:
   contents: read
+
+# Serialize production runs from baseline inspection through verification.
+concurrency:
+  group: ${{ github.ref == 'refs/heads/main' && ((github.event_name == 'workflow_dispatch' && inputs.deploy) || (github.event_name == 'push' && vars.WORKBENCH_AUTO_DEPLOY == 'true')) && 'workbench-production' || format('workbench-ci-{0}', github.run_id) }}
+  cancel-in-progress: false
 
 defaults:
   run:
@@ -25,48 +30,120 @@ defaults:
     shell: bash
 
 jobs:
+  live:
+    name: Read the deployed version of each service
+    if: github.ref == 'refs/heads/main' && ((github.event_name == 'workflow_dispatch' && inputs.deploy && inputs.scope == 'auto') || (github.event_name == 'push' && vars.WORKBENCH_AUTO_DEPLOY == 'true'))
+    environment:
+      name: production
+      deployment: false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      web_base: ${{ steps.versions.outputs.web_base }}
+      api_base: ${{ steps.versions.outputs.api_base }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Read image tags from running containers
+        id: versions
+        env:
+          DEPLOY_HOST: ${{ vars.WORKBENCH_HOST }}
+          DEPLOY_USER: ${{ vars.WORKBENCH_USER }}
+          RELEASE_DIRNAME: ${{ vars.WORKBENCH_RELEASE_DIR }}
+          DEPLOY_KEY: ${{ secrets.WORKBENCH_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.WORKBENCH_KNOWN_HOSTS }}
+        run: bash deploy/live-bases.sh
+
   ci:
     name: Build and test the workbench
+    needs: live
+    if: ${{ !cancelled() && (needs.live.result == 'success' || needs.live.result == 'skipped') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     env:
       COMPOSE_PROJECT_NAME: workbench-ci
       SHIP: ${{ github.ref == 'refs/heads/main' && ((github.event_name == 'workflow_dispatch' && inputs.deploy) || (github.event_name == 'push' && vars.WORKBENCH_AUTO_DEPLOY == 'true')) }}
     outputs:
-      release_ready: ${{ steps.bundle.outputs.ready }}
+      scope: ${{ steps.plan.outputs.scope }}
+      artifact_id: ${{ steps.upload.outputs.artifact-id }}
+      artifact_digest: ${{ steps.upload.outputs.artifact-digest }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          fetch-depth: 0
           persist-credentials: false
-      - name: Build the two Linux images and start Nginx and FastAPI
-        run: docker compose up --build --detach
-      - name: Run the API and incident tests inside the built image
+      - name: Check the deployment scripts and change detection
+        run: |
+          for script in deploy/*.sh; do bash -n "$script"; done
+          python3 -m unittest discover -s deploy -p 'test_*.py' -v
+      - name: Select services
+        id: plan
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_BEFORE: ${{ github.event.before }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          REQUESTED_SCOPE: ${{ inputs.scope || 'auto' }}
+          LIVE_WEB_BASE: ${{ needs.live.outputs.web_base }}
+          LIVE_API_BASE: ${{ needs.live.outputs.api_base }}
+        run: bash deploy/select-scope.sh
+      - name: Record the selected scope
+        env:
+          SCOPE: ${{ steps.plan.outputs.scope }}
+        run: |
+          echo "Selected services: $SCOPE"
+          printf 'Selected services: **%s**\n' "$SCOPE" >> "$GITHUB_STEP_SUMMARY"
+      - name: Build and start only the selected services
+        if: steps.plan.outputs.scope != 'none'
+        env:
+          SCOPE: ${{ steps.plan.outputs.scope }}
+        run: |
+          services=("$SCOPE")
+          if [[ $SCOPE == both ]]; then services=(web api); fi
+          docker compose up --build --detach --no-deps "${services[@]}"
+      - name: Run the API and incident tests in the built API image
+        if: steps.plan.outputs.scope == 'api' || steps.plan.outputs.scope == 'both'
         run: |
           docker compose run --rm --no-deps -T \
             -v "$PWD/api/tests:/app/code/agent_workbench/api/tests:ro" \
             -v "$PWD/../stage8/incident_change_review_agent/test_incident_graph.py:/app/code/stage8/incident_change_review_agent/test_incident_graph.py:ro" \
             api python -m pytest -q -p no:cacheprovider \
             agent_workbench/api/tests stage8/incident_change_review_agent/test_incident_graph.py
-      - name: Verify the Vue page, its JavaScript and both API modules through Nginx
-        run: python3 deploy/check-workbench.py http://127.0.0.1:8081
-      - name: Package the exact images that passed the checks
-        if: env.SHIP == 'true'
-        id: bundle
+      - name: Verify the selected services
+        if: steps.plan.outputs.scope != 'none'
+        env:
+          SCOPE: ${{ steps.plan.outputs.scope }}
         run: |
-          for service in web api; do
-            image_id=$(docker inspect --format '{{.Image}}' "$(docker compose ps -q "$service")")
-            docker image tag "$image_id" "ai-workbench-$service:git-$GITHUB_SHA"
+          if [[ $SCOPE == api ]]; then
+            docker compose exec -T api python - http://127.0.0.1:8765 --only api < deploy/check-workbench.py
+          else
+            python3 deploy/check-workbench.py http://127.0.0.1:8081 --only "$SCOPE"
+          fi
+      - name: Package the checked images
+        if: env.SHIP == 'true' && steps.plan.outputs.scope != 'none'
+        env:
+          SCOPE: ${{ steps.plan.outputs.scope }}
+        run: |
+          services=("$SCOPE")
+          if [[ $SCOPE == both ]]; then services=(web api); fi
+          tags=()
+          for service in "${services[@]}"; do
+            tag="ai-workbench-$service:git-$GITHUB_SHA"
+            image=$(docker inspect --format '{{.Image}}' "$(docker compose ps -q "$service")")
+            docker image tag "$image" "$tag"
+            tags+=("$tag")
           done
           mkdir -p "$RUNNER_TEMP/release"
           cd "$RUNNER_TEMP/release"
-          docker image save "ai-workbench-web:git-$GITHUB_SHA" "ai-workbench-api:git-$GITHUB_SHA" | gzip -1 > images.tar.gz
+          docker image save "${tags[@]}" | gzip -1 > images.tar.gz
           sha256sum images.tar.gz > SHA256SUMS
-          echo "ready=true" >> "$GITHUB_OUTPUT"
-      - name: Hand the release bundle to the deployment job
-        if: steps.bundle.outputs.ready == 'true'
+      - name: Upload the selected images
+        id: upload
+        if: env.SHIP == 'true' && steps.plan.outputs.scope != 'none'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: workbench-${{ github.run_id }}
+          name: workbench-${{ github.run_id }}-${{ steps.plan.outputs.scope }}
           path: ${{ runner.temp }}/release/
           compression-level: 0
           if-no-files-found: error
@@ -76,65 +153,33 @@ jobs:
         if: failure()
         run: docker compose logs --no-color --tail 60
       - name: Stop CI containers
-        if: always()
+        if: always() && steps.plan.outputs.scope != '' && steps.plan.outputs.scope != 'none'
         run: docker compose down
 
   deploy:
     name: Deploy the checked release to Tencent Cloud
     needs: ci
-    if: github.ref == 'refs/heads/main' && needs.ci.outputs.release_ready == 'true'
+    if: ${{ !cancelled() && needs.ci.result == 'success' && github.ref == 'refs/heads/main' && needs.ci.outputs.artifact_id != '' }}
     environment: production
-    concurrency:
-      group: workbench-production
-      cancel-in-progress: false
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Verify the release still matches the workbench on main
-        run: |
-          git fetch --quiet --depth=1 origin main
-          if ! git diff --quiet HEAD FETCH_HEAD -- . ../stage6/engineering_docs_rag ../stage8/incident_change_review_agent ../../.github/workflows/workbench-web.yml; then
-            echo "::error::The workbench changed on main. Start a release from the updated main branch."
-            exit 1
-          fi
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
-          name: workbench-${{ github.run_id }}
-          path: ${{ runner.temp }}/release/
-      - name: Load images and switch the running services
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Download, verify and switch the selected services
         env:
           DEPLOY_HOST: ${{ vars.WORKBENCH_HOST }}
           DEPLOY_USER: ${{ vars.WORKBENCH_USER }}
           RELEASE_DIRNAME: ${{ vars.WORKBENCH_RELEASE_DIR }}
           DEPLOY_KEY: ${{ secrets.WORKBENCH_SSH_KEY }}
           KNOWN_HOSTS: ${{ secrets.WORKBENCH_KNOWN_HOSTS }}
-        run: |
-          : "${DEPLOY_HOST:?Set WORKBENCH_HOST in production}" "${DEPLOY_USER:?Set WORKBENCH_USER in production}"
-          : "${DEPLOY_KEY:?Set WORKBENCH_SSH_KEY in production}" "${KNOWN_HOSTS:?Set WORKBENCH_KNOWN_HOSTS in production}"
-          if [[ ! "$RELEASE_DIRNAME" =~ ^[a-zA-Z0-9_-][a-zA-Z0-9._-]*$ ]]; then
-            echo "::error::Set WORKBENCH_RELEASE_DIR to the existing release directory name under the SSH user's home."
-            exit 1
-          fi
-          (cd "$RUNNER_TEMP/release" && sha256sum --check SHA256SUMS)
-          umask 077
-          key_dir=$(mktemp -d)
-          trap 'rm -f "$key_dir/key" "$key_dir/known_hosts"; rmdir "$key_dir"' EXIT
-          printf '%s\n' "$DEPLOY_KEY" > "$key_dir/key"
-          printf '%s\n' "$KNOWN_HOSTS" > "$key_dir/known_hosts"
-          unset DEPLOY_KEY KNOWN_HOSTS
-          ssh_args=(-i "$key_dir/key" -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes
-                    -o "UserKnownHostsFile=$key_dir/known_hosts" -o ConnectTimeout=15 -o ServerAliveInterval=20)
-          ssh "${ssh_args[@]}" -- "$DEPLOY_USER@$DEPLOY_HOST" sudo -n docker image load < "$RUNNER_TEMP/release/images.tar.gz"
-          tar -C deploy -cf - apply-release.sh check-workbench.py |
-            ssh "${ssh_args[@]}" -- "$DEPLOY_USER@$DEPLOY_HOST" "release_sha=$GITHUB_SHA; release_dirname=$RELEASE_DIRNAME;" '
-              set -eu
-              release_tmp=$(mktemp -d)
-              cleanup() {
-                rm -f "$release_tmp/apply-release.sh" "$release_tmp/check-workbench.py"
-                rmdir "$release_tmp"
-              }
-              trap cleanup EXIT
-              tar -C "$release_tmp" -xf -
-              WORKBENCH_RELEASE_DIR="$HOME/$release_dirname" bash "$release_tmp/apply-release.sh" "$release_sha"
-            '
+          GH_TOKEN: ${{ github.token }}
+          ARTIFACT_ID: ${{ needs.ci.outputs.artifact_id }}
+          ARTIFACT_DIGEST: ${{ needs.ci.outputs.artifact_digest }}
+          RELEASE_SCOPE: ${{ needs.ci.outputs.scope }}
+        run: bash deploy/deliver-release.sh

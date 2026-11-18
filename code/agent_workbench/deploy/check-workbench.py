@@ -47,7 +47,7 @@ def fetch(url, content_types):
             time.sleep(2)
 
 
-def check(base_url):
+def check_web(base_url):
     scripts = EntryScripts()
     scripts.feed(fetch(f"{base_url}/studio", {"text/html"}).decode())
     if not scripts.paths:
@@ -56,6 +56,8 @@ def check(base_url):
         fetch(base_url + path, {"application/javascript", "text/javascript"})
         print(f"OK /studio -> {path}")
 
+
+def check_api(base_url):
     health = json.loads(fetch(f"{base_url}/api/health", {"application/json"}))
     if not isinstance(health, dict) or not isinstance(health.get("modules"), list):
         raise ValueError("/api/health returned an unexpected response structure")
@@ -70,11 +72,19 @@ def check(base_url):
     print("OK /api/health: incidents=available, rag=ready_to_run")
 
 
+def check(base_url, only="both"):
+    if only in ("web", "both"):
+        check_web(base_url)
+    if only in ("api", "both"):
+        check_api(base_url)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("base_url", help="e.g. http://127.0.0.1:8081")
+    parser.add_argument("--only", choices=("web", "api", "both"), default="both")
     args = parser.parse_args()
     try:
-        check(args.base_url.rstrip("/"))
+        check(args.base_url.rstrip("/"), args.only)
     except ValueError as error:
         sys.exit(f"Workbench check failed: {error}")

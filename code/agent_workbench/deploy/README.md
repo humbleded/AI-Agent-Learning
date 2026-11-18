@@ -1,6 +1,6 @@
 # 发布工作台
 
-分支推送和拉取请求会运行 Workbench CI and CD。GitHub 的 Linux 机器构建前后端镜像，在 API 镜像里运行工作台及故障诊断的 pytest，再通过 Nginx 请求 `/studio`、该页面使用的 JavaScript 和 `/api/health`。这些检查使用教学数据，无需模型密钥。
+工作台由两个可以分别发布的容器组成。`web` 运行 Nginx 并提供 Vue 页面，`api` 运行 FastAPI。GitHub Actions 根据文件改动选择要构建的镜像，测试使用教学数据。
 
 ## 首次连接已有的云端工作台
 
@@ -9,7 +9,7 @@
 ```bash
 sudo -n docker compose version
 sudo -n docker ps
-command -v python3 flock
+command -v python3 flock curl sha256sum
 ```
 
 在 GitHub 仓库的 **Settings → Environments** 创建 `production`，将部署分支限制为 `main`。配置以下环境变量和机密。
@@ -24,11 +24,24 @@ command -v python3 flock
 
 在可信的云控制台终端运行 `cat /etc/ssh/ssh_host_ed25519_key.pub` 获取服务器公钥，以 `主机地址 ssh-ed25519 AAAA…` 格式填写主机记录。私钥通过 GitHub 的环境 Secret 表单或 `gh secret set --env production` 的标准输入设置。此部署密钥可操作云端 Docker，只授予受信任的发布人员修改工作流和部署环境的权限。
 
+## 如何判断本次发布范围
+
+| 本次改动 | GitHub 构建、检查和上传的镜像 | 云端更新 |
+|---|---|---|
+| Vue 源码、public 下的静态文件、前端依赖或容器内的 Nginx 配置 | web | 只更新 web |
+| FastAPI、镜像中的 RAG 或故障评审代码、后端依赖、教学样本或对应测试 | api | 只更新 api |
+| 前后端都改了，或修改了项目的 compose.yaml | web 和 api | 更新两个服务 |
+| 只改发布脚本、流水线或普通说明 | 跳过镜像构建和上传，仍检查发布脚本和范围判断 | 跳过更新 |
+
+PR 按分支相对合并起点的全部改动判断。普通分支推送按本次推送包含的改动判断。正式发布选 auto 时，从运行中容器的镜像标签读出每个服务各自的 Git 提交，与待发布版本比较。上次发布失败或跳过后，待发布改动仍会计入。首次接入的离线镜像缺少 Git 标签，以启用此策略前的 main 提交 `9765d20` 为累计比较起点；需要对齐更早的版本时，可手动选择对应服务。
+
+前端单独构建时，CI 检查 /studio 和页面真正引用的 JS。后端单独构建时，在 API 镜像里运行 pytest 和 /api/health。两侧都构建时，会通过 Nginx 检查页面、JS 和后端。发布后，无论范围大小，都会通过云端 Nginx 复查这三项。Compose 只重新创建所选服务。
+
 ## 运行一次发布
 
-1. 将审核通过的工作流与应用合并到默认分支 `main`。
-2. 打开 **Actions → Workbench CI and CD → Run workflow**。选择 `main` 并勾选部署。只做 CI 时保持该选项关闭。
-3. 检查通过后，工作流把同一次运行的两份镜像标记为 `git-<完整提交 SHA>`，压缩并交给部署任务。部署任务校验文件、通过 SSH 导入镜像，然后在已有目录更新 Compose 并检查页面、JS 和两个后端模块。
-4. 如果切换后检查失败，部署脚本恢复上一版 Compose 和镜像并重新检查。云端保留 `compose.previous.yaml`。回退针对应用镜像和 Compose 配置，涉及持久化数据的格式变更需要另行安排兼容迁移。
+1. 把通过检查的 PR 合并到 main。打开 **Actions → Workbench CI and CD → Run workflow**，选择 main、勾选 deploy，范围选 auto。只验 CI 时，取消 deploy。
+2. 在 **Select services** 查看范围。需要重发指定服务时，手动选 web、api 或 both。此选项会强制构建指定范围，即使源文件相同。
+3. GitHub 给选中并通过检查的镜像打上 `git-<完整提交 SHA>` 标签。腾讯云用临时 HTTPS 地址下载同一次运行上传的包，中断时可从已下载的位置继续。云端校验包的大小和两层 SHA-256 后，从磁盘导入镜像，再通过现有 Compose 切换服务。
+4. 云端检查失败时，脚本恢复本次选中服务的旧镜像，再检查工作台。数据卷和公网端口沿用已有配置。涉及持久化数据格式的变更，仍需单独设计兼容迁移。
 
-首次手动发布成功后，如果希望每次相关改动进入 `main` 都自动发布，在仓库的 **Settings → Secrets and variables → Actions → Variables** 设置仓库变量 `WORKBENCH_AUTO_DEPLOY=true`。将它改回 `false` 可恢复手动触发发布。入口工作流运行在 GitHub 托管机器上，云主机继续只运行项目容器。
+要在合并后自动发布，将仓库变量 `WORKBENCH_AUTO_DEPLOY` 设为 true（**Settings → Secrets and variables → Actions → Variables**）。将它设为 false 可恢复手动发布。PR 和普通分支运行验证；生产机密只在受保护的 main 发布中使用。
