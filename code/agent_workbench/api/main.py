@@ -162,14 +162,16 @@ def stream_incident(request: IncidentRequest):
 
 @app.get("/api/rag/sample")
 def rag_sample():
-    # 助手提供的原文预览也使用现成 Loader；它不经过 G3 图，不计入用户实现证据。
+    # 助手准备的 Docling 解析预览不经过 G3 图；解析可能重排 Markdown，不能当作用户实现证据。
     try:
-        from langchain_community.document_loaders.text import TextLoader
+        from langchain_docling import DoclingLoader
+        from langchain_docling.loader import ExportType
 
-        document = TextLoader(str(SAMPLE_PATH), encoding="utf-8").load()[0]
-        return {"file_name": SAMPLE_PATH.name, "content": document.page_content, "metadata": {"title": "工单服务：快速开始", "version": "1.0"}, "fictional": True}
+        document = DoclingLoader(file_path=str(SAMPLE_PATH), export_type=ExportType.MARKDOWN).load()[0]
+        return {"file_name": SAMPLE_PATH.name, "content": document.page_content, "metadata": {**document.metadata, "title": "工单服务：快速开始", "version": "1.0"}, "fictional": True}
     except (OSError, RuntimeError, ImportError, IndexError):
-        return error_response(500, "RAG_SAMPLE_UNAVAILABLE", "教学资料预览暂时不可用，请检查 quickstart.md 文件与读取依赖。")
+        # Docling 的 ConversionError 继承 RuntimeError，缺文件/转换失败也返回同一格式。
+        return error_response(500, "RAG_SAMPLE_UNAVAILABLE", "教学资料解析预览暂时不可用，请检查 quickstart.md 文件与 Docling 依赖。")
 
 
 @app.post("/api/rag/import")
@@ -183,9 +185,9 @@ def import_rag():
             raise ValueError("no_documents_returned")
         return {"documents": documents, "count": len(documents)}
     except (NotImplementedError, AttributeError):
-        return error_response(409, "RAG_NOT_READY", "R6-01-G3 尚未完成：请实现读取节点与 build_ingest_graph，再回到页面重试。")
+        return error_response(409, "RAG_NOT_READY", "文档导入流程尚未就绪，请完成读取流程后重试。")
     except Exception:
-        return error_response(500, "RAG_IMPORT_FAILED", "真实文档读取失败，请检查当前 ingest.py 的实现与本地依赖。")
+        return error_response(500, "RAG_IMPORT_FAILED", "文档导入失败，请检查样本文件能否访问、来源信息是否齐全，以及后端解析依赖。")
 
 
 class KnowledgeRequest(BaseModel):
@@ -216,7 +218,8 @@ def query_knowledge(request: KnowledgeRequest):
             for part in core.stream_knowledge(question):
                 yield sse(part["event"], part["data"])
         except Exception:
-            yield sse("error", {"code": "KNOWLEDGE_RUN_FAILED", "message": "本次知识库查询未完成，请检查后端服务后重试。"})
+            yield sse("error", {"code": "KNOWLEDGE_RUN_FAILED", "message": "本次知识库查询意外中断。",
+                                "next_step": "请重试；若持续失败，请检查后端运行状态。已找到的片段仍可查看。"})
 
     return StreamingResponse(events(), media_type="text/event-stream", headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
