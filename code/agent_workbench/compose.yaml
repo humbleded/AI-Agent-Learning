@@ -1,0 +1,15 @@
+services:
+  web:
+    build: ./web
+    ports:
+      - "127.0.0.1:8081:80"
+
+  api:
+    build:
+      context: ..
+      dockerfile: agent_workbench/api/Dockerfile
+    volumes:
+      - ingest_data:/app/code/stage6/engineering_docs_rag/.ingest_store
+
+volumes:
+  ingest_data:

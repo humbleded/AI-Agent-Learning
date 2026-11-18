@@ -1,5 +1,15 @@
 # R6-01 当前已核验依赖；在实际进入后续功能时增量更新。
 langchain-core==1.6.1
+# G6 本地保存/读回 Document：使用已安装并实测的公开 storage 组件。
+langchain-classic==1.0.8
 langgraph==1.2.11
-# 仅当前教学 Markdown/TXT 的现成 TextLoader；已停止维护，参见 problem-contract.md。
-langchain-community==0.4.2
+# G5 使用现成递归字符切分器；当前环境已安装并核验此版本。
+langchain-text-splitters==1.1.2
+# 官方完整本地运行依赖；G4 已实测 MD/普通 UTF-8 TXT/原生文字 PDF，OCR 留到后续。
+# Windows 实测只装 format-markdown 会在 DocumentConverter 导入时报缺 pypdfium2。
+langchain-docling[local]==3.0.0
+docling-slim==2.126.0
+# 官方 HybridChunker + OpenAITokenizer 的本地切分依赖；不调用 OpenAI API。
+docling-core[chunking-openai]==2.95.0
+# docling-core 2.95.0 的此 extra 要求 >=0.9.0,<0.13.0。
+tiktoken==0.12.0

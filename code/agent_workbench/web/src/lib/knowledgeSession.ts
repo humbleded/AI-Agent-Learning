@@ -17,6 +17,7 @@ export interface KnowledgeStep {
 
 export interface KnowledgeStatus {
   available: boolean;
+  candidate_count?: number;
   file_count: number;
   scopes?: string[];
   skipped_count?: number;
@@ -28,11 +29,23 @@ export interface KnowledgeStatus {
   };
 }
 
+export interface KnowledgeIndexStats {
+  candidate_count: number;
+  read_count: number;
+  read_failed_count: number;
+  empty_count: number;
+  indexed_file_count: number;
+  chunk_count: number;
+  skipped_count: number;
+}
+
 export interface KnowledgeResult {
   answer: string;
   sources: Source[];
   refused: boolean;
   search_count: number;
+  reason_code?: "NO_READABLE_DOCUMENTS" | "INSUFFICIENT_EVIDENCE" | "INVALID_CITATIONS" | null;
+  next_step?: string;
 }
 
 export interface SourceDetail {
@@ -47,9 +60,11 @@ const question = ref("");
 const submittedQuestion = ref("");
 const running = ref(false);
 const error = ref("");
+const errorNextStep = ref("");
 const status = ref<KnowledgeStatus | null>(null);
 const statusError = ref("");
 const result = ref<KnowledgeResult | null>(null);
+const indexStats = ref<KnowledgeIndexStats | null>(null);
 const sources = ref<Source[]>([]);
 const steps = ref<KnowledgeStep[]>([]);
 const selectedSource = ref<Source | null>(null);
@@ -75,7 +90,9 @@ function clearSource() {
 function clearAnswer() {
   submittedQuestion.value = "";
   error.value = "";
+  errorNextStep.value = "";
   result.value = null;
+  indexStats.value = null;
   sources.value = [];
   steps.value = [];
   clearSource();
@@ -109,11 +126,23 @@ async function ask() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ question: input }),
     });
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      errorNextStep.value = data.error?.next_step || "检查页面提示和后端连接后，再提交问题。";
+      throw new Error(data.error?.message || "无法启动本次知识库查询。");
+    }
     await consumeEvents(response, (event, data) => {
       if (terminal) return;
       if (event === "step") {
         const update = data as KnowledgeStep;
         steps.value.push({ node: update.node, label: update.label });
+      } else if (event === "index") {
+        indexStats.value = data as KnowledgeIndexStats;
+        const stats = indexStats.value;
+        steps.value.push({
+          node: "index",
+          label: `读取成功 ${stats.read_count} 份，读取失败 ${stats.read_failed_count} 份；本次 ${stats.indexed_file_count} 份资料、${stats.chunk_count} 个片段进入检索。`,
+        });
       } else if (event === "retrieval") {
         const update = data as {
           query: string;
@@ -147,8 +176,10 @@ async function ask() {
           else clearSource();
         }
       } else if (event === "error") {
+        const failure = data as { message?: string; next_step?: string };
         error.value =
-          (data as { message: string }).message || "本次查询未能完成，请重试。";
+          failure.message || "本次查询未能完成，请重试。";
+        errorNextStep.value = failure.next_step || "检查页面提示和后端连接后，再提交问题。";
         terminal = true;
       }
     });
@@ -158,8 +189,11 @@ async function ask() {
       );
   } catch (cause) {
     // A complete final/error event remains authoritative if closing the stream fails.
-    if (!terminal)
+    if (!terminal) {
       error.value = messageFor(cause, "知识库查询连接失败，请稍后重试。");
+      if (!errorNextStep.value)
+        errorNextStep.value = "先查看已收到的片段，确认后端连接恢复后重新提交；本次查询不会自动重试。";
+    }
   } finally {
     running.value = false;
   }
@@ -204,9 +238,11 @@ export function useKnowledgeSession() {
     submittedQuestion,
     running,
     error,
+    errorNextStep,
     status,
     statusError,
     result,
+    indexStats,
     sources,
     steps,
     selectedSource,
