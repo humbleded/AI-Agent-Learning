@@ -21,6 +21,7 @@ __pycache__/
 *.db
 *.sqlite
 *.sqlite3
+code/stage6/engineering_docs_rag/.ingest_store/
 resources/sandbox/
 resources/stage0_5/
 resources/stage6/

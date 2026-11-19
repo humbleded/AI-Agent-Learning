@@ -1,5 +1,7 @@
 # 发布工作台
 
+2026-11-20，云端工作台使用 Jenkins 按前后端改动发布，公网入口由独立的 Nginx 网关提供。现行架构和实操手册见[工作台 README](../README.md)。本页保留早期 GitHub Actions 发布方案及其命令。
+
 工作台由两个可以分别发布的容器组成。`web` 运行 Nginx 并提供 Vue 页面，`api` 运行 FastAPI。GitHub Actions 根据文件改动选择要构建的镜像，测试使用教学数据。
 
 ## 首次连接已有的云端工作台
