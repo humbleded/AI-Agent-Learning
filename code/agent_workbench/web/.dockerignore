@@ -4,3 +4,4 @@ dist
 .git
 *.local
 npm-debug.log*
+*.tsbuildinfo
