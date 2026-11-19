@@ -28,7 +28,7 @@ from langgraph.graph import END, START, StateGraph
 from langsmith import tracing_context
 
 
-VAULT_ROOT = Path("D:/AI-Knowledge")
+VAULT_ROOT = Path(os.environ.get("WORKBENCH_VAULT_ROOT", "D:/AI-Knowledge"))
 SCOPES = ("02-Concepts", "03-Courses", "05-Papers")
 MAX_FILE_BYTES = 128 * 1024
 MAX_FILES = 800
