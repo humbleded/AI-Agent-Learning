@@ -3,3 +3,4 @@ dist
 .env*
 .git
 *.local
+npm-debug.log*
