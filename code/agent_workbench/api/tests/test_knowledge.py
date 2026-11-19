@@ -99,6 +99,23 @@ def spy_search(monkeypatch, side_effect=None):
     return invoke
 
 
+def test_environment_selects_vault_without_expanding_read_scope(tmp_path, monkeypatch):
+    note(tmp_path)
+    note(tmp_path, "08-Memory/private.md", "private")
+    monkeypatch.setenv("WORKBENCH_VAULT_ROOT", str(tmp_path))
+    configured_spec = importlib.util.spec_from_file_location("workbench_knowledge_env_test", path)
+    configured = importlib.util.module_from_spec(configured_spec)
+    configured_spec.loader.exec_module(configured)
+
+    assert configured.knowledge_status()["candidate_count"] == 1
+    source = tmp_path / "02-Concepts/RAG.md"
+    result = configured.read_source(configured.source_id(source))
+    assert result["relative_path"] == "02-Concepts/RAG.md"
+    assert "检索增强生成" in result["content"]
+    with pytest.raises(ValueError, match="source_not_found"):
+        configured.read_source(configured.source_id(tmp_path / "08-Memory/private.md"))
+
+
 def test_scope_and_dynamic_read_only_snapshot(vault):
     source = note(vault)
     for relative in ["08-Memory/private.md", "02-Concepts/README.md", "02-Concepts/.env", "02-Concepts/.hidden/private.md", "02-Concepts/AGENTS.md"]:
