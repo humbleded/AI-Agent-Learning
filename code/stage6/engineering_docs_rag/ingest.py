@@ -131,7 +131,7 @@ def load_and_chunk_documents(state: IngestState) -> dict[str, list[Document]]:
     #loader.load() 真正执行解析、切分并返回结果。
     # 如果只把这一行改回 ExportType.MARKDOWN，
     # 即使仍然传了 chunker=create_chunker()，
-    # 也不会按当前这条分块流程得到 Hybrid 片段。 
+    # 也不会按当前这条分块流程得到 Hybrid 片段。
     # 官方明确说明，chunker 参数用于文档分块模式；
     # Markdown 模式会返回整篇正文，需要你重新接上后续切分步骤。
     #export_type 选输出形式，chunker 选切分方法
@@ -142,7 +142,7 @@ def load_and_chunk_documents(state: IngestState) -> dict[str, list[Document]]:
         converter=DOCUMENT_CONVERTER, # 作用是使用官方推荐的文档转换器配置来解析 PDF 文档
         chunker=create_chunker(), # 作用是使用混合切分器将文档分块
     )
-    #loader.load() 开始处理 
+    #loader.load() 开始处理
     # create_chunker() 是准备切分工具，
     # loader.load() 才是开始处理这批文件。
     return {"documents": loader.load()}
@@ -176,7 +176,7 @@ def compute_chunk_id(metadata: dict[str, object]) -> str:
         "max_tokens": CHUNK_MAX_TOKENS,
     }
     chunk_id_json = json.dumps(
-      chunk_id_data, 
+      chunk_id_data,
       sort_keys=True,
       ensure_ascii=False,
       separators=(",", ":"),
@@ -201,11 +201,11 @@ def enrich_documents(state: IngestState) -> dict[str, list[Document]]:
         # （G6）：在下方 metadata 中补登记的 document_id、tenant 及源文件 content_hash。
         # 同一源文件的各片共享这些值；source/title/version/dl_meta 及新对象返回方式继续保留。
         metadata = {
-          **doc.metadata, 
-          "title": info["title"], 
+          **doc.metadata,
+          "title": info["title"],
           "version": info["version"],
-          "document_id":info["document_id"], 
-          "tenant": info["tenant"], 
+          "document_id":info["document_id"],
+          "tenant": info["tenant"],
           "content_hash": compute_content_hash(source),
           "chunk_index": chunk_index_counter.get(info["document_id"], 0), # 当前片段在所属文档中的序号，从 0 开始
           }
@@ -236,7 +236,7 @@ def compute_document_key(tenant: str, document_id: str) -> str:
     # TODO：仅用这两个身份字段，以固定 JSON 格式编码并计算 SHA-256 十六进制字符串。
     record = {
         "tenant": tenant,
-        "document_id": document_id, 
+        "document_id": document_id,
     }
     record_json = json.dumps(record, separators=(",", ":"), sort_keys=True,ensure_ascii=False)
     return hashlib.sha256(record_json.encode("utf-8")).hexdigest()
@@ -303,11 +303,11 @@ def build_ingest_graph():
 def main() -> None:
   # 调用摄取流程图，传入初始状态，得到处理结果。
     result = build_ingest_graph().invoke(INITIAL_STATE)
-    
+
     # 统计token数量
     chunker = create_chunker()
     counter = chunker.tokenizer #chunker.tokenizer是用于统计token数量的工具
-    
+
     for index, doc in enumerate(result["documents"], start=1):
         print(f"\n--- 片段 {index} ---\n{doc.page_content}")
         token_count = counter.count_tokens(doc.page_content)

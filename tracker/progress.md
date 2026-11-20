@@ -59,7 +59,7 @@
 | BE5-04 | PostgreSQL、Alembic 与 pgvector | TODO |  | code/stage6/engineering_docs_rag/ | SQLAlchemy/Alembic、async driver、pgvector、事务、幂等、tenant filter 与 migration；Redis 移到 BE5-05。 |
 | BE5-05 | Redis、后台任务、认证与负载测试 | TODO |  | （复用两个旗舰项目） | Redis 缓存/限流/幂等/任务状态、后台任务、最小授权、取消/重试、p50/p95 压测。 |
 | BE5-Gate | Agent 后端工程闯关 | TODO |  | （复用两个旗舰项目） | 对两个既有项目共用的后端能力做一次可维护、可测试、可并发、可持久化、可部署验证，不建第三个业务项目。 |
-| R6-01 | LangChain 文档导入与切分 | DOING | 2026-09-07 | code/stage6/engineering_docs_rag/ | 按用户授权已整理设计和教学资料；09-08 G2 资料进入模型输入的解释单题通过，G3 已按要求调整为现成 Loader + LangGraph 的 ingest.py TODO 骨架，用户真实实现及其余标准待验证，见 daily/2026-09-07.md、daily/2026-09-08.md。 |
+| R6-01 | LangChain 文档导入与切分 | DOING | 2026-10-20 | code/stage6/engineering_docs_rag/ | 已有文档导入/切分、编号及片段保存/读回证据；10/20新增目录卡身份键与单条保存/读回，按实际带读、示例和独立实现程度记录。新旧关联汇总、更新/删除及其余完整验收标准尚未闭合，助手适配不计独立PASS。原答与执行结果见9/7–9/10关联daily和[10/20 S1](../daily/2026-10-20.md)；当前动手起点只读[daily-plan](daily-plan.md)。 |
 | R6-02 | Embedding、pgvector 与检索 | TODO |  | code/stage6/engineering_docs_rag/ | BE5-01 后先做真实本地 embedding/top-k 切片；BE5-04 后完成 pgvector、exact/HNSW、filter、hybrid、rerank 与指标。提前切片不自动 PASS。 |
 | R6-03 | 固定两步 RAG、Agentic RAG 与引用 | TODO |  | code/stage6/engineering_docs_rag/ | 本地检索后先做带出处的固定两步最小问答；R6-02 完整验收后补同集架构对照、引用/拒答及失败分层。提前切片不自动 PASS。 |
 | R6-Gate | LangChain 工程文档 RAG 闯关 | TODO |  | code/stage6/engineering_docs_rag/ | 用公开/脱敏工程文档、业务验收指标和生产 RAG 链路形成旗舰一。 |
@@ -70,7 +70,7 @@
 | G8-01 | 持久化与恢复边界 | TODO |  | notes/stage8/g8_01_durable_boundary.md | 区分 checkpoint/thread state、长期 Memory、replay 与副作用幂等。 |
 | G8-02 | 持久化 Graph | TODO |  | code/stage8/incident_change_review_agent/ | 在 G8-00 项目增量使用持久化 checkpointer、thread 隔离并验证进程重启恢复。 |
 | G8-03 | 故障诊断、变更评审与 HITL | TODO |  | code/stage8/incident_change_review_agent/ | transient/non-retryable/user-fixable 分支、interrupt approve/edit/reject、幂等键与 replay 故障验证。 |
-| G8-Gate | LangGraph 故障诊断与变更评审闯关 | TODO |  | code/stage8/incident_change_review_agent/ | 持久工作流、重启恢复、HITL、受控多 Agent、trace、版本化评估、FastAPI/SSE 与可观察状态输出；可用 curl/调试页或任务启动后引入的已审计开源 Vue 薄界面，完整 Vue 掌握仍在 J11-03 复核。 |
+| G8-Gate | LangGraph 故障诊断与变更评审闯关 | TODO |  | code/stage8/incident_change_review_agent/ | 持久工作流、重启恢复、HITL、受控多 Agent、trace、版本化评估、FastAPI/SSE；复用统一agent_workbench的Vue/FastAPI验证真实状态、工具和人工处理入口，已有独立证据直接复用，完整Vue能力仍在J11-03验收。 |
 | M9-01 | MCP 概念 | TODO |  | notes/stage9/m9_01_mcp_concepts.md | 能用当前官方规范解释 host/client/server、capability、transport 与安全边界。 |
 | M9-02 | 本地 MCP Server | TODO |  | code/stage9/m9_02_local_mcp_server.py | 用官方 SDK 实现可发现、可审计且拒绝越权参数/路径的 STDIO server。 |
 | M9-03 | Agent 调 MCP | TODO |  | code/stage9/m9_03_agent_mcp_client.py | 真实调用 MCP 工具，并解释 STDIO/HTTP、认证、scope/audience 与失败反馈。 |

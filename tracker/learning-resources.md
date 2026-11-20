@@ -88,7 +88,7 @@
 
 R6-01 的当前官方入口（2026-09-05 已读对应正文）：[Document loaders 的 Interface](https://docs.langchain.com/oss/python/integrations/document_loaders#interface)、[Text splitter integrations](https://docs.langchain.com/oss/python/integrations/splitters)。只覆盖读入统一文档、按长度/结构切分、metadata 和文档生命周期；具体 PDF/Markdown 依赖在实际 Session 再按文件类型核验，不从整页集成清单批量安装。
 
-2026-09-08 当前 G3 采用 `langchain-community==0.4.2` 的 `TextLoader`（从 `langchain_community.document_loaders.text` 导入），配合 `langchain-core==1.6.1` 与 `langgraph==1.2.11`。已核验 [TextLoader 官方源码](https://github.com/langchain-ai/langchain-community/blob/main/libs/community/langchain_community/document_loaders/text.py)、[0.4.2 包信息](https://pypi.org/project/langchain-community/0.4.2/) 和 [community 停止维护公告](https://github.com/langchain-ai/langchain-community/issues/674)：这是仅用于当前教学 Markdown/TXT 的固定版本选择，不作为仍在维护的推荐依赖。助手实际验证 UTF-8 全文、Markdown 代码围栏/缩进、source 和缺文件失败行为；`pip check` 无冲突，core/graph 版本保持不变。这些是环境准备证据，不计用户实现 PASS。PDF 和上线前重新核验维护中的独立集成及迁移方案。
+2026-09-08 S2 用户明确要求 G3 改用官方 DoclingLoader，取代同日较早的 TextLoader 选择（历史依据保留在 daily）。当时依据为 [LangChain 官方 Docling 集成](https://docs.langchain.com/oss/python/integrations/document_loaders/docling)、[langchain-docling 3.0.0 发布](https://pypi.org/project/langchain-docling/3.0.0/)、[v3.0.0 Loader 源码](https://github.com/docling-project/docling-langchain/blob/v3.0.0/langchain_docling/loader.py) 和 [Docling 2.126.0 Markdown backend](https://github.com/docling-project/docling/blob/v2.126.0/docling/backend/md_backend.py)。G3 历史切片只看 file_path、export_type、load 与 source，固定 `langchain-docling[local]==3.0.0`、`docling-slim==2.126.0`、`docling-core==2.95.0`，保留 LangChain core 1.6.1/graph 1.2.11；当时使用 `ExportType.MARKDOWN` 整篇输出，没有 encoding 参数。该选择已由 9/9 用户授权的 `DOC_CHUNKS + HybridChunker` 替代，选型与历史实现依据见 [切分对照与选择](../code/stage6/engineering_docs_rag/chunking-comparison.md)、[9/9 原始证据](../daily/2026-09-09.md) 和 [9/10 G6 记录](../daily/2026-09-10.md)。保存与目录卡资料的实际选读范围、固定版本及已完成/待实现边界见 [10/20 S1](../daily/2026-10-20.md)，当前动手起点只读 [daily-plan](daily-plan.md)；不按旧整篇输出方案续学。来源、格式与依赖实测范围按这些记录区分；组件准备不计用户 PASS。
 
 [LangGraph Workflows and agents](https://docs.langchain.com/oss/python/langgraph/workflows-agents) 已于 2026-09-08 核验，用来校准固定流程与由模型决定步骤的区别；当前先把现成 Loader 放进最小图，后续在原图上增加处理、索引和查询节点。既有 G8-00 能力直接迁移，持久化/恢复仍按原依赖到 G8-01～03 学习，不能由一个读取节点提前判作已掌握。
 
@@ -112,7 +112,7 @@ R6-01 的当前官方入口（2026-09-05 已读对应正文）：[Document loade
 - 画出入口、核心 State/数据必须包含哪些字段与遵守哪些规则、主控制路径、错误边界和测试策略的源码地图。
 - 用自己的最小代码重建一个关键行为，再迁移到当前项目，并由测试或 trace 证明。
 - 写清一个采用的设计、一个拒绝的设计和拒绝原因。
-- 已归档仓库（包括 `rag-research-agent-template`）不作为维护中的推荐主线或未来 API 承诺。当前 TextLoader 仅按上文明确范围采用已安装、固定版本且实跑核验的教学切片；不能据此默认引入其他旧 community 组件，后续扩大格式或交付范围时重新选型。
+- 已归档仓库（包括 `rag-research-agent-template`）不作为维护中的推荐主线或未来 API 承诺。R6-01 当前教学使用上述 Docling 方案；另一个由助手实现的只读知识库问答演示仍使用 TextLoader，范围与版本见 [工作台说明](../code/agent_workbench/README.md)。演示选型不能据此扩成其他旧 community 组件的默认推荐，后续扩大格式或交付范围时重新核验。
 
 ## 五、视频清单（中文，按需补，不是主线）
 

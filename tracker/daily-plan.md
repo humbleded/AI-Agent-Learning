@@ -4,17 +4,19 @@
 
 2026-09-07 跨日规则校准：“今天”是兼容口令，指从当前任务接力，不表示每天新增一套练习。即时考察和正式练习共用任务覆盖目标，中途检查只评价已学部分，任务继续进行；完整学习/交付完成后才做整个任务验收。算法独立按 W 内容块累计，一块可包含多个知识单元，不按每日或每个小知识点重复分配，也不因跨 7 天追加旧题。具体口令分流见项目记忆，配额与排期分别以算法、弱点台账为准。
 
-最后校准：2026-09-08。
+最后校准：2026-11-01（复盘校准导航；最新Session记录仍为2026-10-20，现有代码增量待学习核验，不新增学习判定）。
 
 ## 当前执行入口
 
-- 当前技术入口：`R6-01` 为 `DOING`。2026-09-08 S1 的 `R6-01-G2` 合并续题已单题 PASS：用户指出已找到资料未进入模型上下文，并补齐问题、正文、来源、章节与版本。原 G1 为委托规划，不计证据；当前有效即时证据 1 个。已进入 G3 首份真实文件读取，`ingest.py` 仅为 TODO 骨架，等待用户实现；详见 `daily/2026-09-08.md`。
+- 当前任务与唯一接力：`R6-01` 仍为 `DOING`，Session证据截至 [2026-10-20 S1末段](../daily/2026-10-20.md)。11/1只读发现 `read_document_record` 已有读取实现，但尚无对应提交说明、帮助程度或执行验证记录；恢复学习时先核验现有实现，不要求重写。`prepare_document_records` 仍为TODO，准备节点未接图：下一步将真实片段按资料身份汇总为新目录卡，同时读取并保留旧目录卡，再接 `enrich_documents → prepare_document_records → store_documents`。准备阶段不写卡、不删除，首次旧卡为None正常，空片段不推断删除；代码已出现不等于该行为或任务已PASS。
+- 已有证据（10/20）：状态传递首答经讲解订正；用户在API示例后完成片段保存/按序读回/缺失报错及三节点接图，随后完成目录卡身份键和单条保存/读回。当天最后已执行回归为13项通过，帮助程度与原始结果见关联daily；它保护此前已实现行为，不代表新旧目录卡准备或完整生命周期已通过。后续仍需新旧关联汇总、更新清理、导入状态比较与整份删除；复用已有身份/hash、JSON及存取证据。
+- 历史证据索引（9/7–9/10）：G2独立解释、G3/G4提示后订正，G5长度/结构/接图及G6编号接入的原答与帮助记录继续保留；资料见 [9/7](../daily/2026-09-07.md)、[9/8](../daily/2026-09-08.md)、[9/9](../daily/2026-09-09.md)、[9/10](../daily/2026-09-10.md) 和项目chunking-comparison.md。9/9的128预算/7片、9/10的256预算/8项测试均属相应历史阶段；后续进展读取上方10/20入口，不回到旧保存TODO。
 - 恢复证据：`daily/2026-09-05.md` S2 的 `W5-ALG-R1` 已正式 PASS；`WP-27 / WP-29` 复测完成，恢复状态重算为 `NORMAL`，排期以 weak-points 为准。
 - 前置事实：`A4-Gate` 已于 2026-08-24 `PASS`，`G8-00` 已于 2026-09-05 `PASS`；本次算法复测只完成 W5 一个旧题席位，剩余 `DEBT 3` 由独立算法 Session 逐题补齐，不阻塞 R6-01。课程与岗位证据仍分开维护。
 - W6 岗位审计作为独立并行事项继续补齐。未形成恰好 10 条 `HARD_ELIGIBLE` 前仍是 `RETRY / INCOMPLETE`，不报告正式匹配率，但不把招聘页面/资格资料缺口作为技术学习的前置。
-- 下次课程动作：G3 继续使用现成 LangChain TextLoader + `START → load_documents → END` 的最小 LangGraph；`ingest.py` 仍仅有 TODO 骨架，等待用户实现。检查节点返回的 documents、真实全文及 source/title/version，并通过图入口执行；复用 G8-00 已 PASS 的状态/节点/边，不重考基础。当前 G3 固定 community 0.4.2/core 1.6.1/graph 1.2.11；维护限制与后续重新选型边界见项目设计及同日记录。本轮助手知识库演示不替代此题，G2 不再重复考察，算法仍独立补 W5 剩余新题。
-- 统一界面（2026-09-08 用户授权，助手搭建）：`code/agent_workbench/` 已提供 Vue + FastAPI 工作台，故障诊断真实连接 G8-00，工程文档页面等待 G3 返回资料。用户完成同一 `ingest.py` 的读取节点与 `build_ingest_graph()` 后，点击页面“通过工作流导入”观察自己的真实结果。工作台不新增用户能力 PASS，不改变当前单元和题量；启动见其 README，选型见 `resources/unified-workbench-review-2026-09-08.md`。
-- 本轮知识库交付（用户显式要求只读接入并由真实 Agent 检索）：助手在 `code/stage6/engineering_docs_rag/knowledge_agent.py` 实现现成 LangChain TextLoader/Splitter/BM25Retriever + ChatOpenAI DeepSeek 的显式 LangGraph 流程，现由 Home 统一进入 `/studio` 使用，旧 `/knowledge` 页面保留兼容且不继续扩展功能；最多 2 次搜索、每次最多 4 片段。实际运行筛选出 79 份文件、450 个片段，DeepSeek 自主生成两组搜索词，最终 6 条引用且原文打开成功；当前 API 测试 42 passed。模型一次返回多个工具调用时，整批校验参数与预算后串行执行，每个调用分别计数。详细执行证据由主实施者记录当前 daily；助手实现不计用户掌握或 R6-02/R6-03 PASS。
+- 历史G5→G6边界（9/10）：官方DoclingLoader(DOC_CHUNKS)+Hybrid取代旧切分链；页码、元素引用、片段编号与长代码边界各自按帮助程度记录。旧全文位置换算随迁移暂停而非通过，原切分学习记录保留；编号/保存的后续结果见10/20，不把历史待办当作当前起点。
+- 历史统一界面验证（9/8–9/9，用户授权助手搭建）：code/agent_workbench/ 已提供 Vue + FastAPI 工作台，故障诊断复用 G8-00。9 月 9 日当时 DoclingLoader(DOC_CHUNKS)+HybridChunker 已经后端8765与前端5173代理实测，导入HTTP 200、count=7，原生来源metadata完整；整份Markdown解析预览仍成功。当时为真实图/HTTP核查，未新增浏览器点击证据，助手适配及服务维护不计用户前后端能力PASS；历史3/9/10片按对应阶段保留在daily。
+- 历史知识库交付（9/8，用户显式要求只读接入并由真实 Agent 检索）：助手在 `code/stage6/engineering_docs_rag/knowledge_agent.py` 实现现成 LangChain TextLoader/Splitter/BM25Retriever + ChatOpenAI DeepSeek 的显式 LangGraph 流程，现由 Home 统一进入 `/studio` 使用，旧 `/knowledge` 页面保留兼容且不继续扩展功能；最多 2 次搜索、每次最多 4 片段。实际运行筛选出 79 份文件、450 个片段，DeepSeek 自主生成两组搜索词，最终 6 条引用且原文打开成功；当时 API 测试 42 passed。模型一次返回多个工具调用时，整批校验参数与预算后串行执行，每个调用分别计数。详细执行证据见9/8 daily；助手实现不计用户掌握或 R6-02/R6-03 PASS。
 - 界面接力（用户已明确三种全部采用）：任务指挥台、知识研究工作室、可视流程画布成为同一产品的三个工作模式，`/gallery` 是模式入口，共享同一知识库后端与当前浏览器页内查询。`/studio` 无 `layout` 时恢复上次模式，首次默认 `research`；显式 `layout=cockpit|research|canvas` 可切换并记住，模式偏好只存模式 ID 到 localStorage，问题、答案和资料不写浏览器 storage，刷新后问答仍清空。原型阶段的桌面与窄屏重排、真实问答、引用阅读、节点拖动/缩放/复位已验证，类型检查与生产构建通过。`/themes` 独立保留为附加配色设置。采用三个工作模式不代表全部未来业务已实现，课程与未启动功能的范围保持不变。
 - 知识库授权范围：只读 `D:/AI-Knowledge` 的 `02-Concepts`、`03-Courses`、`05-Papers`，排除 README/index.md 等指定索引、规则文件、隐藏/reparse 等项；89 个 Markdown 是含索引的原始盘点，精确允许文件数以 `GET /api/knowledge/status` 为准。问题及有限命中片段发送给 DeepSeek，原库未修改、不上传整库，个人 Memory/copilot/raw 等目录不参与；课程目录的计划/进度不能当学习证据。接口与边界见 [工作台 README](../code/agent_workbench/README.md) 和 [工程文档设计](../code/stage6/engineering_docs_rag/problem-contract.md)。
 
@@ -24,7 +26,7 @@
 
 ## 近期任务
 
-1. `R6-01`：沿用已授权场景和最小设计，承接已通过的资料输入链路解释，完成同一 G3 最小图并在工程文档页面核对正文/来源，再逐步连接处理、切分、多格式与文档生命周期。本轮知识库 Agent 由助手显式受托实现，后续 RAG 教学逐步复用、解释和整理该核心，不另造第三个独立平台；用户只为尚未证明的能力完成真实操作。其余未启动功能不提前创建实现。
+1. `R6-01`：沿用已授权场景和最小设计，当前动手起点以上方“当前执行入口”为准；复用输入链路、图、切分/来源位置及保存的已有证据，只补任务尚未覆盖的标准。已有知识库 Agent 由助手显式受托实现，后续 RAG 教学逐步复用、解释和整理该核心，不另造第三个独立平台；用户只为尚未证明的能力完成真实操作。其余未启动功能不提前创建实现。
 2. `BE5-01`：在同一份已运行的 RAG 代码上补项目分层、日志与测试；复用已有产物，分别验收。
 
 后续完整顺序、S-01/S-02/S-04/S-05/S-06 的挂载与收口条件统一见 [weekly-plan.md](weekly-plan.md)。若真实项目被未学工程事实阻塞，只即时补对应 B0/BE5 小切片，并核对前置，不扩成旁支。
@@ -33,7 +35,7 @@
 
 - [progress.md](progress.md)：课程完成状态；[任务标准](ai-agent-learning-tracker.md)：当前任务的资料、产物与通过标准。
 - [learning-resources.md](learning-resources.md)：本单元资料；[weak-points.md](weak-points.md)：恢复状态与复习排期；[algorithm-progress.md](algorithm-progress.md)：算法配额与债务。三个状态分别核对，不因路线调整自动扣减。
-- [工作台 README](../code/agent_workbench/README.md) 与 `code/stage6/engineering_docs_rag/knowledge_agent.py`：恢复本轮助手交付的只读查询、来源接口和已全部采用的三个工作模式，承接模式恢复、页内共享结果与刷新清空的规则；配色仅为辅助设置。区分这些产物与用户 `ingest.py` G3 的待实现证据，前端未来功能仍按真实任务接入。
+- [工作台 README](../code/agent_workbench/README.md) 与 `code/stage6/engineering_docs_rag/knowledge_agent.py`：恢复本轮助手交付的只读查询、来源接口和已全部采用的三个工作模式，承接模式恢复、页内共享结果与刷新清空的规则；配色仅为辅助设置。区分助手产物与用户 `ingest.py` G3 提示后订正通过的证据，前端未来功能仍按真实任务接入。
 - 当前任务全部关联 `daily/YYYY-MM-DD.md`：原始回答、已覆盖/未覆盖与下次起点；日期变化不重置证据。当前上下文仍在时只读增量，换会话时恢复完整任务证据。
 - [项目记忆](../AGENTS.md) 的“知识单元三步法”：统一维护预览、带读/动手、练习、正式检查、notes 和授权边界；本文件只给当前入口，不复制整套流程。
 

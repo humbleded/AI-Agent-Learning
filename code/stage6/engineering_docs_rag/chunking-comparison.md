@@ -1,10 +1,10 @@
 # 切分方案对照：采用 Docling HybridChunker
 
-检查日期：2026-09-09。本文保留当时的 128 与 256 token 对照及问答结果；当前导入图的预算由 [ingest.py](ingest.py) 的 `CHUNK_MAX_TOKENS` 指定，现为 256。本记录属于助手受托完成的工程对照，不是用户独立理解或 R6-01 正式 PASS。
+检查日期：2026-09-09。用户要求先对照测试、必要时替换，并以注释保留原有切分代码。本文保留当时的 128 与 256 token 对照及问答结果；当前导入图的预算由 [ingest.py](ingest.py) 的 `CHUNK_MAX_TOKENS` 指定，现为 256。本记录属于助手受托完成的工程对照，不是用户独立理解或 R6-01 正式 PASS。
 
 ## 决定与理由
 
-最终选择（同日补充真实问答对照后，用户再次明确授权助手决定）：使用官方 `DoclingLoader(export_type=ExportType.DOC_CHUNKS, chunker=HybridChunker(...))`，并在 LangGraph 中保留两个真实阶段：
+最终选择（同日补充真实问答对照后，用户再次明确授权助手决定）：使用官方 `DoclingLoader(export_type=ExportType.DOC_CHUNKS, chunker=HybridChunker(...))`，当时的 LangGraph 切分实验包含以下两个阶段：
 
 ```text
 START
